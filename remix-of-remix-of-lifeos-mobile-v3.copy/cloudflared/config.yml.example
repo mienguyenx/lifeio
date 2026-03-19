@@ -1,0 +1,11 @@
+tunnel: YOUR_TUNNEL_ID
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  # Route life.hoanong.com to LifeOS app
+  - hostname: life.hoanong.com
+    service: http://lifeos-app:80
+  
+  # Catch-all rule (must be last)
+  - service: http_status:404
+

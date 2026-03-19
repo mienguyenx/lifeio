@@ -1,0 +1,15 @@
+# Extension build files
+*.zip
+*.crx
+*.pem
+
+# Icons (nếu không commit)
+# icons/*.png
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (nếu có)
+node_modules/
+

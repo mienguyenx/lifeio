@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test CORS và Sync - LifeOS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test CORS và Sync - LifeOS</h1>
+
+    <div class="container">
+        <h2>1. Cấu hình</h2>
+        <label>Supabase URL:</label>
+        <input type="text" id="supabaseUrl" value="https://supabase.hoanong.com" placeholder="https://supabase.hoanong.com">
+        
+        <label>Supabase Anon Key:</label>
+        <input type="text" id="supabaseKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" placeholder="Your anon key">
+        
+        <label>Origin (Frontend URL):</label>
+        <input type="text" id="origin" value="https://life.hoanong.com" placeholder="https://life.hoanong.com">
+    </div>
+
+    <div class="container">
+        <h2>2. Test CORS Headers</h2>
+        <button onclick="testCORS()">Test CORS Headers</button>
+        <div id="corsResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>3. Test Connection</h2>
+        <button onclick="testConnection()">Test Supabase Connection</button>
+        <div id="connectionResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>4. Test Session</h2>
+        <button onclick="testSession()">Check Session</button>
+        <div id="sessionResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>5. Test RLS Policies</h2>
+        <label>User ID (từ session):</label>
+        <input type="text" id="userId" placeholder="Paste user ID here">
+        <button onclick="testRLS()">Test RLS Policies</button>
+        <div id="rlsResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>6. Test Sync (Learning Courses)</h2>
+        <button onclick="testSync()">Test Sync Learning Courses</button>
+        <div id="syncResult" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        function getConfig() {
+            return {
+                supabaseUrl: document.getElementById('supabaseUrl').value,
+                supabaseKey: document.getElementById('supabaseKey').value,
+                origin: document.getElementById('origin').value
+            };
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = message;
+        }
+
+        async function testCORS() {
+            const config = getConfig();
+            showResult('corsResult', 'Đang test CORS headers...', 'info');
+
+            try {
+                // Test OPTIONS request (preflight)
+                const response = await fetch(`${config.supabaseUrl}/rest/v1/`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': config.origin,
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type, Authorization, apikey, x-client-info'
+                    }
+                });
+
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                    'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials'),
+                    'Access-Control-Max-Age': response.headers.get('Access-Control-Max-Age')
+                };
+
+                let message = `CORS Headers Test Results:\n\n`;
+                message += `Status: ${response.status} ${response.statusText}\n\n`;
+                
+                let hasAllHeaders = true;
+                for (const [key, value] of Object.entries(corsHeaders)) {
+                    if (value) {
+                        message += `✅ ${key}: ${value}\n`;
+                    } else {
+                        message += `❌ ${key}: MISSING\n`;
+                        hasAllHeaders = false;
+                    }
+                }
+
+                if (hasAllHeaders) {
+                    message += `\n✅ Tất cả CORS headers đã có!\n`;
+                    showResult('corsResult', message, 'success');
+                } else {
+                    message += `\n⚠️ Thiếu một số CORS headers. Cần cấu hình thêm.\n`;
+                    showResult('corsResult', message, 'warning');
+                }
+            } catch (error) {
+                showResult('corsResult', `❌ Lỗi khi test CORS: ${error.message}\n\n${error.stack}`, 'error');
+            }
+        }
+
+        async function testConnection() {
+            const config = getConfig();
+            showResult('connectionResult', 'Đang test connection...', 'info');
+
+            try {
+                const response = await fetch(`${config.supabaseUrl}/rest/v1/`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': config.supabaseKey,
+                        'Authorization': `Bearer ${config.supabaseKey}`
+                    }
+                });
+
+                let message = `Connection Test Results:\n\n`;
+                message += `Status: ${response.status} ${response.statusText}\n`;
+                message += `URL: ${config.supabaseUrl}\n`;
+
+                if (response.ok) {
+                    message += `\n✅ Kết nối thành công!\n`;
+                    showResult('connectionResult', message, 'success');
+                } else {
+                    message += `\n⚠️ Kết nối được nhưng status code không OK\n`;
+                    showResult('connectionResult', message, 'warning');
+                }
+            } catch (error) {
+                showResult('connectionResult', `❌ Lỗi khi test connection: ${error.message}\n\n${error.stack}`, 'error');
+            }
+        }
+
+        async function testSession() {
+            const config = getConfig();
+            showResult('sessionResult', 'Đang kiểm tra session...', 'info');
+
+            try {
+                // Check localStorage
+                const sessionKey = 'external-supabase-auth-token';
+                const sessionStr = localStorage.getItem(sessionKey);
+                
+                let message = `Session Check Results:\n\n`;
+                
+                if (sessionStr) {
+                    try {
+                        const session = JSON.parse(sessionStr);
+                        message += `✅ Session found in localStorage:\n`;
+                        message += `  User ID: ${session.user?.id || 'N/A'}\n`;
+                        message += `  Email: ${session.user?.email || 'N/A'}\n`;
+                        message += `  Access Token: ${session.access_token?.substring(0, 20)}...\n`;
+                        message += `  Expires At: ${session.expires_at ? new Date(session.expires_at * 1000).toLocaleString() : 'N/A'}\n`;
+                        
+                        // Update userId input
+                        if (session.user?.id) {
+                            document.getElementById('userId').value = session.user.id;
+                        }
+                        
+                        showResult('sessionResult', message, 'success');
+                    } catch (e) {
+                        message += `⚠️ Session data không hợp lệ: ${e.message}\n`;
+                        showResult('sessionResult', message, 'warning');
+                    }
+                } else {
+                    message += `❌ Không tìm thấy session trong localStorage\n`;
+                    message += `Key: ${sessionKey}\n`;
+                    message += `\n💡 Hãy đăng nhập lại để tạo session.\n`;
+                    showResult('sessionResult', message, 'error');
+                }
+            } catch (error) {
+                showResult('sessionResult', `❌ Lỗi khi check session: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRLS() {
+            const config = getConfig();
+            const userId = document.getElementById('userId').value;
+            
+            if (!userId) {
+                showResult('rlsResult', '❌ Vui lòng nhập User ID hoặc check session trước', 'error');
+                return;
+            }
+
+            showResult('rlsResult', 'Đang test RLS policies...', 'info');
+
+            try {
+                // Get session token
+                const sessionKey = 'external-supabase-auth-token';
+                const sessionStr = localStorage.getItem(sessionKey);
+                
+                if (!sessionStr) {
+                    showResult('rlsResult', '❌ Không có session. Vui lòng đăng nhập trước.', 'error');
+                    return;
+                }
+
+                const session = JSON.parse(sessionStr);
+                const token = session.access_token;
+
+                // Test query learning_courses
+                const response = await fetch(`${config.supabaseUrl}/rest/v1/learning_courses?user_id=eq.${userId}&select=*`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': config.supabaseKey,
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                let message = `RLS Policies Test Results:\n\n`;
+                message += `User ID: ${userId}\n`;
+                message += `Status: ${response.status} ${response.statusText}\n`;
+
+                if (response.ok) {
+                    const data = await response.json();
+                    message += `\n✅ Query thành công!\n`;
+                    message += `Số lượng courses: ${data.length}\n`;
+                    
+                    if (data.length > 0) {
+                        message += `\nCourses:\n`;
+                        data.slice(0, 5).forEach((course, idx) => {
+                            message += `  ${idx + 1}. ${course.title} (ID: ${course.id})\n`;
+                        });
+                        if (data.length > 5) {
+                            message += `  ... và ${data.length - 5} courses khác\n`;
+                        }
+                    } else {
+                        message += `\n⚠️ Không có courses nào. Có thể:\n`;
+                        message += `  - Chưa có data\n`;
+                        message += `  - RLS policies chưa đúng\n`;
+                    }
+                    
+                    showResult('rlsResult', message, 'success');
+                } else {
+                    const errorText = await response.text();
+                    message += `\n❌ Query thất bại!\n`;
+                    message += `Error: ${errorText}\n`;
+                    showResult('rlsResult', message, 'error');
+                }
+            } catch (error) {
+                showResult('rlsResult', `❌ Lỗi khi test RLS: ${error.message}\n\n${error.stack}`, 'error');
+            }
+        }
+
+        async function testSync() {
+            const config = getConfig();
+            showResult('syncResult', 'Đang test sync...', 'info');
+
+            try {
+                // Get session token
+                const sessionKey = 'external-supabase-auth-token';
+                const sessionStr = localStorage.getItem(sessionKey);
+                
+                if (!sessionStr) {
+                    showResult('syncResult', '❌ Không có session. Vui lòng đăng nhập trước.', 'error');
+                    return;
+                }
+
+                const session = JSON.parse(sessionStr);
+                const token = session.access_token;
+                const userId = session.user?.id;
+
+                if (!userId) {
+                    showResult('syncResult', '❌ Không có user ID trong session.', 'error');
+                    return;
+                }
+
+                // Test insert a course
+                const testCourse = {
+                    id: `test-${Date.now()}`,
+                    user_id: userId,
+                    title: `Test Course ${new Date().toLocaleString()}`,
+                    description: 'This is a test course',
+                    category: 'test',
+                    total_lessons: 10,
+                    completed_lessons: 0,
+                    status: 'not_started',
+                    notes: null,
+                    started_at: null,
+                    completed_at: null
+                };
+
+                let message = `Sync Test Results:\n\n`;
+                message += `User ID: ${userId}\n`;
+                message += `Test Course: ${testCourse.title}\n\n`;
+
+                const response = await fetch(`${config.supabaseUrl}/rest/v1/learning_courses`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': config.supabaseKey,
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(testCourse)
+                });
+
+                message += `Status: ${response.status} ${response.statusText}\n`;
+
+                if (response.ok) {
+                    const data = await response.json();
+                    message += `\n✅ Sync thành công!\n`;
+                    message += `Course đã được tạo:\n`;
+                    message += `  ID: ${data[0]?.id || testCourse.id}\n`;
+                    message += `  Title: ${data[0]?.title || testCourse.title}\n`;
+                    
+                    showResult('syncResult', message, 'success');
+                } else {
+                    const errorText = await response.text();
+                    message += `\n❌ Sync thất bại!\n`;
+                    message += `Error: ${errorText}\n`;
+                    
+                    // Check if it's a CORS error
+                    if (errorText.includes('CORS') || errorText.includes('cors')) {
+                        message += `\n⚠️ Có vẻ như đây là lỗi CORS. Hãy kiểm tra CORS headers.\n`;
+                    }
+                    
+                    showResult('syncResult', message, 'error');
+                }
+            } catch (error) {
+                let message = `❌ Lỗi khi test sync: ${error.message}\n\n`;
+                
+                // Check if it's a CORS error
+                if (error.message.includes('CORS') || error.message.includes('cors') || error.message.includes('blocked')) {
+                    message += `⚠️ Đây có vẻ là lỗi CORS. Browser đã chặn request.\n`;
+                    message += `Hãy kiểm tra CORS headers ở Cloudflare hoặc Traefik.\n`;
+                }
+                
+                message += `\nStack trace:\n${error.stack}`;
+                showResult('syncResult', message, 'error');
+            }
+        }
+
+        // Auto-check session on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testSession();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
+

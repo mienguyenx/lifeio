@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* LifeOS 2.0 - Bold & Colorful Design System */
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 220 30% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 10%;
+
+    --primary: 250 95% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 220 30% 20%;
+
+    --muted: 220 15% 92%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 170 80% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 55% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 88%;
+    --input: 220 20% 88%;
+    --ring: 250 95% 60%;
+
+    --radius: 1rem;
+
+    /* 10 Life Area Colors - Bold & Vibrant */
+    --area-health: 0 85% 60%;
+    --area-relationships: 330 85% 60%;
+    --area-career: 250 85% 60%;
+    --area-finance: 45 95% 55%;
+    --area-personal: 280 75% 60%;
+    --area-fun: 20 95% 60%;
+    --area-environment: 170 80% 45%;
+    --area-spirituality: 200 90% 55%;
+    --area-learning: 145 70% 45%;
+    --area-contribution: 350 85% 55%;
+
+    /* Pomodoro Colors */
+    --pomodoro-work: 220 20% 55%;
+    --pomodoro-break: 145 70% 45%;
+    --pomodoro-long-break: 200 90% 55%;
+
+    /* Status Colors */
+    --success: 145 50% 40%;
+    --warning: 45 95% 55%;
+    --info: 200 90% 55%;
+
+    /* Streak Color */
+    --streak: 25 100% 55%;
+  }
+
+  .dark {
+    --background: 220 25% 8%;
+    --foreground: 220 15% 95%;
+
+    --card: 220 25% 12%;
+    --card-foreground: 220 15% 95%;
+
+    --popover: 220 25% 12%;
+    --popover-foreground: 220 15% 95%;
+
+    --primary: 250 90% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 220 15% 90%;
+
+    --muted: 220 20% 18%;
+    --muted-foreground: 220 10% 60%;
+
+    --accent: 170 75% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 50% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 20%;
+    --input: 220 20% 20%;
+    --ring: 250 90% 65%;
+
+    /* Life Area Colors - Slightly muted for dark mode */
+    --area-health: 0 80% 55%;
+    --area-relationships: 330 80% 55%;
+    --area-career: 250 80% 60%;
+    --area-finance: 45 90% 50%;
+    --area-personal: 280 70% 55%;
+    --area-fun: 20 90% 55%;
+    --area-environment: 170 75% 45%;
+    --area-spirituality: 200 85% 55%;
+    --area-learning: 145 65% 45%;
+    --area-contribution: 350 80% 50%;
+
+    /* Pomodoro Colors */
+    --pomodoro-work: 220 25% 50%;
+    --pomodoro-break: 145 65% 45%;
+    --pomodoro-long-break: 200 85% 55%;
+
+    /* Status Colors */
+    --success: 145 45% 38%;
+    --warning: 45 90% 50%;
+    --info: 200 85% 55%;
+
+    --streak: 25 95% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Mobile typography adjustments */
+  @media (max-width: 640px) {
+    body {
+      font-size: 15px;
+    }
+    
+    h1 {
+      @apply text-xl;
+    }
+    
+    h2 {
+      @apply text-lg;
+    }
+    
+    h3 {
+      @apply text-base;
+    }
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
+  /* Mobile optimized scrolling */
+  .scroll-smooth-mobile {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent text selection on interactive elements */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}

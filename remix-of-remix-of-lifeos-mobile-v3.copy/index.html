@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <title>LifeOS - Quản lý cuộc sống thông minh</title>
+    <meta name="description" content="LifeOS - Ứng dụng quản lý cuộc sống toàn diện với Habits, Tasks, Goals, Journal, Life Wheel và AI Coach" />
+    <meta name="author" content="LifeOS" />
+    <meta name="keywords" content="life os, quản lý cuộc sống, habits, tasks, goals, journal, pomodoro, productivity" />
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="LifeOS - Quản lý cuộc sống thông minh" />
+    <meta property="og:description" content="Ứng dụng quản lý cuộc sống toàn diện với Habits, Tasks, Goals, Journal và AI Coach" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:locale" content="vi_VN" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="LifeOS - Quản lý cuộc sống thông minh" />
+    <meta name="twitter:description" content="Ứng dụng quản lý cuộc sống toàn diện" />
+    <meta name="twitter:image" content="/og-image.png" />
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#8b5cf6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="LifeOS" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA DISABLED - Gọi lại để restore
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", async () => {
+          try {
+            const reg = await navigator.serviceWorker.register("/sw.js", {
+              updateViaCache: "none",
+            });
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: "SKIP_WAITING" });
+            }
+            reg.addEventListener("updatefound", () => {
+              const sw = reg.installing;
+              if (!sw) return;
+              sw.addEventListener("statechange", () => {
+                if (sw.state === "installed" && navigator.serviceWorker.controller) {
+                  sw.postMessage({ type: "SKIP_WAITING" });
+                }
+              });
+            });
+            navigator.serviceWorker.addEventListener("controllerchange", () => {
+              if (window.__lifeosSwReloaded) return;
+              window.__lifeosSwReloaded = true;
+              window.location.reload();
+            });
+          } catch {}
+        });
+      }
+    </script>
+    -->
+    
+    <!-- Unregister existing service workers -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then(r => r.forEach(sw => sw.unregister()));
+      }
+    </script>
+  </body>
+</html>

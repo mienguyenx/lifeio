@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>LifeOS - Offline</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --bg-primary: #0f0f23;
+      --bg-secondary: #1a1a2e;
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.7);
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --warning: #fbbf24;
+      --success: #22c55e;
+      --error: #ef4444;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      color: var(--text-primary);
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .container {
+      max-width: 420px;
+      width: 100%;
+    }
+    
+    .logo {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 24px;
+    }
+    
+    .icon-container {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 32px;
+      background: rgba(251, 191, 36, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+    }
+    
+    .icon-container svg {
+      width: 48px;
+      height: 48px;
+      stroke: var(--warning);
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .status-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    
+    .status-row:not(:last-child) {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .status-label {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    
+    .status-value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .status-dot.offline { background: var(--error); }
+    .status-dot.online { background: var(--success); }
+    .status-dot.pending { background: var(--warning); }
+    
+    .features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .feature-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 16px 12px;
+      text-align: center;
+    }
+    
+    .feature-card svg {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 8px;
+      stroke: var(--accent);
+    }
+    
+    .feature-card span {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .footer {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+    
+    .reconnecting {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--success);
+      margin-top: 16px;
+    }
+    
+    .reconnecting.show {
+      display: flex;
+    }
+    
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: var(--success);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Logo -->
+    <svg class="logo" viewBox="0 0 100 100" fill="none">
+      <circle cx="50" cy="50" r="45" stroke="#3b82f6" stroke-width="6"/>
+      <path d="M30 50 L45 65 L70 35" stroke="#3b82f6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    
+    <!-- Icon -->
+    <div class="icon-container">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+          d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414"/>
+      </svg>
+    </div>
+    
+    <!-- Title -->
+    <h1>Bạn đang offline</h1>
+    <p class="subtitle">
+      Không thể kết nối đến máy chủ. Đừng lo, ứng dụng sẽ tự động kết nối lại khi có mạng và đồng bộ dữ liệu của bạn.
+    </p>
+    
+    <!-- Status Card -->
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-label">Trạng thái mạng</span>
+        <span class="status-value">
+          <span class="status-dot" id="networkDot"></span>
+          <span id="networkStatus">Đang kiểm tra...</span>
+        </span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Dữ liệu local</span>
+        <span class="status-value">
+          <span class="status-dot online"></span>
+          <span>Đã lưu</span>
+        </span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Thay đổi chờ đồng bộ</span>
+        <span class="status-value">
+          <span class="status-dot pending"></span>
+          <span id="pendingCount">Đang kiểm tra...</span>
+        </span>
+      </div>
+    </div>
+    
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn-primary" onclick="tryReconnect()">
+        Thử kết nối lại
+      </button>
+      <button class="btn-secondary" onclick="goHome()">
+        Về trang chủ
+      </button>
+    </div>
+    
+    <!-- Features available offline -->
+    <div class="features">
+      <div class="feature-card">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        <span>Xem tasks đã lưu</span>
+      </div>
+      <div class="feature-card">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>Theo dõi habits</span>
+      </div>
+      <div class="feature-card">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        <span>Viết journal</span>
+      </div>
+      <div class="feature-card">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>Tự động sync</span>
+      </div>
+    </div>
+    
+    <!-- Reconnecting indicator -->
+    <div class="reconnecting" id="reconnecting">
+      <div class="spinner"></div>
+      <span>Đang kết nối lại...</span>
+    </div>
+    
+    <!-- Footer -->
+    <p class="footer">
+      LifeOS • Dữ liệu của bạn luôn được bảo vệ
+    </p>
+  </div>
+  
+  <script>
+    const networkDot = document.getElementById('networkDot');
+    const networkStatus = document.getElementById('networkStatus');
+    const pendingCount = document.getElementById('pendingCount');
+    const reconnecting = document.getElementById('reconnecting');
+    
+    // Check online status
+    function updateOnlineStatus() {
+      if (navigator.onLine) {
+        networkDot.className = 'status-dot online';
+        networkStatus.textContent = 'Đã kết nối';
+        reconnecting.classList.add('show');
+        
+        // Try to reload after a short delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        networkDot.className = 'status-dot offline';
+        networkStatus.textContent = 'Không có kết nối';
+        reconnecting.classList.remove('show');
+      }
+    }
+    
+    // Check pending sync count from IndexedDB
+    async function checkPendingSync() {
+      try {
+        if ('indexedDB' in window) {
+          const request = indexedDB.open('lifeos-offline', 1);
+          request.onsuccess = (event) => {
+            const db = event.target.result;
+            if (db.objectStoreNames.contains('syncQueue')) {
+              const transaction = db.transaction(['syncQueue'], 'readonly');
+              const store = transaction.objectStore('syncQueue');
+              const countRequest = store.count();
+              countRequest.onsuccess = () => {
+                const count = countRequest.result;
+                pendingCount.textContent = count > 0 ? `${count} mục` : 'Không có';
+              };
+            } else {
+              pendingCount.textContent = 'Không có';
+            }
+          };
+          request.onerror = () => {
+            pendingCount.textContent = 'Không xác định';
+          };
+        }
+      } catch (e) {
+        pendingCount.textContent = 'Không xác định';
+      }
+    }
+    
+    function tryReconnect() {
+      reconnecting.classList.add('show');
+      
+      // Try to fetch the main page
+      fetch('/', { cache: 'no-store' })
+        .then(response => {
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            throw new Error('Server not reachable');
+          }
+        })
+        .catch(() => {
+          reconnecting.classList.remove('show');
+          alert('Vẫn không thể kết nối. Vui lòng kiểm tra kết nối mạng của bạn.');
+        });
+    }
+    
+    function goHome() {
+      window.location.href = '/';
+    }
+    
+    // Event listeners
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    
+    // Initial check
+    updateOnlineStatus();
+    checkPendingSync();
+    
+    // Periodic check
+    setInterval(updateOnlineStatus, 5000);
+  </script>
+</body>
+</html>

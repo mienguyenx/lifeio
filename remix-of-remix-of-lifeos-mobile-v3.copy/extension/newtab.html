@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LifeOS</title>
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <h2>Đang tải LifeOS...</h2>
+    <p style="margin-top: 10px; opacity: 0.8;">Quản lý cuộc sống thông minh</p>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error" id="error">
+    <h3>⚠️ Không thể tải LifeOS</h3>
+    <p id="errorMessage">Vui lòng kiểm tra kết nối internet và thử lại.</p>
+    <button onclick="location.reload()">Tải lại</button>
+  </div>
+
+  <!-- Control Buttons -->
+  <div class="controls" id="controls">
+    <button class="control-btn" id="minimizeBtn" title="Thu nhỏ thành mobile view">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M9 9h6v6H9z"/>
+      </svg>
+    </button>
+    <button class="control-btn" id="maximizeBtn" title="Phóng to toàn màn hình" style="display: none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+      </svg>
+    </button>
+    <button class="control-btn" id="closeBtn" title="Đóng LifeOS">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- LifeOS Container -->
+  <div class="lifeos-wrapper" id="lifeosWrapper">
+    <div class="lifeos-container" id="lifeosContainer">
+      <iframe 
+        id="lifeos-iframe"
+        src="https://life.hoanong.com"
+        allow="camera; microphone; geolocation; payment; encrypted-media"
+        allowfullscreen
+        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+      ></iframe>
+    </div>
+  </div>
+
+  <script src="newtab.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Environment variables
+.env
+.env.local
+*.env
+
+# GitHub Token (nếu lưu trong file)
+*.token
+github_token.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large backup files
+*.zip
+*.tar.gz
+*.tar
+
+# Cursor
+.cursor/
+
+# Claude settings
+.claude/
+
