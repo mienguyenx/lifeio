@@ -1,22 +1,14 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-.venv
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
 
 # Environment variables
 .env
-.env.local
-*.env
-
-# GitHub Token (nếu lưu trong file)
-*.token
-github_token.txt
+.env.*
+!.env.example
 
 # IDE
 .vscode/
@@ -28,14 +20,24 @@ github_token.txt
 .DS_Store
 Thumbs.db
 
-# Large backup files
+# Cursor / Claude
+.cursor/
+.claude/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Vite temp files
+*.timestamp-*
+
+# Lockfiles (use npm only)
+bun.lockb
+
+# Workspace files
+*.code-workspace
+
+# Backups
 *.zip
 *.tar.gz
 *.tar
-
-# Cursor
-.cursor/
-
-# Claude settings
-.claude/
-

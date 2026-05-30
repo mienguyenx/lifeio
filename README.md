@@ -1,81 +1,66 @@
-# GitHub Repository Connector
+# LifeIO
 
-Script Python để kết nối GitHub và lấy thông tin repository từ GitHub của bạn.
+Personal life management platform — track habits, tasks, goals, journals, and more.
 
-## Cài đặt
+## Project Structure
 
-1. Cài đặt dependencies:
-```bash
-pip install -r requirements.txt
+```
+lifeio/
+├── web/              # Main web app (Vite + React + TypeScript + shadcn-ui)
+│   ├── src/          # Application source code
+│   ├── extension/    # Chrome extension
+│   ├── supabase/     # Supabase functions & migrations
+│   ├── Dockerfile    # Multi-stage Docker build (Node → nginx)
+│   └── docker-compose.yml
+└── mobile/           # Mobile app (Expo / React Native)
 ```
 
-## Sử dụng
+## Tech Stack
 
-### Cách 1: Sử dụng script Python
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend**: Supabase (PostgreSQL, Auth, Edge Functions)
+- **Deployment**: Docker, nginx, Coolify, Traefik, Cloudflare Tunnel
 
-Chạy script:
-```bash
-python github_connector.py
-```
+## Quick Start
 
-Script sẽ:
-- Hiển thị danh sách tất cả repository của bạn
-- Cho phép bạn chọn repository để clone
-
-### Cách 2: Thiết lập GitHub Token (Tùy chọn nhưng khuyến nghị)
-
-Để truy cập private repos và có rate limit cao hơn:
-
-1. Tạo Personal Access Token tại: https://github.com/settings/tokens
-   - Chọn scope: `repo` (để truy cập private repos)
-
-2. Thiết lập biến môi trường:
-   - Windows PowerShell:
-     ```powershell
-     $env:GITHUB_TOKEN="your_token_here"
-     ```
-   - Windows CMD:
-     ```cmd
-     set GITHUB_TOKEN=your_token_here
-     ```
-   - Linux/Mac:
-     ```bash
-     export GITHUB_TOKEN=your_token_here
-     ```
-
-### Cách 3: Clone repository trực tiếp
-
-Nếu bạn đã biết URL repository, có thể clone trực tiếp:
+### Web App (Local Development)
 
 ```bash
-git clone https://github.com/username/repo-name.git
+cd web
+cp env.example .env    # Configure your Supabase credentials
+npm install
+npm run dev            # http://localhost:3222
 ```
 
-Hoặc với SSH:
+### Docker Build
+
 ```bash
-git clone git@github.com:username/repo-name.git
+cd web
+docker build \
+  --build-arg VITE_SUPABASE_URL=https://your-project.supabase.co \
+  --build-arg VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key \
+  -t lifeos-app .
+docker run -p 80:80 lifeos-app
 ```
 
-## Ví dụ sử dụng trong code
+### Docker Compose (with Traefik + Cloudflare Tunnel)
 
-```python
-from github_connector import GitHubConnector
-
-# Khởi tạo connector
-connector = GitHubConnector(token="your_token_here")
-
-# Lấy danh sách repo của bạn
-repos = connector.get_user_repos()
-
-# Lấy thông tin một repo cụ thể
-repo_info = connector.get_repo_info("username", "repo-name")
-
-# Lấy URL để clone
-clone_url = connector.clone_repo_url(repo_info)
+```bash
+cd web
+cp env.example .env    # Fill in all values
+docker compose up -d
 ```
 
-## Lưu ý
+## Environment Variables
 
-- Không commit token vào git!
-- Token nên được lưu trong biến môi trường hoặc file `.env` (không commit file này)
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_SUPABASE_URL` | Yes | Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase anon/public key |
+| `VITE_GOOGLE_CLIENT_ID` | No | Google OAuth client ID |
+| `VITE_GOOGLE_API_KEY` | No | Google API key |
+| `CLOUDFLARE_TUNNEL_TOKEN` | No | Cloudflare Tunnel token (for docker-compose) |
 
+## License
+
+Private project.

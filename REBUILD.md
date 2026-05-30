@@ -1,1 +1,0 @@
-cd remix-of-remix-of-lifeos-mobile-v3.copy; docker-compose up -d --force-recreate lifeos-app

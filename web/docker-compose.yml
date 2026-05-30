@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # LifeOS Application
+  lifeos-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_GOOGLE_API_KEY: ${VITE_GOOGLE_API_KEY}
+    container_name: lifeos-app
+    restart: unless-stopped
+    networks:
+      - traefik
+    labels:
+      # Traefik configuration
+      - "traefik.enable=true"
+      - "traefik.docker.network=affine_traefik-network"
+      
+      # HTTP Router - Cloudflare với domain life.hoanong.com
+      # Sử dụng entrypoint 'web' vì Cloudflare Tunnel đã xử lý SSL
+      - "traefik.http.routers.lifeos.rule=Host(`life.hoanong.com`)"
+      - "traefik.http.routers.lifeos.entrypoints=web"
+      - "traefik.http.routers.lifeos.service=lifeos"
+      
+      # Service
+      - "traefik.http.services.lifeos.loadbalancer.server.port=80"
+      
+      # Middleware - Cloudflare headers (optional)
+      - "traefik.http.routers.lifeos.middlewares=lifeos-headers"
+      - "traefik.http.middlewares.lifeos-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.lifeos-headers.headers.customrequestheaders.X-Forwarded-Port=443"
+    
+    # Expose port (optional, for direct access)
+    # Commented out vì sử dụng Cloudflare Tunnel, không cần expose port trực tiếp
+    # Nếu cần truy cập trực tiếp, uncomment và đổi port nếu bị conflict
+    # ports:
+    #   - "3222:80"
+
+  # Supabase Same-Origin Proxy - Route /supabase/* sang Supabase Kong
+  # Giải pháp loại bỏ hoàn toàn CORS bằng cách dùng cùng origin
+  supabase-proxy:
+    image: nginx:alpine
+    container_name: supabase-proxy
+    restart: unless-stopped
+    networks:
+      - traefik
+    volumes:
+      - ./supabase-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=affine_traefik-network"
+      
+      # Route /supabase/* trên life.hoanong.com
+      - "traefik.http.routers.supabase-api.rule=Host(`life.hoanong.com`) && PathPrefix(`/supabase`)"
+      - "traefik.http.routers.supabase-api.entrypoints=web"
+      - "traefik.http.routers.supabase-api.service=supabase-proxy"
+      - "traefik.http.routers.supabase-api.middlewares=supabase-stripprefix"
+      
+      # Middleware để strip prefix /supabase trước khi forward
+      - "traefik.http.middlewares.supabase-stripprefix.stripprefix.prefixes=/supabase"
+      
+      # Service pointing to nginx proxy
+      - "traefik.http.services.supabase-proxy.loadbalancer.server.port=80"
+    
+    # Giữ supabase-cors-proxy cho supabase.hoanong.com (nếu cần Supabase Studio)
+    # Có thể xóa nếu không cần truy cập Studio từ bên ngoài
+  
+  # Supabase CORS Proxy - Giữ lại cho supabase.hoanong.com (Supabase Studio)
+  # Có thể xóa nếu không cần truy cập Studio từ bên ngoài
+  supabase-cors-proxy:
+    build:
+      context: ./supabase-cors-proxy
+      dockerfile: Dockerfile
+    container_name: supabase-cors-proxy
+    restart: unless-stopped
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=affine_traefik-network"
+      - "traefik.http.routers.supabase-studio.rule=Host(`supabase.hoanong.com`)"
+      - "traefik.http.routers.supabase-studio.entrypoints=web"
+      - "traefik.http.routers.supabase-studio.service=supabase"
+      - "traefik.http.services.supabase.loadbalancer.server.port=80"
+    depends_on:
+      - lifeos-app
+
+  # Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-lifeos
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - lifeos-app
+      - supabase-proxy
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
+    name: affine_traefik-network  # Thay đổi theo network của Traefik bạn đang dùng
+
