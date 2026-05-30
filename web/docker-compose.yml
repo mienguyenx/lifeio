@@ -40,6 +40,30 @@ services:
     # ports:
     #   - "3222:80"
 
+  # LifeOS API Backend
+  lifeos-api:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    container_name: lifeos-api
+    restart: unless-stopped
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+      - PORT=3001
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - RATE_LIMIT=${RATE_LIMIT:-100}
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=affine_traefik-network"
+      - "traefik.http.routers.lifeos-api.rule=Host(`life.hoanong.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.lifeos-api.entrypoints=web"
+      - "traefik.http.routers.lifeos-api.service=lifeos-api"
+      - "traefik.http.services.lifeos-api.loadbalancer.server.port=3001"
+
   # Supabase Same-Origin Proxy - Route /supabase/* sang Supabase Kong
   # Giải pháp loại bỏ hoàn toàn CORS bằng cách dùng cùng origin
   supabase-proxy:
