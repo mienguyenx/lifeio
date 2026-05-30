@@ -201,7 +201,7 @@ export default function AdminLayout() {
   const toggleCollapse = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev;
-      try { localStorage.setItem('admin-sidebar-collapsed', String(next)); } catch {}
+      try { localStorage.setItem('admin-sidebar-collapsed', String(next)); } catch { /* ignore storage errors */ }
       return next;
     });
   }, []);

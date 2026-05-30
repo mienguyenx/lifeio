@@ -214,7 +214,7 @@ const loadGlobalMessages = (): Message[] => {
 };
 
 let globalMessages: Message[] = loadGlobalMessages();
-let globalListeners: Set<(messages: Message[]) => void> = new Set();
+const globalListeners: Set<(messages: Message[]) => void> = new Set();
 
 const notifyListeners = (messages: Message[]) => {
   globalMessages = messages;
@@ -381,7 +381,7 @@ export function useAICoachState() {
   }, [habits, tasks, goals, journalEntries, lifeWheelScores, weeklyReviews, user, moduleConfig, location.pathname, todayStr]);
 
   // Fallback AI response when Edge Function is not available
-  const useFallbackAIResponse = useCallback(async (messages: Message[], context: any) => {
+  const handleFallbackAIResponse = useCallback(async (messages: Message[], context: any) => {
     const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
     const moduleName = moduleConfig.name;
     
@@ -466,7 +466,7 @@ export function useAICoachState() {
       } catch (fetchError) {
         // Network error - use fallback
         console.warn('AI Coach Edge Function not available, using fallback:', fetchError);
-        await useFallbackAIResponse(newMessages, buildModuleContext());
+        await handleFallbackAIResponse(newMessages, buildModuleContext());
         return;
       }
 
@@ -492,7 +492,7 @@ export function useAICoachState() {
         if (response.status === 404) {
           // Edge Function not deployed - use fallback
           console.warn('AI Coach Edge Function not deployed, using fallback');
-          await useFallbackAIResponse(newMessages, buildModuleContext());
+          await handleFallbackAIResponse(newMessages, buildModuleContext());
           return;
         } else if (response.status === 401 || response.status === 403) {
           errorMessage = 'Bạn cần đăng nhập để sử dụng AI Coach.';
@@ -503,7 +503,7 @@ export function useAICoachState() {
         } else if (errorDetails.includes('Function not found') || errorDetails.includes('not found')) {
           // Edge Function not found - use fallback
           console.warn('AI Coach Edge Function not found, using fallback');
-          await useFallbackAIResponse(newMessages, buildModuleContext());
+          await handleFallbackAIResponse(newMessages, buildModuleContext());
           return;
         } else if (errorDetails) {
           errorMessage = errorDetails;
@@ -512,7 +512,7 @@ export function useAICoachState() {
         // Use fallback for 404 or Function not found
         if (response.status === 404 || errorDetails.includes('Function not found') || errorDetails.includes('not found')) {
           console.warn('AI Coach Edge Function not available, using fallback');
-          await useFallbackAIResponse(newMessages, buildModuleContext());
+          await handleFallbackAIResponse(newMessages, buildModuleContext());
           return;
         }
         

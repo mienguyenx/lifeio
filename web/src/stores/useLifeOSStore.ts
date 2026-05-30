@@ -254,7 +254,7 @@ export const useLifeOSStore = create<LifeOSStore>()(
       // Helper function to calculate goal progress from linked tasks and habits
       toggleHabitCompletion: (id, date, note) =>
         set((state) => {
-          let newHabits = state.habits.map((h) => {
+          const newHabits = state.habits.map((h) => {
             if (h.id !== id) return h;
             
             // Kiểm tra completion dựa trên count, không chỉ completedDates
@@ -354,7 +354,7 @@ export const useLifeOSStore = create<LifeOSStore>()(
           habits: state.habits.map((h) => {
             if (h.id !== id) return h;
             
-            let newCompletions = [...(h.completions || [])];
+            const newCompletions = [...(h.completions || [])];
             const existingIndex = newCompletions.findIndex(c => c.date === date);
             
             if (existingIndex >= 0) {
@@ -510,7 +510,7 @@ export const useLifeOSStore = create<LifeOSStore>()(
           // Auto-create next recurring task when marked as done
           if (task && updates.status === 'done' && task.recurring && task.dueDate) {
             const currentDue = new Date(task.dueDate);
-            let nextDue = new Date(currentDue);
+            const nextDue = new Date(currentDue);
             
             switch (task.recurring.frequency) {
               case 'daily':

@@ -297,7 +297,7 @@ export function DatabaseStatusCard() {
         try {
           const logData = JSON.parse(e.newValue || '{}');
           addSyncLog(logData.action, logData.entity, logData.status, logData.message);
-        } catch {}
+        } catch { /* ignore parse errors */ }
       }
     };
 

@@ -56,7 +56,7 @@ export async function getDB(): Promise<IDBPDatabase<LifeOSDB>> {
     try {
       const tx = dbInstance.transaction('store', 'readwrite');
       const store = tx.objectStore('store');
-      let cursor = await store.openCursor();
+      const cursor = await store.openCursor();
       
       if (cursor) {
         let migrated = false;

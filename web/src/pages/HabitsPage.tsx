@@ -228,7 +228,7 @@ export default function HabitsPage() {
         case 'completion':
           comparison = getCompletionRate(a) - getCompletionRate(b);
           break;
-        case 'created':
+        case 'created': {
           const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           if (isNaN(aTime) || isNaN(bTime)) {
@@ -237,6 +237,7 @@ export default function HabitsPage() {
             comparison = aTime - bTime;
           }
           break;
+        }
         case 'area':
           comparison = a.area.localeCompare(b.area);
           break;

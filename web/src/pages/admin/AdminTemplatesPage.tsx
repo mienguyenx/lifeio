@@ -55,17 +55,7 @@ const typeConfig = {
 };
 
 export default function AdminTemplatesPage({ type }: AdminTemplatesPageProps) {
-  // Validate type
-  if (!typeConfig[type]) {
-    return (
-      <div className="p-6">
-        <div className="text-red-500">Invalid template type: {type}</div>
-      </div>
-    );
-  }
-  
   const config = typeConfig[type];
-  const Icon = config.icon;
   
   const { data: templates = [], isLoading } = useAdminTemplates(type);
   const updateTemplate = useUpdateTemplate();
@@ -86,6 +76,16 @@ export default function AdminTemplatesPage({ type }: AdminTemplatesPageProps) {
     description: '',
     content: {} as Record<string, unknown>,
   });
+
+  if (!config) {
+    return (
+      <div className="p-6">
+        <div className="text-red-500">Invalid template type: {type}</div>
+      </div>
+    );
+  }
+  
+  const Icon = config.icon;
 
   const handleToggle = (id: string, isActive: boolean) => {
     updateTemplate.mutate({ id, is_active: !isActive });

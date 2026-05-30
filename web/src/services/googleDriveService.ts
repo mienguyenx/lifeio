@@ -15,8 +15,6 @@ const STORAGE_EXPIRY_KEY = 'google_drive_token_expiry';
 
 let gisLoaded = false;
 let accessToken: string | null = null;
-let currentUserId: string | null = null;
-
 // Get current user ID
 async function getCurrentUserId(): Promise<string | null> {
   try {

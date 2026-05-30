@@ -18,7 +18,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    let systemPrompt = `Bạn là một AI Life Coach chuyên giúp người dùng cải thiện cuộc sống. 
+    const systemPrompt = `Bạn là một AI Life Coach chuyên giúp người dùng cải thiện cuộc sống. 
 Bạn đưa ra gợi ý CỤ THỂ và CÓ THỂ HÀNH ĐỘNG NGAY.
 
 Trả về JSON với format:

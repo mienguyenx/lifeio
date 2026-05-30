@@ -24,7 +24,7 @@ const DEFAULT_BRANDING: BrandingConfig = {
 };
 
 let cachedBranding: BrandingConfig | null = null;
-let listeners: Set<(b: BrandingConfig) => void> = new Set();
+const listeners: Set<(b: BrandingConfig) => void> = new Set();
 
 function notifyAll(b: BrandingConfig) {
   cachedBranding = b;

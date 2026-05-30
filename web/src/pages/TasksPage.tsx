@@ -272,10 +272,11 @@ export default function TasksPage() {
         case 'position':
           comparison = (a.position ?? 0) - (b.position ?? 0);
           break;
-        case 'priority':
+        case 'priority': {
           const priorityOrder = { high: 0, medium: 1, low: 2 };
           comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
           break;
+        }
         case 'dueDate':
           if (!a.dueDate && !b.dueDate) comparison = 0;
           else if (!a.dueDate) comparison = 1;
