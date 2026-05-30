@@ -2,32 +2,39 @@ node_modules
 dist
 .git
 .gitignore
-.env
-.env.local
-.env.production
-.env.development
 *.log
 .DS_Store
 .vscode
 .idea
-coverage
-.nyc_output
 *.swp
 *.swo
-*~
+
+# Environment
+.env
+.env.*
 
 # Documentation
-README.md
-README_LOCAL.md
-QUICK_START_LOCAL.md
-SETUP_LOCAL_SUPABASE.md
-DEPLOY.md
+*.md
+!README.md
 
-# Scripts
-scripts/
-check-supabase.js
+# Supabase (not needed in web image)
+supabase/
 
-# Supabase local
-supabase/.branches
-supabase/.temp
+# Extension (separate build)
+extension/
 
+# SQL scripts
+*.sql
+
+# Docker configs (avoid recursive build context)
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Misc
+*.timestamp-*
+bun.lockb
+*.code-workspace
+cloudflared/
+supabase-proxy/
+supabase-cors-proxy/
