@@ -48,8 +48,7 @@ export function ProviderCard({ provider, keyCount, modelCount, onSelect, onToggl
           </div>
           <Switch
             checked={provider.is_active}
-            onCheckedChange={(e) => {
-              e; // prevent card click
+            onCheckedChange={() => {
               onToggle(provider);
             }}
             onClick={(e) => e.stopPropagation()}

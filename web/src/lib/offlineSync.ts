@@ -177,7 +177,7 @@ export async function registerBackgroundSync(): Promise<void> {
   if ('serviceWorker' in navigator && 'sync' in ServiceWorkerRegistration.prototype) {
     try {
       const registration = await navigator.serviceWorker.ready;
-      // @ts-ignore - BackgroundSync API
+      // @ts-expect-error BackgroundSync API not in standard typings
       await registration.sync.register('lifeos-sync');
       console.log('Background sync registered');
     } catch (error) {
