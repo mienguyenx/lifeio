@@ -5,9 +5,11 @@ import swaggerUi from '@fastify/swagger-ui';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { env } from './env';
 import { HttpError } from './lib/errors';
+import { loadColumnCache } from './lib/columnCache';
 import authPlugin from './plugins/auth';
 import agentTokenRoutes from './routes/agentTokens';
 import authRoutes from './routes/auth';
+import dataGatewayRoutes from './routes/dataGateway';
 import goalRoutes from './routes/goals';
 import habitRoutes from './routes/habits';
 import healthRoutes from './routes/health';
@@ -65,11 +67,14 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await app.register(authPlugin);
 
+  await loadColumnCache();
+
   await app.register(
     async (api) => {
       await api.register(healthRoutes);
       await api.register(authRoutes);
       await api.register(agentTokenRoutes);
+      await api.register(dataGatewayRoutes);
       await api.register(profileRoutes);
       await api.register(taskRoutes);
       await api.register(habitRoutes);
