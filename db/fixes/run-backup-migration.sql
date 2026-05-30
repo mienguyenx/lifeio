@@ -149,7 +149,7 @@ CREATE TRIGGER backup_settings_updated_at
 INSERT INTO public.backup_settings (key, value, description, is_enabled) VALUES
   ('google_drive_enabled', '{"enabled": true}', 'Enable Google Drive backup feature', true),
   ('google_drive_client_id', '{"value": "977885052084-qveo8i7crckfrrg2br5kv4c3cet9o71e.apps.googleusercontent.com"}', 'Google Drive Client ID', true),
-  ('google_drive_api_key', '{"value": "AIzaSyB9LW5D_6dZ7eZoIvWfb6lvLND1ZaTgHzQ"}', 'Google Drive API Key', true),
+  ('google_drive_api_key', '{"value": "REDACTED_GOOGLE_API_KEY"}', 'Google Drive API Key', true),
   ('backup_frequency', '{"frequency": "daily"}', 'Default backup frequency', true),
   ('auto_backup_enabled', '{"enabled": false}', 'Enable automatic backups', false),
   ('backup_retention_days', '{"days": 30}', 'Number of days to keep backups', true)

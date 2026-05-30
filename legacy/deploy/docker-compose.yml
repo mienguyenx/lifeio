@@ -9,10 +9,10 @@ services:
       args:
         # Sử dụng Same-Origin Reverse Proxy để loại bỏ hoàn toàn CORS
         # URL: https://life.hoanong.com/supabase -> http://supabase_kong_Supabase:8000 (cùng origin, không CORS)
-        VITE_SUPABASE_URL: https://life.hoanong.com/supabase
-        VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-        VITE_GOOGLE_CLIENT_ID: 977885052084-qveo8i7crckfrrg2br5kv4c3cet9o71e.apps.googleusercontent.com
-        VITE_GOOGLE_API_KEY: AIzaSyB9LW5D_6dZ7eZoIvWfb6lvLND1ZaTgHzQ
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_GOOGLE_API_KEY: ${VITE_GOOGLE_API_KEY}
     container_name: lifeos-app
     restart: unless-stopped
     networks:

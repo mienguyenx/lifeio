@@ -1,81 +1,51 @@
-# GitHub Repository Connector
+# LifeOS
 
-Script Python để kết nối GitHub và lấy thông tin repository từ GitHub của bạn.
+Ứng dụng quản lý cuộc sống cá nhân (life management) gồm web app, browser extension và backend API. Repo đang trong quá trình chuyển từ kiến trúc cũ (Supabase local + Cloudflare Tunnel + Traefik) sang **PostgreSQL + API riêng**, build Docker image bằng **GitHub Actions** và deploy lên **Coolify**.
 
-## Cài đặt
+## Cấu trúc repo
 
-1. Cài đặt dependencies:
-```bash
-pip install -r requirements.txt
+```
+.
+├── frontend/      # Web app (Vite + React + TypeScript + shadcn/ui + Tailwind)
+├── extension/     # Chrome extension (MV3): side panel, new tab, widget, content script
+├── mobile/        # Mobile app (Expo / React Native) — track riêng
+├── db/            # Cơ sở dữ liệu
+│   ├── schema/    #   Lịch sử schema (migrations gốc, nguồn để port sang Postgres mới)
+│   ├── seed/      #   Dữ liệu mẫu / seed (templates, AI models, translations...)
+│   ├── fixes/     #   Script SQL vá/bảo trì thủ công trước đây
+│   └── backups/   #   Bản dump DB cũ (nguồn để migrate dữ liệu)
+├── docs/          # Tài liệu
+│   └── archive/   #   Báo cáo/ghi chú debug & fix cũ (lưu trữ)
+├── legacy/        # Thành phần sẽ loại bỏ dần sau khi migrate xong
+│   ├── deploy/    #   docker-compose, proxy Supabase, Cloudflare, Vercel cũ
+│   ├── edge-functions/  # Supabase Edge Functions (sẽ port thành API endpoint)
+│   ├── supabase/  #   config.toml của Supabase cũ
+│   └── dev-tests/ #   Script test/debug rời
+└── scripts/       # Script tiện ích (.ps1/.sh) — chủ yếu cho môi trường local cũ
 ```
 
-## Sử dụng
-
-### Cách 1: Sử dụng script Python
-
-Chạy script:
-```bash
-python github_connector.py
-```
-
-Script sẽ:
-- Hiển thị danh sách tất cả repository của bạn
-- Cho phép bạn chọn repository để clone
-
-### Cách 2: Thiết lập GitHub Token (Tùy chọn nhưng khuyến nghị)
-
-Để truy cập private repos và có rate limit cao hơn:
-
-1. Tạo Personal Access Token tại: https://github.com/settings/tokens
-   - Chọn scope: `repo` (để truy cập private repos)
-
-2. Thiết lập biến môi trường:
-   - Windows PowerShell:
-     ```powershell
-     $env:GITHUB_TOKEN="your_token_here"
-     ```
-   - Windows CMD:
-     ```cmd
-     set GITHUB_TOKEN=your_token_here
-     ```
-   - Linux/Mac:
-     ```bash
-     export GITHUB_TOKEN=your_token_here
-     ```
-
-### Cách 3: Clone repository trực tiếp
-
-Nếu bạn đã biết URL repository, có thể clone trực tiếp:
+## Frontend
 
 ```bash
-git clone https://github.com/username/repo-name.git
+cd frontend
+npm install
+cp .env.example .env   # điền VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY (tạm thời)
+npm run dev            # chạy dev server
+npm run build          # build production -> dist/
+npm run lint
 ```
 
-Hoặc với SSH:
-```bash
-git clone git@github.com:username/repo-name.git
-```
+Frontend đọc cấu hình backend qua biến môi trường `VITE_*` lúc build (xem `frontend/.env.example`).
 
-## Ví dụ sử dụng trong code
+## Lộ trình tái kiến trúc (đang thực hiện)
 
-```python
-from github_connector import GitHubConnector
+1. **Phase 0 — Cleanup & restructure** (PR hiện tại): dọn repo, gom tài liệu/script, tách `frontend`/`extension`/`db`/`legacy`, không đổi logic app.
+2. **Phase 1 — Backend**: PostgreSQL + API riêng (auth JWT, CRUD, API key cho AI agent).
+3. **Phase 2 — Frontend data layer**: thay client Supabase bằng SDK gọi API mới.
+4. **Phase 3 — AI endpoints**: port các Edge Function trong `legacy/edge-functions/`.
+5. **Phase 4 — Extension**: trỏ extension sang API mới.
+6. **Phase 5 — Build & Deploy**: Docker image qua GitHub Actions (GHCR) → Coolify, migrate dữ liệu cũ.
 
-# Khởi tạo connector
-connector = GitHubConnector(token="your_token_here")
+## ⚠️ Bảo mật
 
-# Lấy danh sách repo của bạn
-repos = connector.get_user_repos()
-
-# Lấy thông tin một repo cụ thể
-repo_info = connector.get_repo_info("username", "repo-name")
-
-# Lấy URL để clone
-clone_url = connector.clone_repo_url(repo_info)
-```
-
-## Lưu ý
-
-- Không commit token vào git!
-- Token nên được lưu trong biến môi trường hoặc file `.env` (không commit file này)
-
+Một số secret từng được commit (Google API key, Cloudflare Tunnel token) đã được gỡ khỏi các file cấu hình hiện tại nhưng **vẫn còn trong git history và trong bản dump `db/backups/`**. Hãy **rotate (thu hồi & tạo mới)** các secret này.
