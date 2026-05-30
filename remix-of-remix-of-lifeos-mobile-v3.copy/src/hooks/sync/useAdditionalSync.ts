@@ -4,7 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSyncQueue } from './useSyncQueue';
 import type { 
-  LifeWheelScore, WeeklyReview, DailyIntention, PomodoroSession,
+  LifeWheelScore, WeeklyReview, MonthlyReview, YearlyPlanning, YearlyReview,
+  DailyIntention, PomodoroSession,
   JournalTag, NoteTag, ChatMessage
 } from '@/types/lifeos';
 import type { Database } from '@/integrations/supabase/types';
@@ -16,6 +17,9 @@ type PomodoroSessionRow = Database['public']['Tables']['pomodoro_sessions']['Row
 type JournalTagRow = Database['public']['Tables']['journal_tags']['Row'];
 type NoteTagRow = Database['public']['Tables']['note_tags']['Row'];
 type ChatMessageRow = Database['public']['Tables']['chat_messages']['Row'];
+type MonthlyReviewRow = Database['public']['Tables']['monthly_reviews']['Row'];
+type YearlyPlanningRow = Database['public']['Tables']['yearly_plannings']['Row'];
+type YearlyReviewRow = Database['public']['Tables']['yearly_reviews']['Row'];
 
 // Transform functions
 function transformLifeWheelFromDB(row: LifeWheelScoreRow): LifeWheelScore {
@@ -208,6 +212,148 @@ export function useAdditionalSync() {
       console.error('Error deleting weekly review:', error);
       return false;
     }
+  }, [user]);
+
+  // ==================== MONTHLY REVIEWS ====================
+  const loadMonthlyReviews = useCallback(async (): Promise<MonthlyReview[]> => {
+    if (!user) return [];
+    try {
+      const { data, error } = await supabase.from('monthly_reviews').select('*').eq('user_id', user.id).order('month', { ascending: false });
+      if (error) throw error;
+      return (data || []).map((row: MonthlyReviewRow): MonthlyReview => ({
+        id: row.id, month: row.month, wins: row.wins || [], challenges: row.challenges || [],
+        lessonsLearned: row.lessons_learned || [], nextMonthFocus: row.next_month_focus || [],
+        overallRating: (row.overall_rating || 3) as 1|2|3|4|5,
+        areaRatings: row.area_ratings as Record<string, number> || undefined,
+        gratitude: row.gratitude || undefined, highlight: row.highlight || undefined,
+        lowlight: row.lowlight || undefined, stats: row.stats as any || undefined,
+        createdAt: row.created_at || new Date().toISOString(),
+      }));
+    } catch (error) { console.error('Error loading monthly reviews:', error); return []; }
+  }, [user]);
+
+  const saveMonthlyReview = useCallback(async (review: MonthlyReview): Promise<boolean> => {
+    if (!user) return false;
+    const data = {
+      id: review.id, user_id: user.id, month: review.month,
+      wins: review.wins || [], challenges: review.challenges || [],
+      lessons_learned: review.lessonsLearned || [], next_month_focus: review.nextMonthFocus || [],
+      overall_rating: review.overallRating || 3,
+      area_ratings: review.areaRatings || null, gratitude: review.gratitude || null,
+      highlight: review.highlight || null, lowlight: review.lowlight || null,
+      stats: review.stats || null,
+    };
+    if (!isOnline) { await queueChange('create', 'monthly_reviews', review.id, data); return true; }
+    try {
+      const { error } = await supabase.from('monthly_reviews').upsert(data);
+      if (error) throw error; return true;
+    } catch (error) {
+      console.error('Error saving monthly review:', error);
+      await queueChange('create', 'monthly_reviews', review.id, data); return false;
+    }
+  }, [user, isOnline, queueChange]);
+
+  const deleteMonthlyReview = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const { error } = await supabase.from('monthly_reviews').delete().eq('id', id).eq('user_id', user.id);
+      if (error) throw error; return true;
+    } catch (error) { console.error('Error deleting monthly review:', error); return false; }
+  }, [user]);
+
+  // ==================== YEARLY PLANNINGS ====================
+  const loadYearlyPlannings = useCallback(async (): Promise<YearlyPlanning[]> => {
+    if (!user) return [];
+    try {
+      const { data, error } = await supabase.from('yearly_plannings').select('*').eq('user_id', user.id).order('year', { ascending: false });
+      if (error) throw error;
+      return (data || []).map((row: YearlyPlanningRow): YearlyPlanning => ({
+        id: row.id, year: row.year, theme: row.theme,
+        mantra: row.mantra || undefined,
+        yearlyGoals: (row.yearly_goals as any) || [],
+        bucketList: (row.bucket_list as any) || [],
+        quarterlyFocus: (row.quarterly_focus as any) || [],
+        reflections: row.reflections || undefined,
+        createdAt: row.created_at || new Date().toISOString(),
+        updatedAt: row.updated_at || new Date().toISOString(),
+      }));
+    } catch (error) { console.error('Error loading yearly plannings:', error); return []; }
+  }, [user]);
+
+  const saveYearlyPlanning = useCallback(async (planning: YearlyPlanning): Promise<boolean> => {
+    if (!user) return false;
+    const data = {
+      id: planning.id, user_id: user.id, year: planning.year, theme: planning.theme,
+      mantra: planning.mantra || null,
+      yearly_goals: planning.yearlyGoals || [], bucket_list: planning.bucketList || [],
+      quarterly_focus: planning.quarterlyFocus || [], reflections: planning.reflections || null,
+      updated_at: new Date().toISOString(),
+    };
+    if (!isOnline) { await queueChange('create', 'yearly_plannings', planning.id, data); return true; }
+    try {
+      const { error } = await supabase.from('yearly_plannings').upsert(data);
+      if (error) throw error; return true;
+    } catch (error) {
+      console.error('Error saving yearly planning:', error);
+      await queueChange('create', 'yearly_plannings', planning.id, data); return false;
+    }
+  }, [user, isOnline, queueChange]);
+
+  const deleteYearlyPlanning = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const { error } = await supabase.from('yearly_plannings').delete().eq('id', id).eq('user_id', user.id);
+      if (error) throw error; return true;
+    } catch (error) { console.error('Error deleting yearly planning:', error); return false; }
+  }, [user]);
+
+  // ==================== YEARLY REVIEWS ====================
+  const loadYearlyReviews = useCallback(async (): Promise<YearlyReview[]> => {
+    if (!user) return [];
+    try {
+      const { data, error } = await supabase.from('yearly_reviews').select('*').eq('user_id', user.id).order('year', { ascending: false });
+      if (error) throw error;
+      return (data || []).map((row: YearlyReviewRow): YearlyReview => ({
+        id: row.id, year: row.year,
+        overallRating: (row.overall_rating || 3) as 1|2|3|4|5,
+        topAchievements: row.top_achievements || [], biggestChallenges: row.biggest_challenges || [],
+        lessonsLearned: row.lessons_learned || [], gratitude: row.gratitude || [],
+        letterToFutureSelf: row.letter_to_future_self || undefined,
+        wordOfTheYear: row.word_of_the_year || undefined,
+        areaRatings: row.area_ratings as Record<string, number> || undefined,
+        stats: row.stats as any || undefined,
+        createdAt: row.created_at || new Date().toISOString(),
+      }));
+    } catch (error) { console.error('Error loading yearly reviews:', error); return []; }
+  }, [user]);
+
+  const saveYearlyReview = useCallback(async (review: YearlyReview): Promise<boolean> => {
+    if (!user) return false;
+    const data = {
+      id: review.id, user_id: user.id, year: review.year,
+      overall_rating: review.overallRating || 3,
+      top_achievements: review.topAchievements || [], biggest_challenges: review.biggestChallenges || [],
+      lessons_learned: review.lessonsLearned || [], gratitude: review.gratitude || [],
+      letter_to_future_self: review.letterToFutureSelf || null,
+      word_of_the_year: review.wordOfTheYear || null,
+      area_ratings: review.areaRatings || null, stats: review.stats || null,
+    };
+    if (!isOnline) { await queueChange('create', 'yearly_reviews', review.id, data); return true; }
+    try {
+      const { error } = await supabase.from('yearly_reviews').upsert(data);
+      if (error) throw error; return true;
+    } catch (error) {
+      console.error('Error saving yearly review:', error);
+      await queueChange('create', 'yearly_reviews', review.id, data); return false;
+    }
+  }, [user, isOnline, queueChange]);
+
+  const deleteYearlyReview = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const { error } = await supabase.from('yearly_reviews').delete().eq('id', id).eq('user_id', user.id);
+      if (error) throw error; return true;
+    } catch (error) { console.error('Error deleting yearly review:', error); return false; }
   }, [user]);
 
   // ==================== DAILY INTENTIONS ====================
@@ -545,6 +691,21 @@ export function useAdditionalSync() {
     loadWeeklyReviews,
     saveWeeklyReview,
     deleteWeeklyReview,
+
+    // Monthly Reviews
+    loadMonthlyReviews,
+    saveMonthlyReview,
+    deleteMonthlyReview,
+
+    // Yearly Plannings
+    loadYearlyPlannings,
+    saveYearlyPlanning,
+    deleteYearlyPlanning,
+
+    // Yearly Reviews
+    loadYearlyReviews,
+    saveYearlyReview,
+    deleteYearlyReview,
     
     // Daily Intentions
     loadDailyIntentions,

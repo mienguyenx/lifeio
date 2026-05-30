@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -233,17 +233,10 @@ export default function TrashPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* Settings */}
-          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Settings className="w-4 h-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Cài đặt Thùng rác</DialogTitle>
-                <DialogDescription>Quản lý tự động dọn dẹp thùng rác</DialogDescription>
-              </DialogHeader>
+          <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
+            <Settings className="w-4 h-4" />
+          </Button>
+          <AdaptiveModal open={settingsOpen} onOpenChange={setSettingsOpen} title="Cài đặt Thùng rác" description="Quản lý tự động dọn dẹp thùng rác">
               <div className="space-y-6 py-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -274,8 +267,7 @@ export default function TrashPage() {
                   </div>
                 )}
               </div>
-            </DialogContent>
-          </Dialog>
+          </AdaptiveModal>
 
           {/* Empty Trash */}
           {trashedItems.length > 0 && (

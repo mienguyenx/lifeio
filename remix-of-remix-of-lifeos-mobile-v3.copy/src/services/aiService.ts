@@ -1,4 +1,4 @@
-import { getAPIKeyWithRotation, incrementAPIKeyUsage, recordAPIKeyError } from './apiKeyService';
+import { getAPIKeyWithRotation, incrementAPIKeyUsage, recordAPIKeyError, type AIProvider } from './apiKeyService';
 
 /**
  * Translate text using Gemini API
@@ -203,7 +203,7 @@ export async function translateText(
   text: string,
   targetLang: string = 'vi',
   sourceLang: string = 'auto',
-  preferredProvider: 'gemini' | 'perplexity' | 'auto' = 'auto'
+  preferredProvider: AIProvider | 'auto' = 'auto'
 ): Promise<string> {
   if (!text || text.trim().length === 0) {
     return text;
@@ -214,6 +214,18 @@ export async function translateText(
       return await translateWithGemini(text, targetLang, sourceLang);
     } else if (preferredProvider === 'perplexity') {
       return await translateWithPerplexity(text, targetLang, sourceLang);
+    } else if (preferredProvider === 'openai-compatible') {
+      const prompt = `Dịch đoạn văn bản sau sang ${targetLang === 'vi' ? 'tiếng Việt' : targetLang}. Chỉ trả về bản dịch, không thêm giải thích:\n\n${text}`;
+      return await chatWithOpenAICompatible(
+        [{ role: 'user', content: prompt }],
+        undefined
+      );
+    } else if (preferredProvider === 'anthropic-compatible') {
+      const prompt = `Dịch đoạn văn bản sau sang ${targetLang === 'vi' ? 'tiếng Việt' : targetLang}. Chỉ trả về bản dịch, không thêm giải thích:\n\n${text}`;
+      return await chatWithAnthropic(
+        [{ role: 'user', content: prompt }],
+        undefined
+      );
     } else {
       // Auto: Try Gemini first, then Perplexity, then Google Translate
       try {
@@ -386,5 +398,207 @@ export async function chatWithPerplexity(
   }
 
   throw new Error('Không thể kết nối với Perplexity API');
+}
+
+/**
+ * AI Chat using OpenAI-compatible API
+ * Base URL and model are read from key metadata
+ */
+export async function chatWithOpenAICompatible(
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+  systemPrompt?: string,
+  modelOverride?: string
+): Promise<string> {
+  let currentKeyId: string | undefined;
+  let retries = 3;
+
+  while (retries > 0) {
+    try {
+      const keyInfo = await getAPIKeyWithRotation('openai-compatible', currentKeyId);
+      if (!keyInfo) {
+        throw new Error('Không có API key OpenAI-compatible nào khả dụng');
+      }
+
+      currentKeyId = keyInfo.id;
+
+      const baseUrl = keyInfo.metadata?.base_url || 'https://api.openai.com/v1';
+      const model = modelOverride || keyInfo.metadata?.model || 'gpt-4o-mini';
+
+      const chatMessages: Array<{ role: string; content: string }> = [];
+
+      if (systemPrompt) {
+        chatMessages.push({ role: 'system', content: systemPrompt });
+      }
+
+      chatMessages.push(...messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })));
+
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${keyInfo.api_key}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: chatMessages,
+          temperature: 0.7,
+          max_tokens: 4096,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || `HTTP ${response.status}`;
+
+        await recordAPIKeyError(keyInfo.id, errorMessage);
+
+        if (response.status === 429 || response.status === 403) {
+          currentKeyId = keyInfo.id;
+          retries--;
+          continue;
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      const reply = data.choices?.[0]?.message?.content?.trim() || '';
+
+      await incrementAPIKeyUsage(keyInfo.id);
+
+      return reply;
+    } catch (error: any) {
+      console.error('OpenAI-compatible chat error:', error);
+      if (retries <= 1) {
+        throw error;
+      }
+      retries--;
+    }
+  }
+
+  throw new Error('Không thể kết nối với OpenAI-compatible API');
+}
+
+/**
+ * AI Chat using Anthropic-compatible API (Claude)
+ * Base URL and model are read from key metadata
+ */
+export async function chatWithAnthropic(
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+  systemPrompt?: string,
+  modelOverride?: string
+): Promise<string> {
+  let currentKeyId: string | undefined;
+  let retries = 3;
+
+  while (retries > 0) {
+    try {
+      const keyInfo = await getAPIKeyWithRotation('anthropic-compatible', currentKeyId);
+      if (!keyInfo) {
+        throw new Error('Không có API key Anthropic-compatible nào khả dụng');
+      }
+
+      currentKeyId = keyInfo.id;
+
+      const baseUrl = keyInfo.metadata?.base_url || 'https://api.anthropic.com';
+      const model = modelOverride || keyInfo.metadata?.model || 'claude-sonnet-4-20250514';
+
+      // Anthropic format: system is separate, messages are user/assistant only
+      const anthropicMessages = messages
+        .filter((msg) => msg.role !== 'system')
+        .map((msg) => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        }));
+
+      // Combine system prompts
+      const systemMessages = messages.filter((msg) => msg.role === 'system').map((m) => m.content);
+      const fullSystem = [systemPrompt, ...systemMessages].filter(Boolean).join('\n\n');
+
+      const response = await fetch(`${baseUrl}/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': keyInfo.api_key,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          ...(fullSystem && { system: fullSystem }),
+          messages: anthropicMessages,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || `HTTP ${response.status}`;
+
+        await recordAPIKeyError(keyInfo.id, errorMessage);
+
+        if (response.status === 429 || response.status === 403) {
+          currentKeyId = keyInfo.id;
+          retries--;
+          continue;
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      const reply = data.content?.[0]?.text?.trim() || '';
+
+      await incrementAPIKeyUsage(keyInfo.id);
+
+      return reply;
+    } catch (error: any) {
+      console.error('Anthropic chat error:', error);
+      if (retries <= 1) {
+        throw error;
+      }
+      retries--;
+    }
+  }
+
+  throw new Error('Không thể kết nối với Anthropic API');
+}
+
+/**
+ * Unified AI Chat - tries all available providers
+ */
+export async function chatWithAI(
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+  systemPrompt?: string,
+  preferredProvider?: AIProvider
+): Promise<string> {
+  if (preferredProvider) {
+    switch (preferredProvider) {
+      case 'gemini': return chatWithGemini(messages, systemPrompt);
+      case 'perplexity': return chatWithPerplexity(messages, systemPrompt);
+      case 'openai-compatible': return chatWithOpenAICompatible(messages, systemPrompt);
+      case 'anthropic-compatible': return chatWithAnthropic(messages, systemPrompt);
+    }
+  }
+
+  // Auto: Try openai-compatible -> anthropic-compatible -> gemini -> perplexity
+  const providers: Array<{ name: string; fn: () => Promise<string> }> = [
+    { name: 'openai-compatible', fn: () => chatWithOpenAICompatible(messages, systemPrompt) },
+    { name: 'anthropic-compatible', fn: () => chatWithAnthropic(messages, systemPrompt) },
+    { name: 'gemini', fn: () => chatWithGemini(messages, systemPrompt) },
+    { name: 'perplexity', fn: () => chatWithPerplexity(messages, systemPrompt) },
+  ];
+
+  for (const { name, fn } of providers) {
+    try {
+      return await fn();
+    } catch (error) {
+      console.warn(`${name} failed, trying next...`, error);
+    }
+  }
+
+  throw new Error('Tất cả AI provider đều không khả dụng');
 }
 

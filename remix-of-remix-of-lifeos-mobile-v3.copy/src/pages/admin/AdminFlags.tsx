@@ -13,6 +13,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFeatureFlags, useUpdateFeatureFlag, useCreateFeatureFlag, useDeleteFeatureFlag } from '@/hooks/useAdminData';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { PageTransition } from '@/components/admin/AdminAnimations';
 
 const ENVIRONMENTS = [
   { value: 'all', label: 'All Environments', color: 'bg-blue-500' },
@@ -71,7 +73,7 @@ export default function AdminFlags() {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
         <div className="space-y-4">
@@ -82,66 +84,67 @@ export default function AdminFlags() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Feature Flags</h1>
-          <p className="text-muted-foreground">Toggle features on or off in real-time</p>
-        </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" />Add Flag</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Feature Flag</DialogTitle>
-              <DialogDescription>Add a new feature flag to control app behavior</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Flag Name</Label>
-                <Input 
-                  value={newFlag.name} 
-                  onChange={(e) => setNewFlag({ ...newFlag, name: e.target.value })}
-                  placeholder="e.g., enable_new_dashboard"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea 
-                  value={newFlag.description} 
-                  onChange={(e) => setNewFlag({ ...newFlag, description: e.target.value })}
-                  placeholder="What does this flag control?"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+    <PageTransition className="p-6 space-y-6">
+      <AdminPageHeader
+        title="Feature Flags"
+        description="Toggle features on or off in real-time"
+        icon={Flag}
+        actions={
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="w-4 h-4 mr-2" />Add Flag</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Feature Flag</DialogTitle>
+                <DialogDescription>Add a new feature flag to control app behavior</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Environment</Label>
-                  <Select value={newFlag.environment} onValueChange={(v) => setNewFlag({ ...newFlag, environment: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ENVIRONMENTS.map(env => (
-                        <SelectItem key={env.value} value={env.value}>{env.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Flag Name</Label>
+                  <Input 
+                    value={newFlag.name} 
+                    onChange={(e) => setNewFlag({ ...newFlag, name: e.target.value })}
+                    placeholder="e.g., enable_new_dashboard"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Initial State</Label>
-                  <div className="flex items-center gap-2 h-10">
-                    <Switch checked={newFlag.enabled} onCheckedChange={(c) => setNewFlag({ ...newFlag, enabled: c })} />
-                    <span className="text-sm">{newFlag.enabled ? 'Enabled' : 'Disabled'}</span>
+                  <Label>Description</Label>
+                  <Textarea 
+                    value={newFlag.description} 
+                    onChange={(e) => setNewFlag({ ...newFlag, description: e.target.value })}
+                    placeholder="What does this flag control?"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Environment</Label>
+                    <Select value={newFlag.environment} onValueChange={(v) => setNewFlag({ ...newFlag, environment: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {ENVIRONMENTS.map(env => (
+                          <SelectItem key={env.value} value={env.value}>{env.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Initial State</Label>
+                    <div className="flex items-center gap-2 h-10">
+                      <Switch checked={newFlag.enabled} onCheckedChange={(c) => setNewFlag({ ...newFlag, enabled: c })} />
+                      <span className="text-sm">{newFlag.enabled ? 'Enabled' : 'Disabled'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={!newFlag.name}>Create</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreate} disabled={!newFlag.name}>Create</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -300,6 +303,6 @@ export default function AdminFlags() {
           </TabsContent>
         ))}
       </Tabs>
-    </div>
+    </PageTransition>
   );
 }

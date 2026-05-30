@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -307,16 +307,10 @@ export default function AIChatPage() {
         </div>
         <div className="flex items-center gap-1">
           {/* History Button */}
-          <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" title="Lịch sử đã lưu">
-                <History className="w-4 h-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Cuộc trò chuyện đã lưu</DialogTitle>
-              </DialogHeader>
+          <Button variant="ghost" size="icon" title="Lịch sử đã lưu" onClick={() => setHistoryDialogOpen(true)}>
+            <History className="w-4 h-4" />
+          </Button>
+          <AdaptiveModal open={historyDialogOpen} onOpenChange={setHistoryDialogOpen} title="Cuộc trò chuyện đã lưu">
               <ScrollArea className="max-h-[400px]">
                 {savedConversations.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Chưa có cuộc trò chuyện nào được lưu</p>
@@ -349,21 +343,15 @@ export default function AIChatPage() {
                   </div>
                 )}
               </ScrollArea>
-            </DialogContent>
-          </Dialog>
+          </AdaptiveModal>
 
           {/* Save Conversation Button */}
           {chatMessages.length > 0 && (
-            <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" title="Lưu cuộc trò chuyện">
-                  <Save className="w-4 h-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Lưu cuộc trò chuyện</DialogTitle>
-                </DialogHeader>
+            <>
+              <Button variant="ghost" size="icon" title="Lưu cuộc trò chuyện" onClick={() => setSaveDialogOpen(true)}>
+                <Save className="w-4 h-4" />
+              </Button>
+              <AdaptiveModal open={saveDialogOpen} onOpenChange={setSaveDialogOpen} title="Lưu cuộc trò chuyện">
                 <div className="space-y-4">
                   <Input
                     placeholder="Tên cuộc trò chuyện..."
@@ -375,8 +363,8 @@ export default function AIChatPage() {
                     <Save className="w-4 h-4 mr-2" /> Lưu
                   </Button>
                 </div>
-              </DialogContent>
-            </Dialog>
+              </AdaptiveModal>
+            </>
           )}
 
           {/* Export PDF Button */}

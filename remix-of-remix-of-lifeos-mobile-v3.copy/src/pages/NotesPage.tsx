@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -349,24 +349,18 @@ export default function NotesPage() {
           <h1 className="text-2xl md:text-3xl font-bold">Notes</h1>
           <p className="text-muted-foreground">Ghi chép và ý tưởng</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) { setEditingNote(null); setNewNote({ title: '', content: '', tags: [], area: '', color: '' }); } }}>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DialogTrigger asChild>
-                  <Button><Plus className="w-4 h-4 mr-2" /> Tạo note</Button>
-                </DialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <p className="font-medium">Tạo Note mới</p>
-                <p className="text-xs text-muted-foreground">Ghi chép ý tưởng với Markdown và tags</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingNote ? 'Chỉnh sửa Note' : 'Tạo Note mới'}</DialogTitle>
-            </DialogHeader>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={() => setIsDialogOpen(true)}><Plus className="w-4 h-4 mr-2" /> Tạo note</Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p className="font-medium">Tạo Note mới</p>
+              <p className="text-xs text-muted-foreground">Ghi chép ý tưởng với Markdown và tags</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <AdaptiveModal open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) { setEditingNote(null); setNewNote({ title: '', content: '', tags: [], area: '', color: '' }); } }} title={editingNote ? 'Chỉnh sửa Note' : 'Tạo Note mới'}>
             <div className="space-y-4 mt-4">
               <div>
                 <Label>Tiêu đề *</Label>
@@ -507,8 +501,7 @@ export default function NotesPage() {
                 {editingNote ? 'Cập nhật' : 'Tạo note'}
               </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+        </AdaptiveModal>
       </div>
 
       {/* Stats */}
@@ -612,49 +605,42 @@ export default function NotesPage() {
       )}
 
       {/* Note Detail Dialog */}
-      <Dialog open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+      <AdaptiveModal open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)} title={selectedNote?.title || 'Note'}>
           {selectedNote && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-2">
-                  {selectedNote.isPinned && <Pin className="w-4 h-4 text-primary" />}
-                  {selectedNote.isFavorite && <Star className="w-4 h-4 text-warning fill-warning" />}
-                  <DialogTitle>{selectedNote.title}</DialogTitle>
-                </div>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <MarkdownPreview content={selectedNote.content} />
-                {selectedNote.tags && selectedNote.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedNote.tags.map((tagId) => {
-                      const tag = noteTags.find((t) => t.id === tagId);
-                      return tag ? (
-                        <Badge key={tagId} variant="secondary" style={{ backgroundColor: `hsl(${tag.color} / 0.2)` }}>
-                          {tag.name}
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-                {selectedNote.area && (
-                  <Badge variant="outline">
-                    {LIFE_AREAS.find((a) => a.id === selectedNote.area)?.icon} {LIFE_AREAS.find((a) => a.id === selectedNote.area)?.name}
-                  </Badge>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Tạo: {format(new Date(selectedNote.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })} • Cập nhật: {format(new Date(selectedNote.updatedAt), 'dd/MM/yyyy HH:mm', { locale: vi })}
-                </p>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                {selectedNote.isPinned && <Pin className="w-4 h-4 text-primary" />}
+                {selectedNote.isFavorite && <Star className="w-4 h-4 text-warning fill-warning" />}
               </div>
-              <DialogFooter className="mt-4">
+              <MarkdownPreview content={selectedNote.content} />
+              {selectedNote.tags && selectedNote.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedNote.tags.map((tagId) => {
+                    const tag = noteTags.find((t) => t.id === tagId);
+                    return tag ? (
+                      <Badge key={tagId} variant="secondary" style={{ backgroundColor: `hsl(${tag.color} / 0.2)` }}>
+                        {tag.name}
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+              {selectedNote.area && (
+                <Badge variant="outline">
+                  {LIFE_AREAS.find((a) => a.id === selectedNote.area)?.icon} {LIFE_AREAS.find((a) => a.id === selectedNote.area)?.name}
+                </Badge>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Tạo: {format(new Date(selectedNote.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })} • Cập nhật: {format(new Date(selectedNote.updatedAt), 'dd/MM/yyyy HH:mm', { locale: vi })}
+              </p>
+              <div className="flex justify-end">
                 <Button variant="outline" onClick={() => { handleEditNote(selectedNote); setSelectedNote(null); }}>
                   <Edit2 className="w-4 h-4 mr-2" /> Chỉnh sửa
                 </Button>
-              </DialogFooter>
-            </>
+              </div>
+            </div>
           )}
-        </DialogContent>
-      </Dialog>
+      </AdaptiveModal>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Plus, Save, Trash2, Mail, Eye, Edit2, Loader2 } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { PageTransition } from '@/components/admin/AdminAnimations';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -236,24 +238,24 @@ export default function AdminEmailTemplates() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Email Templates</h1>
-          <p className="text-muted-foreground">Manage email templates for the application</p>
-        </div>
-        <div className="flex gap-2">
-          {templates.length === 0 && (
-            <Button variant="outline" onClick={handleInitDefaults}>
-              Initialize Default Templates
+    <PageTransition className="p-6 space-y-6">
+      <AdminPageHeader
+        title="Email Templates"
+        description="Manage email templates for the application"
+        icon={Mail}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {templates.length === 0 && (
+              <Button variant="outline" size="sm" onClick={handleInitDefaults}>
+                Initialize Default Templates
+              </Button>
+            )}
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="w-4 h-4 mr-2" />New Template
             </Button>
-          )}
-          <Button onClick={handleCreate}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Template
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {templates.map((template) => (
@@ -453,6 +455,6 @@ export default function AdminEmailTemplates() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageTransition>
   );
 }

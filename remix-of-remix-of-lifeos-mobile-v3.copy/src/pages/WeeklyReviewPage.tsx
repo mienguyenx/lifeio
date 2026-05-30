@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Star, Trophy, AlertCircle, Lightbulb, Target, Edit2, X, ChevronLeft, ChevronRight, PieChart, PanelRightClose, PanelRight, CheckCircle2, Clock, Flame, Calendar, TrendingUp, BookOpen, MessageCircle } from 'lucide-react';
+import { Plus, Star, Trophy, AlertCircle, Lightbulb, Target, Edit2, X, ChevronLeft, ChevronRight, PieChart, PanelRightClose, PanelRight, CheckCircle2, Clock, Flame, Calendar, TrendingUp, BookOpen, MessageCircle, Wand2 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +21,7 @@ import { WeeklyReviewHistory } from '@/components/weeklyreview/WeeklyReviewHisto
 import { LIFE_AREAS, type LifeArea } from '@/types/lifeos';
 import { toast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
+import { useWeeklyAutoDraft } from '@/hooks/useWeeklyAutoDraft';
 
 const RATING_OPTIONS = [
   { value: 1, label: '😢 Tệ' },
@@ -111,6 +112,24 @@ export default function WeeklyReviewPage() {
   }, 0);
   const weekTasksCompleted = tasks.filter((t) => t.completedAt && weekDates.some((d) => t.completedAt?.startsWith(d))).length;
   const weekPomodoros = pomodoroSessions.filter((s) => s.phase === 'work' && weekDates.some((d) => s.completedAt.startsWith(d))).length;
+
+  const autoDraft = useWeeklyAutoDraft(weekDates);
+
+  const handleAutoDraft = () => {
+    setNewReview({
+      wins: autoDraft.wins,
+      challenges: autoDraft.challenges,
+      lessonsLearned: autoDraft.lessonsLearned,
+      nextWeekFocus: autoDraft.nextWeekFocus,
+      overallRating: 3,
+      areaRatings: autoDraft.areaRatings,
+      gratitude: autoDraft.gratitude,
+      highlight: autoDraft.highlight,
+      lowlight: autoDraft.lowlight,
+    });
+    setIsDialogOpen(true);
+    toast({ title: 'Auto-draft!', description: 'Đã tạo bản nháp từ dữ liệu tuần này. Hãy chỉnh sửa thêm.' });
+  };
 
   const handleAddReview = () => {
     if (isEditing && currentWeekReview) {
@@ -404,19 +423,34 @@ export default function WeeklyReviewPage() {
             </TooltipProvider>
           )}
           {!currentWeekReview && weekOffset === 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button onClick={() => setIsDialogOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" /> Review
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="bg-gradient-to-r from-primary/90 to-primary text-primary-foreground border-0 shadow-lg">
-                  <p className="font-medium">Tạo Weekly Review</p>
-                  <p className="text-xs opacity-90">Đánh giá tuần, ghi nhận thành tích và bài học</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="flex gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" onClick={handleAutoDraft}>
+                      <Wand2 className="w-4 h-4 mr-2" /> Auto-draft
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gradient-to-r from-accent/90 to-accent text-accent-foreground border-0 shadow-lg">
+                    <p className="font-medium">Tạo nháp tự động</p>
+                    <p className="text-xs opacity-90">Tổng hợp từ tasks, habits, journal, pomodoro tuần này</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={() => setIsDialogOpen(true)}>
+                      <Plus className="w-4 h-4 mr-2" /> Review
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gradient-to-r from-primary/90 to-primary text-primary-foreground border-0 shadow-lg">
+                    <p className="font-medium">Tạo Weekly Review</p>
+                    <p className="text-xs opacity-90">Đánh giá tuần, ghi nhận thành tích và bài học</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           )}
           <TooltipProvider>
             <Tooltip>
@@ -435,17 +469,12 @@ export default function WeeklyReviewPage() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          <AdaptiveModal open={isDialogOpen} onOpenChange={(open) => {
             setIsDialogOpen(open);
             if (!open) setIsEditing(false);
-          }}>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{isEditing ? 'Chỉnh sửa Review' : 'Weekly Review'}</DialogTitle>
-              </DialogHeader>
-              <ReviewForm />
-            </DialogContent>
-          </Dialog>
+          }} title={isEditing ? 'Chỉnh sửa Review' : 'Weekly Review'}>
+            <ReviewForm />
+          </AdaptiveModal>
         </div>
       </div>
 
@@ -707,17 +736,9 @@ export default function WeeklyReviewPage() {
               <ReflectionPrompts onSelectPrompt={handleSelectPrompt} />
               
               {/* Quick Review Form */}
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="w-full" variant="outline">
-                    <Plus className="w-4 h-4 mr-2" /> Viết Review với gợi ý
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                  <DialogHeader><DialogTitle>{isEditing ? 'Chỉnh sửa Review' : 'Weekly Review'}</DialogTitle></DialogHeader>
-                  <ReviewForm />
-                </DialogContent>
-              </Dialog>
+              <Button className="w-full" variant="outline" onClick={() => setIsDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" /> Viết Review với gợi ý
+              </Button>
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4">

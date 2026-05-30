@@ -2,6 +2,8 @@ import { Users, Target, BookOpen, CheckSquare, FileText, Calendar, Notebook, Tre
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useExtendedAdminStats } from '@/hooks/useAdminData';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { PageTransition } from '@/components/admin/AdminAnimations';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from 'recharts';
 
 export default function AdminAnalytics() {
@@ -35,10 +37,10 @@ export default function AdminAnalytics() {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[...Array(7)].map((_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Skeleton className="h-80" />
           <Skeleton className="h-80" />
         </div>
@@ -47,19 +49,20 @@ export default function AdminAnalytics() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">Comprehensive app usage statistics</p>
-        </div>
-        <Card className="px-4 py-2">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-green-500" />
-            <span className="text-sm font-medium">{avgContentPerUser} avg items/user</span>
-          </div>
-        </Card>
-      </div>
+    <PageTransition className="p-6 space-y-6">
+      <AdminPageHeader
+        title="Analytics Dashboard"
+        description="Comprehensive app usage statistics"
+        icon={TrendingUp}
+        actions={
+          <Card className="px-4 py-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-green-500" />
+              <span className="text-sm font-medium">{avgContentPerUser} avg items/user</span>
+            </div>
+          </Card>
+        }
+      />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
@@ -224,6 +227,6 @@ export default function AdminAnalytics() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageTransition>
   );
 }

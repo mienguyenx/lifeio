@@ -9,7 +9,8 @@ import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -390,23 +391,24 @@ export default function TasksPage() {
     }
   };
 
+  const AddTaskButton = (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button size="sm" className="rounded-full" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Thêm
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p className="font-medium">Thêm Task mới</p>
+          <p className="text-xs text-muted-foreground">Tạo công việc với độ ưu tiên, deadline và liên kết mục tiêu</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   const AddTaskDialog = (
-    <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setShowTemplates('form'); }}>
-      <TooltipProvider delayDuration={200}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DialogTrigger asChild>
-              <Button size="sm" className="rounded-full"><Plus className="w-4 h-4 mr-1" /> Thêm</Button>
-            </DialogTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p className="font-medium">Thêm Task mới</p>
-            <p className="text-xs text-muted-foreground">Tạo công việc với độ ưu tiên, deadline và liên kết mục tiêu</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Thêm Task mới</DialogTitle></DialogHeader>
+    <AdaptiveModal open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setShowTemplates('form'); }} title="Thêm Task mới">
         <div className="space-y-4 mt-4">
           {/* Template view / Form view switcher */}
           {showTemplates === 'templates' ? (
@@ -536,8 +538,7 @@ export default function TasksPage() {
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </AdaptiveModal>
   );
 
 
@@ -887,7 +888,7 @@ export default function TasksPage() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            {AddTaskDialog}
+            {AddTaskButton}
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1283,7 +1284,7 @@ export default function TasksPage() {
             onClearFilters={clearFilters}
             goals={goals}
           />
-          {AddTaskDialog}
+          {AddTaskButton}
         </div>
       </div>
 
@@ -1488,6 +1489,8 @@ export default function TasksPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {AddTaskDialog}
     </div>
   );
 }

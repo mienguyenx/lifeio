@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Bot, Plus, Settings2, Sparkles, Trash2, Play, Loader2, Cpu, Zap, Brain } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Bot, Plus, Settings2, Sparkles, Trash2, Play, Loader2, Cpu, Zap, Brain, Download, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,18 +13,44 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAIModels, useUpdateAIModel, useCreateAIModel, useDeleteAIModel, type AIModel } from '@/hooks/useAdminData';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { PageTransition, StaggerContainer, StaggerItem } from '@/components/admin/AdminAnimations';
 import { activeSupabase as supabase } from '@/integrations/supabase/externalClient';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getActiveAPIKey, type AIProvider } from '@/services/apiKeyService';
 
 const COMMON_CAPABILITIES = [
   'chat', 'completion', 'embedding', 'image-understanding', 'code-generation',
-  'translation', 'summarization', 'reasoning', 'creative-writing', 'analysis'
+  'translation', 'summarization', 'reasoning', 'creative-writing', 'analysis', 'web-search'
 ];
+
+const PROVIDER_CONFIGS: Record<string, { label: string; defaultUrl: string; needsKey: boolean; hint?: string }> = {
+  'openai-compatible': { label: 'OpenAI Compatible', defaultUrl: 'https://api.openai.com/v1', needsKey: true, hint: 'Hỗ trợ OpenAI, Together AI, Groq, LM Studio...' },
+  'openrouter':        { label: 'OpenRouter',        defaultUrl: 'https://openrouter.ai/api/v1', needsKey: false, hint: '700+ models, không cần API key để xem danh sách' },
+  'ollama':            { label: 'Ollama (Local)',     defaultUrl: 'http://localhost:11434', needsKey: false, hint: 'Yêu cầu Ollama đang chạy local' },
+  'gemini':            { label: 'Google Gemini',     defaultUrl: '', needsKey: true },
+  'anthropic-compatible': { label: 'Anthropic Claude', defaultUrl: '', needsKey: true },
+  'perplexity':        { label: 'Perplexity',        defaultUrl: '', needsKey: false, hint: 'Danh sách model tĩnh (API không public)' },
+};
+
+function inferCapabilities(modelId: string): string[] {
+  const id = modelId.toLowerCase();
+  if (id.includes('embed')) return ['embedding'];
+  const caps: string[] = ['chat'];
+  if (id.includes('vision') || id.includes('-vl') || id.includes('visual') || id.includes('image')) caps.push('image-understanding');
+  if (id.includes('code') || id.includes('coder') || id.includes('starcoder') || id.includes('deepseek-coder')) caps.push('code-generation');
+  if (id.includes('reason') || id.includes('-r1') || id.includes('-o1') || id.includes('-o3') || id.includes('thinking')) caps.push('reasoning');
+  if (id.includes('search') || id.includes('sonar') || id.includes('online') || id.includes('browse')) caps.push('web-search');
+  return caps;
+}
 
 const PROVIDER_ICONS: Record<string, React.ElementType> = {
   lovable: Sparkles,
   openai: Brain,
   google: Zap,
+  'openai-compatible': Bot,
+  'anthropic-compatible': Brain,
   default: Cpu,
 };
 
@@ -48,6 +74,125 @@ export default function AdminAIModels() {
     temperature: 0.7,
     capabilities: [] as string[],
   });
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+  const [fetchedModels, setFetchedModels] = useState<Array<{ id: string; name: string; provider: string; description?: string; context_length?: number; capabilities?: string[] }>>([]);
+  const [fetchProvider, setFetchProvider] = useState<string>('openrouter');
+  const [fetchBaseUrl, setFetchBaseUrl] = useState('https://openrouter.ai/api/v1');
+
+  const existingModels = models;
+  const activeModels = models?.filter(m => m.is_active) || [];
+  const inactiveModels = models?.filter(m => !m.is_active) || [];
+  const defaultModel = models?.find(m => m.is_default);
+
+  const fetchModelsFromProvider = useCallback(async () => {
+    setIsFetchingModels(true);
+    setFetchedModels([]);
+    try {
+      type FetchedModel = { id: string; name: string; provider: string; description?: string; context_length?: number; capabilities?: string[] };
+      let models: FetchedModel[] = [];
+
+      if (fetchProvider === 'openrouter') {
+        const baseUrl = fetchBaseUrl || 'https://openrouter.ai/api/v1';
+        const res = await fetch(`${baseUrl}/models`, { headers: { 'HTTP-Referer': window.location.origin } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        models = (data.data || []).map((m: any) => ({
+          id: m.id, name: m.name || m.id, provider: 'openrouter',
+          description: m.description?.slice(0, 120),
+          context_length: m.context_length,
+          capabilities: inferCapabilities(m.id),
+        }));
+      } else if (fetchProvider === 'ollama') {
+        const baseUrl = fetchBaseUrl || 'http://localhost:11434';
+        const res = await fetch(`${baseUrl}/api/tags`);
+        if (!res.ok) throw new Error(`HTTP ${res.status} — Đảm bảo Ollama đang chạy tại ${baseUrl}`);
+        const data = await res.json();
+        models = (data.models || []).map((m: any) => ({
+          id: m.name, name: m.name, provider: 'ollama',
+          description: [m.details?.family, m.details?.parameter_size].filter(Boolean).join(' '),
+          capabilities: inferCapabilities(m.name),
+        }));
+      } else if (fetchProvider === 'openai-compatible') {
+        const keyInfo = await getActiveAPIKey('openai-compatible');
+        const baseUrl = fetchBaseUrl || keyInfo?.metadata?.base_url || 'https://api.openai.com/v1';
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (keyInfo) headers['Authorization'] = `Bearer ${keyInfo.api_key}`;
+        const res = await fetch(`${baseUrl}/models`, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        models = (data.data || []).map((m: any) => ({
+          id: m.id, name: m.id, provider: 'openai-compatible',
+          context_length: m.context_length,
+          capabilities: inferCapabilities(m.id),
+        }));
+      } else if (fetchProvider === 'gemini') {
+        const keyInfo = await getActiveAPIKey('gemini');
+        if (!keyInfo) { toast.error('Không có API key cho Gemini'); return; }
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${keyInfo.api_key}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        models = (data.models || []).filter((m: any) =>
+          m.supportedGenerationMethods?.includes('generateContent')
+        ).map((m: any) => ({
+          id: m.name?.replace('models/', '') || m.name,
+          name: m.displayName || m.name, provider: 'gemini',
+          description: m.description?.slice(0, 120),
+          context_length: m.inputTokenLimit,
+          capabilities: ['chat', 'completion'],
+        }));
+      } else if (fetchProvider === 'anthropic-compatible') {
+        models = [
+          { id: 'claude-opus-4-5', name: 'Claude Opus 4.5', provider: 'anthropic-compatible', context_length: 200000, capabilities: ['chat', 'reasoning', 'analysis'] },
+          { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5', provider: 'anthropic-compatible', context_length: 200000, capabilities: ['chat', 'completion', 'analysis'] },
+          { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', provider: 'anthropic-compatible', context_length: 200000, capabilities: ['chat', 'completion'] },
+          { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', provider: 'anthropic-compatible', context_length: 200000, capabilities: ['chat', 'completion'] },
+          { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'anthropic-compatible', context_length: 200000, capabilities: ['chat', 'completion'] },
+          { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'anthropic-compatible', context_length: 200000, capabilities: ['chat', 'completion'] },
+          { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', provider: 'anthropic-compatible', context_length: 200000, capabilities: ['chat', 'reasoning'] },
+        ];
+      } else if (fetchProvider === 'perplexity') {
+        models = [
+          { id: 'sonar-pro', name: 'Sonar Pro', provider: 'perplexity', context_length: 200000, capabilities: ['chat', 'web-search'] },
+          { id: 'sonar', name: 'Sonar', provider: 'perplexity', context_length: 128000, capabilities: ['chat', 'web-search'] },
+          { id: 'sonar-reasoning-pro', name: 'Sonar Reasoning Pro', provider: 'perplexity', context_length: 128000, capabilities: ['chat', 'reasoning', 'web-search'] },
+          { id: 'sonar-reasoning', name: 'Sonar Reasoning', provider: 'perplexity', context_length: 128000, capabilities: ['chat', 'reasoning', 'web-search'] },
+          { id: 'r1-1776', name: 'R1-1776 (offline)', provider: 'perplexity', context_length: 128000, capabilities: ['chat', 'reasoning'] },
+        ];
+      }
+
+      const existingIds = new Set(existingModels?.map(m => m.model_id) || []);
+      const newModels = models.filter(m => !existingIds.has(m.id));
+      setFetchedModels(newModels);
+      toast.success(`Tìm thấy ${models.length} models (${newModels.length} chưa import)`);
+    } catch (err: any) {
+      toast.error(`Lỗi khi fetch: ${err.message}`);
+    } finally {
+      setIsFetchingModels(false);
+    }
+  }, [fetchProvider, fetchBaseUrl, existingModels]);
+
+  const importModel = useCallback((model: { id: string; name: string; provider: string; description?: string; context_length?: number; capabilities?: string[] }) => {
+    createModel.mutate({
+      name: model.name,
+      model_id: model.id,
+      provider: model.provider,
+      description: model.description || `Auto-imported from ${model.provider}`,
+      max_tokens: model.context_length ? Math.min(model.context_length, 32768) : 4096,
+      temperature: 0.7,
+      capabilities: model.capabilities || ['chat'],
+      is_active: true,
+      is_default: false,
+    }, {
+      onSuccess: () => {
+        setFetchedModels(prev => prev.filter(m => m.id !== model.id));
+        toast.success(`Imported ${model.name}`);
+      }
+    });
+  }, [createModel]);
+
+  const importAllModels = useCallback(() => {
+    fetchedModels.forEach(model => importModel(model));
+  }, [fetchedModels, importModel]);
 
   const handleToggleActive = (model: AIModel) => {
     updateModel.mutate({ id: model.id, is_active: !model.is_active });
@@ -123,10 +268,6 @@ export default function AdminAIModels() {
     }
   };
 
-  const activeModels = models?.filter(m => m.is_active) || [];
-  const inactiveModels = models?.filter(m => !m.is_active) || [];
-  const defaultModel = models?.find(m => m.is_default);
-
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -142,16 +283,17 @@ export default function AdminAIModels() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">AI Models</h1>
-          <p className="text-muted-foreground">Configure available AI models for the app</p>
-        </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" />Add Model</Button>
-          </DialogTrigger>
+    <PageTransition className="p-6 space-y-6">
+      <AdminPageHeader
+        title="AI Models"
+        description="Configure available AI models for the app"
+        icon={Bot}
+        actions={
+          <div className="flex items-center gap-2">
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="w-4 h-4 mr-2" />Add Model</Button>
+              </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New AI Model</DialogTitle>
@@ -219,11 +361,100 @@ export default function AdminAIModels() {
               <Button onClick={handleCreate} disabled={!newModel.name || !newModel.model_id}>Create</Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
-      </div>
+            </Dialog>
+          </div>
+        }
+      />
+
+      {/* Auto-fetch từ Provider */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Download className="w-4 h-4 text-primary" />
+            Auto-fetch Models từ Provider
+          </CardTitle>
+          <CardDescription>Tự động lấy danh sách models — hỗ trợ OpenRouter, Ollama, OpenAI, Gemini và nhiều hơn</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Provider</label>
+              <Select value={fetchProvider} onValueChange={(v) => {
+                setFetchProvider(v);
+                setFetchBaseUrl(PROVIDER_CONFIGS[v]?.defaultUrl || '');
+                setFetchedModels([]);
+              }}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PROVIDER_CONFIGS).map(([key, cfg]) => (
+                    <SelectItem key={key} value={key}>
+                      <span>{cfg.label}</span>
+                      {!cfg.needsKey && <Badge variant="outline" className="ml-2 text-[10px] py-0">No Key</Badge>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {PROVIDER_CONFIGS[fetchProvider]?.hint && (
+                <p className="text-[11px] text-muted-foreground">{PROVIDER_CONFIGS[fetchProvider].hint}</p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Base URL {!PROVIDER_CONFIGS[fetchProvider]?.needsKey && '(tùy chỉnh)'}</label>
+              <Input
+                placeholder={PROVIDER_CONFIGS[fetchProvider]?.defaultUrl || 'https://...'}
+                value={fetchBaseUrl}
+                onChange={(e) => setFetchBaseUrl(e.target.value)}
+                className="font-mono text-sm"
+              />
+            </div>
+            <div className="flex items-end gap-2">
+              <Button onClick={fetchModelsFromProvider} disabled={isFetchingModels} className="flex-1">
+                {isFetchingModels ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                Fetch Models
+              </Button>
+              {fetchedModels.length > 0 && (
+                <Button variant="outline" onClick={importAllModels} title={`Import tất cả ${fetchedModels.length} models`}>
+                  <Download className="w-4 h-4 mr-1" />{fetchedModels.length}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {fetchedModels.length > 0 && (
+            <div className="rounded-lg border divide-y max-h-80 overflow-auto">
+              {fetchedModels.map(model => (
+                <div key={model.id} className="flex items-center justify-between p-3 hover:bg-muted/50 gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{model.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono truncate">{model.id}</p>
+                    {model.description && <p className="text-xs text-muted-foreground truncate">{model.description}</p>}
+                    <div className="flex items-center gap-1 mt-1 flex-wrap">
+                      {model.context_length && (
+                        <Badge variant="outline" className="text-[10px] py-0">
+                          {model.context_length >= 1000000 ? `${(model.context_length/1000000).toFixed(1)}M ctx`
+                            : model.context_length >= 1000 ? `${Math.round(model.context_length/1000)}K ctx`
+                            : `${model.context_length} ctx`}
+                        </Badge>
+                      )}
+                      {model.capabilities?.slice(0, 3).map(c => (
+                        <Badge key={c} variant="secondary" className="text-[10px] py-0">{c}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => importModel(model)} className="shrink-0">
+                    <Plus className="w-3 h-3 mr-1" />Import
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -268,7 +499,7 @@ export default function AdminAIModels() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </StaggerContainer>
 
       {/* Models Tabs */}
       <Tabs defaultValue="active" className="space-y-4">
@@ -427,13 +658,14 @@ export default function AdminAIModels() {
           <CardContent className="py-12 text-center">
             <Bot className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No AI models configured</p>
+            <p className="text-sm text-muted-foreground mt-1">Sử dụng "Auto-fetch từ Provider" ở trên để tự động lấy models</p>
             <Button variant="outline" className="mt-4" onClick={() => setIsCreateOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />Add First Model
             </Button>
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageTransition>
   );
 }
 

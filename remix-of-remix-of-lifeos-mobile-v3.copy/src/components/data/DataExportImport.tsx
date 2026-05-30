@@ -28,6 +28,9 @@ export function DataExportImport() {
   const journalEntries = useLifeOSStore((s) => s.journalEntries);
   const lifeWheelScores = useLifeOSStore((s) => s.lifeWheelScores);
   const weeklyReviews = useLifeOSStore((s) => s.weeklyReviews);
+  const monthlyReviews = useLifeOSStore((s) => s.monthlyReviews);
+  const yearlyPlannings = useLifeOSStore((s) => s.yearlyPlannings);
+  const yearlyReviews = useLifeOSStore((s) => s.yearlyReviews);
   const chatMessages = useLifeOSStore((s) => s.chatMessages);
   const pomodoroSessions = useLifeOSStore((s) => s.pomodoroSessions);
   const pomodoroSettings = useLifeOSStore((s) => s.pomodoroSettings);
@@ -46,6 +49,9 @@ export function DataExportImport() {
       journalEntries,
       lifeWheelScores,
       weeklyReviews,
+      monthlyReviews,
+      yearlyPlannings,
+      yearlyReviews,
       chatMessages,
       pomodoroSessions,
       pomodoroSettings,
@@ -92,6 +98,9 @@ export function DataExportImport() {
             journalEntries: data.journalEntries || [],
             lifeWheelScores: data.lifeWheelScores || [],
             weeklyReviews: data.weeklyReviews || [],
+            monthlyReviews: data.monthlyReviews || [],
+            yearlyPlannings: data.yearlyPlannings || [],
+            yearlyReviews: data.yearlyReviews || [],
             chatMessages: data.chatMessages || [],
             pomodoroSessions: data.pomodoroSessions || [],
             pomodoroSettings: data.pomodoroSettings || {
@@ -136,7 +145,7 @@ export function DataExportImport() {
     tasks: tasks.length,
     goals: goals.length,
     journals: journalEntries.length,
-    reviews: weeklyReviews.length,
+    reviews: weeklyReviews.length + monthlyReviews.length + yearlyReviews.length,
     pomodoros: pomodoroSessions.filter(s => s.phase === 'work').length,
   };
 

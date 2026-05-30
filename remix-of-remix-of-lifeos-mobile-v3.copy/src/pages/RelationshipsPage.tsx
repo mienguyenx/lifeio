@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -306,17 +306,11 @@ export default function RelationshipsPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <Dialog open={isAddInteractionOpen} onOpenChange={setIsAddInteractionOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <MessageSquare className="w-4 h-4" />
-                <span className="hidden sm:inline">Ghi tương tác</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Ghi nhận tương tác</DialogTitle>
-              </DialogHeader>
+          <Button variant="outline" className="gap-2" onClick={() => setIsAddInteractionOpen(true)}>
+            <MessageSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">Ghi tương tác</span>
+          </Button>
+          <AdaptiveModal open={isAddInteractionOpen} onOpenChange={setIsAddInteractionOpen} title="Ghi nhận tương tác">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Người liên hệ</Label>
@@ -373,20 +367,13 @@ export default function RelationshipsPage() {
                 </div>
                 <Button className="w-full" onClick={handleAddInteraction}>Lưu</Button>
               </div>
-            </DialogContent>
-          </Dialog>
+          </AdaptiveModal>
           
-          <Dialog open={isAddContactOpen} onOpenChange={setIsAddContactOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <UserPlus className="w-4 h-4" />
-                <span className="hidden sm:inline">Thêm liên hệ</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Thêm liên hệ mới</DialogTitle>
-              </DialogHeader>
+          <Button className="gap-2" onClick={() => setIsAddContactOpen(true)}>
+            <UserPlus className="w-4 h-4" />
+            <span className="hidden sm:inline">Thêm liên hệ</span>
+          </Button>
+          <AdaptiveModal open={isAddContactOpen} onOpenChange={setIsAddContactOpen} title="Thêm liên hệ mới">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Tên</Label>
@@ -459,13 +446,8 @@ export default function RelationshipsPage() {
                 </div>
                 <Button className="w-full" onClick={handleAddContact}>Thêm liên hệ</Button>
               </div>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={isEditContactOpen} onOpenChange={setIsEditContactOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Chỉnh sửa liên hệ</DialogTitle>
-              </DialogHeader>
+          </AdaptiveModal>
+          <AdaptiveModal open={isEditContactOpen} onOpenChange={setIsEditContactOpen} title="Chỉnh sửa liên hệ">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Tên</Label>
@@ -538,13 +520,8 @@ export default function RelationshipsPage() {
                 </div>
                 <Button className="w-full" onClick={handleUpdateContact}>Cập nhật liên hệ</Button>
               </div>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={isEditInteractionOpen} onOpenChange={setIsEditInteractionOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Chỉnh sửa tương tác</DialogTitle>
-              </DialogHeader>
+          </AdaptiveModal>
+          <AdaptiveModal open={isEditInteractionOpen} onOpenChange={setIsEditInteractionOpen} title="Chỉnh sửa tương tác">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Người liên hệ</Label>
@@ -601,8 +578,7 @@ export default function RelationshipsPage() {
                 </div>
                 <Button className="w-full" onClick={handleUpdateInteraction}>Cập nhật</Button>
               </div>
-            </DialogContent>
-          </Dialog>
+          </AdaptiveModal>
           <Button
             variant="ghost"
             size="sm"

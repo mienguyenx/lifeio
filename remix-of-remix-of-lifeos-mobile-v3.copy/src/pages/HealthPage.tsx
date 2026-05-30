@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -220,17 +220,11 @@ export default function HealthPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Ghi nhận</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Ghi nhận sức khỏe</DialogTitle>
-              </DialogHeader>
+          <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Ghi nhận</span>
+          </Button>
+          <AdaptiveModal open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} title="Ghi nhận sức khỏe">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Chỉ số</Label>
@@ -266,13 +260,8 @@ export default function HealthPage() {
                 </div>
                 <Button className="w-full" onClick={handleAddLog}>Lưu</Button>
               </div>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Chỉnh sửa ghi nhận sức khỏe</DialogTitle>
-              </DialogHeader>
+          </AdaptiveModal>
+          <AdaptiveModal open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} title="Chỉnh sửa ghi nhận sức khỏe">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Chỉ số</Label>
@@ -308,8 +297,7 @@ export default function HealthPage() {
                 </div>
                 <Button className="w-full" onClick={handleUpdateLog}>Cập nhật</Button>
               </div>
-            </DialogContent>
-          </Dialog>
+          </AdaptiveModal>
           <Button
             variant="ghost"
             size="sm"

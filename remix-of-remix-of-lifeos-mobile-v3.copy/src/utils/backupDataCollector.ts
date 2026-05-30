@@ -46,6 +46,9 @@ export interface BackupData {
     daily_intentions: any[];
     life_wheel_scores: any[];
     weekly_reviews: any[];
+    monthly_reviews: any[];
+    yearly_plannings: any[];
+    yearly_reviews: any[];
     personal_values: any[];
     personal_traits: any[];
     life_visions: any[];
@@ -197,6 +200,9 @@ async function fetchUserData(userId: string): Promise<Partial<BackupData['databa
   userData.daily_intentions = await fetchTable('daily_intentions', { column: 'user_id', value: userId });
   userData.life_wheel_scores = await fetchTable('life_wheel_scores', { column: 'user_id', value: userId });
   userData.weekly_reviews = await fetchTable('weekly_reviews', { column: 'user_id', value: userId });
+  userData.monthly_reviews = await fetchTable('monthly_reviews', { column: 'user_id', value: userId });
+  userData.yearly_plannings = await fetchTable('yearly_plannings', { column: 'user_id', value: userId });
+  userData.yearly_reviews = await fetchTable('yearly_reviews', { column: 'user_id', value: userId });
   userData.personal_values = await fetchTable('personal_values', { column: 'user_id', value: userId });
   userData.personal_traits = await fetchTable('personal_traits', { column: 'user_id', value: userId });
   userData.life_visions = await fetchTable('life_visions', { column: 'user_id', value: userId });

@@ -31,6 +31,8 @@ export default function DashboardAICoach({ onClose }: DashboardAICoachProps) {
   const journalEntries = useLifeOSStore((s) => s.journalEntries);
   const lifeWheelScores = useLifeOSStore((s) => s.lifeWheelScores);
   const weeklyReviews = useLifeOSStore((s) => s.weeklyReviews);
+  const monthlyReviews = useLifeOSStore((s) => s.monthlyReviews);
+  const yearlyPlannings = useLifeOSStore((s) => s.yearlyPlannings);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -61,6 +63,8 @@ export default function DashboardAICoach({ onClose }: DashboardAICoachProps) {
 
   // Get latest weekly review
   const latestWeeklyReview = weeklyReviews?.slice(-1)[0];
+  const latestMonthlyReview = monthlyReviews?.slice(-1)[0];
+  const currentYearPlanning = yearlyPlannings?.find(p => p.year === new Date().getFullYear());
 
   // Build user context for AI
   const buildUserContext = () => {
@@ -95,6 +99,17 @@ export default function DashboardAICoach({ onClose }: DashboardAICoachProps) {
       })),
       lifeWheelScores: formattedScores,
       weeklyReview: latestWeeklyReview,
+      monthlyReview: latestMonthlyReview ? {
+        month: latestMonthlyReview.month,
+        rating: latestMonthlyReview.overallRating,
+        wins: latestMonthlyReview.wins?.slice(0, 3),
+        challenges: latestMonthlyReview.challenges?.slice(0, 3),
+        nextFocus: latestMonthlyReview.nextMonthFocus?.slice(0, 3),
+      } : undefined,
+      yearlyPlan: currentYearPlanning ? {
+        theme: currentYearPlanning.theme,
+        goals: currentYearPlanning.yearlyGoals?.slice(0, 5),
+      } : undefined,
       dailyStats: {
         habitsCompleted: completedHabitsToday.length,
         habitsTotal: todayHabits.length,
@@ -114,7 +129,8 @@ export default function DashboardAICoach({ onClose }: DashboardAICoachProps) {
     'Hôm nay tôi nên tập trung vào mảng nào?',
     'Gợi ý 3 hành động cải thiện điểm thấp nhất',
     'Làm sao để cân bằng cuộc sống tốt hơn?',
-    'Phân tích Weekly Review và đề xuất tuần tới'
+    'Phân tích Weekly Review và đề xuất tuần tới',
+    'So sánh tiến độ tháng này với kế hoạch năm'
   ];
 
   // Fetch daily suggestion on mount

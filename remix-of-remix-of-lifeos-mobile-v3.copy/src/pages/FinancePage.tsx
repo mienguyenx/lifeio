@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -250,17 +250,11 @@ export default function FinancePage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Thêm giao dịch</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Thêm giao dịch</DialogTitle>
-            </DialogHeader>
+          <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Thêm giao dịch</span>
+          </Button>
+          <AdaptiveModal open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} title="Thêm giao dịch">
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Button
@@ -317,76 +311,8 @@ export default function FinancePage() {
               </div>
               <Button className="w-full" onClick={handleAddTransaction}>Lưu</Button>
             </div>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Chỉnh sửa giao dịch</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <Button
-                  variant={newTransaction.type === 'expense' ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setNewTransaction(prev => ({ ...prev, type: 'expense', category: 'food' }))}
-                >
-                  <TrendingDown className="w-4 h-4 mr-2" />
-                  Chi tiêu
-                </Button>
-                <Button
-                  variant={newTransaction.type === 'income' ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setNewTransaction(prev => ({ ...prev, type: 'income', category: 'salary' }))}
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Thu nhập
-                </Button>
-              </div>
-              <div className="space-y-2">
-                <Label>Danh mục</Label>
-                <Select 
-                  value={newTransaction.category} 
-                  onValueChange={(v) => setNewTransaction(prev => ({ ...prev, category: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(newTransaction.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Số tiền (VND)</Label>
-                <Input
-                  type="number"
-                  placeholder="Nhập số tiền"
-                  value={newTransaction.amount}
-                  onChange={(e) => setNewTransaction(prev => ({ ...prev, amount: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Mô tả</Label>
-                <Input
-                  placeholder="Mô tả giao dịch..."
-                  value={newTransaction.description}
-                  onChange={(e) => setNewTransaction(prev => ({ ...prev, description: e.target.value }))}
-                />
-              </div>
-              <Button className="w-full" onClick={handleAddTransaction}>Lưu</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Chỉnh sửa giao dịch</DialogTitle>
-            </DialogHeader>
+          </AdaptiveModal>
+          <AdaptiveModal open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} title="Chỉnh sửa giao dịch">
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Button
@@ -443,8 +369,7 @@ export default function FinancePage() {
               </div>
               <Button className="w-full" onClick={handleUpdateTransaction}>Cập nhật</Button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </AdaptiveModal>
         <Button
           variant="ghost"
           size="sm"

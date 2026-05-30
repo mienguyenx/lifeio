@@ -4,7 +4,7 @@ import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -308,27 +308,24 @@ export default function HabitsPage() {
 
   const weekDays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
+  const AddHabitButton = (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button size="sm" className="rounded-full" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Thêm
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent className="bg-gradient-to-r from-primary/90 to-primary text-primary-foreground border-0 shadow-lg">
+          <p className="font-medium">Thêm Habit mới</p>
+          <p className="text-xs opacity-90">Tạo thói quen mới để theo dõi hàng ngày</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   const AddHabitDialog = (
-    <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setShowTemplates('form'); }}>
-      <TooltipProvider delayDuration={200}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DialogTrigger asChild>
-              <Button size="sm" className="rounded-full">
-                <Plus className="w-4 h-4 mr-1" /> Thêm
-              </Button>
-            </DialogTrigger>
-          </TooltipTrigger>
-          <TooltipContent className="bg-gradient-to-r from-primary/90 to-primary text-primary-foreground border-0 shadow-lg">
-            <p className="font-medium">Thêm Habit mới</p>
-            <p className="text-xs opacity-90">Tạo thói quen mới để theo dõi hàng ngày</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Thêm Habit mới</DialogTitle>
-        </DialogHeader>
+    <AdaptiveModal open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setShowTemplates('form'); }} title="Thêm Habit mới">
         <div className="space-y-4 mt-4">
           {/* Template view / Form view switcher */}
           {showTemplates === 'templates' ? (
@@ -521,8 +518,7 @@ export default function HabitsPage() {
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </AdaptiveModal>
   );
 
   const HabitCard = ({ habit }: { habit: Habit }) => {
@@ -759,7 +755,7 @@ export default function HabitsPage() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            {AddHabitDialog}
+            {AddHabitButton}
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1257,7 +1253,7 @@ export default function HabitsPage() {
           <Button variant="outline" size="icon" onClick={() => setShowHistoryManager(true)}>
             <History className="w-4 h-4" />
           </Button>
-          {AddHabitDialog}
+          {AddHabitButton}
         </div>
       </div>
 
@@ -1453,6 +1449,8 @@ export default function HabitsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {AddHabitDialog}
     </div>
   );
 }

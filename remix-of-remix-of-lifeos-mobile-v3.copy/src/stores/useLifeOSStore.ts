@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Habit, Task, Subtask, TaskTag, PomodoroSettings, PomodoroSession, UserProfile, Goal, JournalEntry, JournalTag, LifeWheelScore, WeeklyReview, ChatMessage, AISettings, LifeArea, HabitCompetition, Note, NoteTag, DailyIntention, SavedConversation, TrashSettings } from '@/types/lifeos';
+import type { Habit, Task, Subtask, TaskTag, PomodoroSettings, PomodoroSession, UserProfile, Goal, JournalEntry, JournalTag, LifeWheelScore, WeeklyReview, MonthlyReview, YearlyPlanning, YearlyReview, ChatMessage, AISettings, LifeArea, HabitCompetition, Note, NoteTag, DailyIntention, SavedConversation, TrashSettings, UserPreferences, MorningCheckinEntry, EveningReviewEntry, AIMemoryEvent, DecisionLog } from '@/types/lifeos';
 import { sampleHabits, sampleTasks, samplePomodoroSessions, sampleUser } from '@/data/sampleData';
 import { sampleGoals, sampleJournalEntries, sampleLifeWheelScores, sampleWeeklyReviews, sampleChatMessages, sampleNotes, sampleDailyIntentions } from '@/data/sampleDataExtended';
 import type { HealthLog } from '@/hooks/sync/useHealthSync';
@@ -88,6 +88,24 @@ interface LifeOSStore {
   updateWeeklyReview: (id: string, updates: Partial<WeeklyReview>) => void;
   deleteWeeklyReview: (id: string) => void;
   clearWeeklyReviewHistory: () => void;
+
+  // Monthly Reviews
+  monthlyReviews: MonthlyReview[];
+  addMonthlyReview: (review: Omit<MonthlyReview, 'id' | 'createdAt'>) => void;
+  updateMonthlyReview: (id: string, updates: Partial<MonthlyReview>) => void;
+  deleteMonthlyReview: (id: string) => void;
+
+  // Yearly Planning
+  yearlyPlannings: YearlyPlanning[];
+  addYearlyPlanning: (planning: Omit<YearlyPlanning, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateYearlyPlanning: (id: string, updates: Partial<YearlyPlanning>) => void;
+  deleteYearlyPlanning: (id: string) => void;
+
+  // Yearly Reviews
+  yearlyReviews: YearlyReview[];
+  addYearlyReview: (review: Omit<YearlyReview, 'id' | 'createdAt'>) => void;
+  updateYearlyReview: (id: string, updates: Partial<YearlyReview>) => void;
+  deleteYearlyReview: (id: string) => void;
 
   // AI Chat
   chatMessages: ChatMessage[];
@@ -179,6 +197,32 @@ interface LifeOSStore {
   addRelationshipInteraction: (interaction: Interaction) => void;
   updateRelationshipInteraction: (id: string, updates: Partial<Interaction>) => void;
   deleteRelationshipInteraction: (id: string) => void;
+
+  // User Preferences
+  userPreferences: UserPreferences;
+  setUserPreferences: (prefs: Partial<UserPreferences>) => void;
+
+  // Morning Checkins
+  morningCheckins: MorningCheckinEntry[];
+  addMorningCheckin: (entry: Omit<MorningCheckinEntry, 'id' | 'createdAt'>) => void;
+  updateMorningCheckin: (id: string, updates: Partial<MorningCheckinEntry>) => void;
+
+  // Evening Reviews
+  eveningReviews: EveningReviewEntry[];
+  addEveningReview: (entry: Omit<EveningReviewEntry, 'id' | 'createdAt'>) => void;
+  updateEveningReview: (id: string, updates: Partial<EveningReviewEntry>) => void;
+
+  // AI Memory
+  aiMemories: AIMemoryEvent[];
+  addAIMemory: (memory: Omit<AIMemoryEvent, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateAIMemory: (id: string, updates: Partial<AIMemoryEvent>) => void;
+  deleteAIMemory: (id: string) => void;
+
+  // Decision Logs
+  decisionLogs: DecisionLog[];
+  addDecisionLog: (log: Omit<DecisionLog, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateDecisionLog: (id: string, updates: Partial<DecisionLog>) => void;
+  deleteDecisionLog: (id: string) => void;
 
   // Data management
   loadSampleData: () => void;
@@ -788,6 +832,45 @@ export const useLifeOSStore = create<LifeOSStore>()(
       clearWeeklyReviewHistory: () =>
         set({ weeklyReviews: [] }),
 
+      // Monthly Reviews
+      monthlyReviews: [],
+      addMonthlyReview: (review) =>
+        set((state) => ({
+          monthlyReviews: [{ ...review, id: crypto.randomUUID(), createdAt: new Date().toISOString() }, ...state.monthlyReviews],
+        })),
+      updateMonthlyReview: (id, updates) =>
+        set((state) => ({
+          monthlyReviews: state.monthlyReviews.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+        })),
+      deleteMonthlyReview: (id) =>
+        set((state) => ({ monthlyReviews: state.monthlyReviews.filter((r) => r.id !== id) })),
+
+      // Yearly Planning
+      yearlyPlannings: [],
+      addYearlyPlanning: (planning) =>
+        set((state) => ({
+          yearlyPlannings: [{ ...planning, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, ...state.yearlyPlannings],
+        })),
+      updateYearlyPlanning: (id, updates) =>
+        set((state) => ({
+          yearlyPlannings: state.yearlyPlannings.map((p) => (p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p)),
+        })),
+      deleteYearlyPlanning: (id) =>
+        set((state) => ({ yearlyPlannings: state.yearlyPlannings.filter((p) => p.id !== id) })),
+
+      // Yearly Reviews
+      yearlyReviews: [],
+      addYearlyReview: (review) =>
+        set((state) => ({
+          yearlyReviews: [{ ...review, id: crypto.randomUUID(), createdAt: new Date().toISOString() }, ...state.yearlyReviews],
+        })),
+      updateYearlyReview: (id, updates) =>
+        set((state) => ({
+          yearlyReviews: state.yearlyReviews.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+        })),
+      deleteYearlyReview: (id) =>
+        set((state) => ({ yearlyReviews: state.yearlyReviews.filter((r) => r.id !== id) })),
+
       // AI Chat - Khởi tạo với empty array, không dùng sample data
       chatMessages: [],
       addChatMessage: (message) =>
@@ -974,6 +1057,79 @@ export const useLifeOSStore = create<LifeOSStore>()(
       updateRelationshipInteraction: (id, updates) =>
         set((state) => ({ relationshipsInteractions: state.relationshipsInteractions.map((i) => (i.id === id ? { ...i, ...updates } : i)) })),
       deleteRelationshipInteraction: (id) => set((state) => ({ relationshipsInteractions: state.relationshipsInteractions.filter((i) => i.id !== id) })),
+
+      // User Preferences
+      userPreferences: {
+        aiTone: 'gentle',
+        planningStyle: 'checklist',
+        archetype: 'beginner',
+        lifeAreaPriorities: ['health', 'career', 'finance', 'learning', 'relationships'],
+        morningCheckinEnabled: true,
+        morningCheckinTime: '07:00',
+        eveningReviewEnabled: true,
+        eveningReviewTime: '21:00',
+        showTodayFocus: true,
+        showAISuggestions: true,
+        showStreaks: true,
+        onboardingCompleted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      setUserPreferences: (prefs) => set((state) => ({
+        userPreferences: { ...state.userPreferences, ...prefs, updatedAt: new Date().toISOString() },
+      })),
+
+      // Morning Checkins
+      morningCheckins: [],
+      addMorningCheckin: (entry) =>
+        set((state) => ({
+          morningCheckins: [...state.morningCheckins, { ...entry, id: crypto.randomUUID(), createdAt: new Date().toISOString() }],
+        })),
+      updateMorningCheckin: (id, updates) =>
+        set((state) => ({
+          morningCheckins: state.morningCheckins.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+        })),
+
+      // Evening Reviews
+      eveningReviews: [],
+      addEveningReview: (entry) =>
+        set((state) => ({
+          eveningReviews: [...state.eveningReviews, { ...entry, id: crypto.randomUUID(), createdAt: new Date().toISOString() }],
+        })),
+      updateEveningReview: (id, updates) =>
+        set((state) => ({
+          eveningReviews: state.eveningReviews.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+        })),
+
+      // AI Memory
+      aiMemories: [],
+      addAIMemory: (memory) =>
+        set((state) => ({
+          aiMemories: [...state.aiMemories, { ...memory, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+        })),
+      updateAIMemory: (id, updates) =>
+        set((state) => ({
+          aiMemories: state.aiMemories.map((m) => (m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m)),
+        })),
+      deleteAIMemory: (id) =>
+        set((state) => ({
+          aiMemories: state.aiMemories.filter((m) => m.id !== id),
+        })),
+
+      // Decision Logs
+      decisionLogs: [],
+      addDecisionLog: (log) =>
+        set((state) => ({
+          decisionLogs: [...state.decisionLogs, { ...log, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+        })),
+      updateDecisionLog: (id, updates) =>
+        set((state) => ({
+          decisionLogs: state.decisionLogs.map((l) => (l.id === id ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l)),
+        })),
+      deleteDecisionLog: (id) =>
+        set((state) => ({
+          decisionLogs: state.decisionLogs.map((l) => (l.id === id ? { ...l, deletedAt: new Date().toISOString() } : l)),
+        })),
 
       // Data management
       loadSampleData: () =>

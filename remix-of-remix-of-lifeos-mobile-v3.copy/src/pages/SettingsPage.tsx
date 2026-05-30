@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Settings, Timer, Trash2, RefreshCw, Moon, Sun, Bell, BellOff, LogOut, Download, Upload, Package, ExternalLink, Chrome, Globe, X } from 'lucide-react';
+import { Settings, Timer, Trash2, RefreshCw, Moon, Sun, Bell, BellOff, LogOut, Download, Upload, Package, ExternalLink, Chrome, Globe, X, RotateCcw, ShieldAlert } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,10 +13,11 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { DataExportImport } from '@/components/data/DataExportImport';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
 import { useProfileSync } from '@/hooks/sync/useProfileSync';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
+import { activeSupabase as supabase } from '@/integrations/supabase/externalClient';
 
 function ThemeSelector() {
   const { theme, setTheme } = useTheme();
@@ -74,6 +75,10 @@ export default function SettingsPage() {
   
   const { clearAllAreaModuleData } = useProfileSync();
   const [isClearingAreaData, setIsClearingAreaData] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const RESET_CONFIRM_PHRASE = 'XOA TAT CA';
 
   const handleClearAreaModuleData = async () => {
     if (!confirm('Bạn có chắc chắn muốn xóa tất cả dữ liệu module area (Personal Values, Life Roles, Visions, Traits, Milestones)? Hành động này không thể hoàn tác!')) {
@@ -118,6 +123,41 @@ export default function SettingsPage() {
       toast.error('Có lỗi xảy ra khi xóa dữ liệu.');
     } finally {
       setIsClearingAreaData(false);
+    }
+  };
+
+  const handleFullReset = async () => {
+    if (!authUser) return;
+    setIsResetting(true);
+    try {
+      const userId = authUser.id;
+      const tables = [
+        'habits', 'tasks', 'goals', 'journal_entries', 'journal_tags',
+        'notes', 'note_tags', 'life_wheel_scores', 'weekly_reviews',
+        'monthly_reviews', 'yearly_plannings', 'yearly_reviews',
+        'daily_intentions', 'chat_messages', 'pomodoro_sessions',
+        'task_tags', 'personal_values', 'life_roles', 'life_visions',
+        'personal_traits', 'life_milestones', 'saved_conversations',
+      ];
+      for (const table of tables) {
+        await (supabase as any).from(table).delete().eq('user_id', userId);
+      }
+      // Reset onboarding
+      await supabase.from('user_settings').upsert({
+        user_id: userId,
+        onboarding_completed: false,
+        preferences: {},
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+      // Clear local store
+      clearAllData();
+      toast.success('Đã xóa toàn bộ dữ liệu. Đang tải lại...');
+      setResetDialogOpen(false);
+      setTimeout(() => { window.location.href = '/'; }, 1200);
+    } catch (err: any) {
+      toast.error(`Lỗi: ${err.message}`);
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -426,6 +466,31 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Danger Zone */}
+      <Card className="border-destructive/40">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+            <ShieldAlert className="w-5 h-5" /> Vùng nguy hiểm
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20 space-y-2">
+            <p className="text-sm font-medium text-destructive">Xóa toàn bộ dữ liệu & cài đặt lại</p>
+            <p className="text-xs text-muted-foreground">
+              Xóa vĩnh viễn <strong>tất cả</strong> dữ liệu của bạn trên máy chủ và thiết bị này: habits, tasks, goals, journal, notes, reviews, pomodoro sessions... Tài khoản vẫn giữ nguyên nhưng bạn sẽ trải qua onboarding lại từ đầu.
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={() => { setResetConfirmText(''); setResetDialogOpen(true); }}
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Xóa toàn bộ & Cài đặt lại
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Account Actions */}
       <Card>
         <CardHeader className="pb-2">
@@ -447,6 +512,49 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Full Reset Confirmation Dialog */}
+      <Dialog open={resetDialogOpen} onOpenChange={(o) => { if (!isResetting) { setResetDialogOpen(o); setResetConfirmText(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldAlert className="w-5 h-5" /> Xác nhận xóa toàn bộ dữ liệu
+            </DialogTitle>
+            <DialogDescription className="space-y-3 pt-2">
+              <span className="block text-sm">Hành động này sẽ:</span>
+              <ul className="text-sm list-disc list-inside space-y-1 text-foreground">
+                <li>Xóa <strong>tất cả</strong> dữ liệu trên máy chủ</li>
+                <li>Reset về trạng thái ban đầu (onboarding lại)</li>
+                <li>Không thể hoàn tác</li>
+              </ul>
+              <span className="block text-sm mt-3">
+                Nhập <strong className="font-mono text-destructive">{RESET_CONFIRM_PHRASE}</strong> để xác nhận:
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              placeholder={RESET_CONFIRM_PHRASE}
+              value={resetConfirmText}
+              onChange={(e) => setResetConfirmText(e.target.value.toUpperCase())}
+              className="font-mono"
+              disabled={isResetting}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setResetDialogOpen(false); setResetConfirmText(''); }} disabled={isResetting}>
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleFullReset}
+              disabled={resetConfirmText !== RESET_CONFIRM_PHRASE || isResetting}
+            >
+              {isResetting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang xóa...</> : <><Trash2 className="w-4 h-4 mr-2" />Xóa toàn bộ</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Extension Guide Modal */}
       <Dialog open={extensionGuideOpen} onOpenChange={setExtensionGuideOpen}>

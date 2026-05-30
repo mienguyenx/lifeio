@@ -4,6 +4,7 @@
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { getTodayDateString, isToday, isBeforeToday, parseDateInTimezone } from '@/utils/dateUtils';
 import { Task, Goal, Habit } from '@/types/lifeos';
+import { telegramService } from './telegramService';
 
 export interface Notification {
   id: string;
@@ -98,6 +99,16 @@ class NotificationService {
 
     this.notifications.unshift(notif); // Add to beginning
     this.saveNotifications();
+
+    // Send Telegram notification (fire and forget)
+    if (['task', 'goal', 'habit', 'system'].includes(notif.type)) {
+      telegramService.sendNotification({
+        type: notif.type as 'task' | 'goal' | 'habit' | 'system',
+        title: notif.title,
+        message: notif.message,
+        urgent: notif.urgent,
+      }).catch(() => {});
+    }
 
     return notif;
   }

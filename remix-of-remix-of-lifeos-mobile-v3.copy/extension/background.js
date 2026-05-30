@@ -2,6 +2,15 @@
 // Xử lý context menu và các tác vụ nền
 
 chrome.runtime.onInstalled.addListener(() => {
+  // Enable side panel to open when clicking the action button
+  if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+    try {
+      chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+    } catch (e) {
+      console.warn('[Background] sidePanel behavior not set:', e);
+    }
+  }
+
   // Tạo context menu items
   // Note: Manifest V3 không hỗ trợ property 'icons' trong contextMenus.create
   chrome.contextMenus.create({
@@ -36,8 +45,28 @@ chrome.runtime.onStartup.addListener(() => {
   console.log('[Background] Browser startup, syncing session...');
   syncSessionFromLifeOSTab();
 
+  // Ensure side panel behavior on startup
+  if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+    try {
+      chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+    } catch (e) {
+      console.warn('[Background] sidePanel behavior not set on startup:', e);
+    }
+  }
+
   // Định kỳ sync session sau khi browser start
   setInterval(syncSessionFromLifeOSTab, 30000);
+});
+
+// Enable side panel for all tabs (except chrome://)
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!chrome.sidePanel || !chrome.sidePanel.setOptions) return;
+  if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) return;
+  chrome.sidePanel.setOptions({
+    tabId,
+    path: 'sidepanel.html',
+    enabled: true,
+  }).catch?.((e) => console.warn('[Background] setOptions sidePanel failed', e));
 });
 
 // Sync session từ LifeOS tab
@@ -175,6 +204,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true, session: result.lifeOSSession });
       });
     });
+    return true;
+  } else if (message.action === 'openSidePanel') {
+    if (chrome.sidePanel && chrome.sidePanel.open) {
+      chrome.windows.getCurrent((win) => {
+        chrome.sidePanel.open({ windowId: win.id }).catch?.((e) => console.warn('[Background] open sidePanel failed', e));
+      });
+    }
+    sendResponse({ success: true });
     return true;
   }
 });

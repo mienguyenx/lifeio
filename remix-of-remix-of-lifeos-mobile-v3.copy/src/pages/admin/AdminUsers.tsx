@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,9 @@ import {
   Search, MoreHorizontal, Shield, ShieldCheck, User, Users, 
   UserCheck, UserX, Eye, Mail, Calendar, Target, CheckSquare,
   Activity, Crown, Clock, TrendingUp, Filter, Flame, BarChart3,
-  Trash2, Key, Send, CreditCard, Loader2, AlertTriangle
+  Trash2, Key, Send, CreditCard, Loader2, AlertTriangle,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown,
+  RotateCcw
 } from 'lucide-react';
 import { useAllProfiles, useUserRoles, useUpdateUserRole, useAdminStats, useSubscriptionPlans, useUserSubscriptions, useUpdateProfileName } from '@/hooks/useAdminData';
 import { useUserStats, useUserSubscription, useUserAnalytics } from '@/hooks/useAdminUserData';
@@ -28,6 +30,8 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { PageTransition } from '@/components/admin/AdminAnimations';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { activeSupabase as supabase } from '@/integrations/supabase/externalClient';
 import { toast } from 'sonner';
@@ -107,6 +111,25 @@ function useSendPasswordReset() {
   });
 }
 
+// Reset onboarding hook
+function useResetOnboarding() {
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: userId,
+          onboarding_completed: false,
+          preferences: {},
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+      if (error) throw error;
+    },
+    onSuccess: () => toast.success('Đã reset onboarding — user sẽ thấy wizard lần sau đăng nhập'),
+    onError: (err: Error) => toast.error(`Lỗi: ${err.message}`),
+  });
+}
+
 // Update subscription hook
 function useUpdateSubscription() {
   const queryClient = useQueryClient();
@@ -146,6 +169,10 @@ export default function AdminUsers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortField, setSortField] = useState<'name' | 'email' | 'created_at' | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -160,6 +187,7 @@ export default function AdminUsers() {
   const deleteUser = useDeleteUser();
   const sendEmail = useSendEmail();
   const sendPasswordReset = useSendPasswordReset();
+  const resetOnboarding = useResetOnboarding();
 
   const getUserRole = (userId: string) => {
     const userRole = roles?.find(r => r.user_id === userId);
@@ -183,8 +211,39 @@ export default function AdminUsers() {
       result = result.filter(profile => getUserRole(profile.id) === roleFilter);
     }
     
+    // Sort
+    if (sortField) {
+      result = [...result].sort((a, b) => {
+        const va = (a as any)[sortField] || '';
+        const vb = (b as any)[sortField] || '';
+        const cmp = typeof va === 'string' ? va.localeCompare(vb) : 0;
+        return sortDir === 'asc' ? cmp : -cmp;
+      });
+    }
+
     return result;
-  }, [profiles, searchQuery, roleFilter, roles]);
+  }, [profiles, searchQuery, roleFilter, roles, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProfiles.length / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  const pagedProfiles = useMemo(
+    () => filteredProfiles.slice(safePage * pageSize, (safePage + 1) * pageSize),
+    [filteredProfiles, safePage, pageSize]
+  );
+
+  const handleSort = useCallback((field: 'name' | 'email' | 'created_at') => {
+    if (sortField === field) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  }, [sortField]);
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    return sortDir === 'asc' ? <ArrowUp className="w-3 h-3 ml-1 text-primary" /> : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
+  };
 
   const handleRoleChange = (userId: string, role: 'admin' | 'moderator' | 'user') => {
     updateRole.mutate({ userId, role });
@@ -213,14 +272,12 @@ export default function AdminUsers() {
   const isMobile = useIsMobile();
 
   return (
-    <div className={cn("space-y-6", isMobile ? "p-4" : "p-6")}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>Quản lý người dùng</h1>
-          <p className="text-muted-foreground text-sm mt-1">Quản lý tài khoản và phân quyền người dùng</p>
-        </div>
-      </div>
+    <PageTransition className={cn("space-y-6", isMobile ? "p-4" : "p-6")}>
+      <AdminPageHeader
+        title="Quản lý người dùng"
+        description="Quản lý tài khoản và phân quyền người dùng"
+        icon={Users}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
@@ -311,19 +368,25 @@ export default function AdminUsers() {
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Người dùng</TableHead>
-                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                      <div className="flex items-center">Người dùng<SortIcon field="name" /></div>
+                    </TableHead>
+                    <TableHead className="hidden md:table-cell cursor-pointer select-none" onClick={() => handleSort('email')}>
+                      <div className="flex items-center">Email<SortIcon field="email" /></div>
+                    </TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead className="hidden sm:table-cell">Ngày tham gia</TableHead>
+                    <TableHead className="hidden sm:table-cell cursor-pointer select-none" onClick={() => handleSort('created_at')}>
+                      <div className="flex items-center">Ngày tham gia<SortIcon field="created_at" /></div>
+                    </TableHead>
                     <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProfiles.length > 0 ? filteredProfiles.map((profile) => (
+                  {pagedProfiles.length > 0 ? pagedProfiles.map((profile) => (
                     <TableRow key={profile.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -384,6 +447,9 @@ export default function AdminUsers() {
                               <DropdownMenuItem onClick={() => sendPasswordReset.mutate(profile.id)}>
                                 <Key className="w-4 h-4 mr-2" />Gửi reset password
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => resetOnboarding.mutate(profile.id)}>
+                                <RotateCcw className="w-4 h-4 mr-2" />Reset Onboarding
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 className="text-destructive focus:text-destructive"
@@ -411,11 +477,39 @@ export default function AdminUsers() {
             </div>
           )}
           
-          {/* Pagination info */}
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-muted-foreground">
-              Hiển thị {filteredProfiles.length} / {stats?.totalUsers || 0} người dùng
-            </p>
+          {/* Pagination */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Hiển thị {filteredProfiles.length > 0 ? safePage * pageSize + 1 : 0}–{Math.min((safePage + 1) * pageSize, filteredProfiles.length)} / {filteredProfiles.length}</span>
+              {searchQuery && <span>(lọc từ {stats?.totalUsers || 0})</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(0); }}>
+                <SelectTrigger className="h-8 w-[70px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 50, 100].map(n => (
+                    <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage === 0} onClick={() => setPage(0)}>
+                  <ChevronsLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage === 0} onClick={() => setPage(p => p - 1)}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <span className="text-xs px-2 tabular-nums">{safePage + 1} / {totalPages}</span>
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage >= totalPages - 1} onClick={() => setPage(totalPages - 1)}>
+                  <ChevronsRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -528,7 +622,7 @@ export default function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageTransition>
   );
 }
 

@@ -13,6 +13,8 @@ import {
   Loader2, RefreshCw, FileJson, Clock, Zap, Target,
   BookOpen, CheckSquare, Timer, Notebook, Calendar, Star
 } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { PageTransition } from '@/components/admin/AdminAnimations';
 import { activeSupabase as supabase } from '@/integrations/supabase/externalClient';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -371,22 +373,18 @@ export default function AdminDataManagement() {
   const totalCurrentRecords = dataTables.reduce((sum, t) => sum + t.count, 0);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Database className="w-6 h-6" />
-            Quản lý Dữ liệu Demo
-          </h1>
-          <p className="text-muted-foreground">
-            Import dữ liệu mẫu hoặc xóa dữ liệu để test hiệu năng
-          </p>
-        </div>
-        <Button onClick={refreshDataCounts} disabled={loading} variant="outline">
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+    <PageTransition className="p-6 space-y-6">
+      <AdminPageHeader
+        title="Quản lý Dữ liệu Demo"
+        description="Import dữ liệu mẫu hoặc xóa dữ liệu để test hiệu năng"
+        icon={Database}
+        actions={
+          <Button onClick={refreshDataCounts} disabled={loading} variant="outline" size="sm">
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -635,6 +633,6 @@ export default function AdminDataManagement() {
           </ul>
         </CardContent>
       </Card>
-    </div>
+    </PageTransition>
   );
 }

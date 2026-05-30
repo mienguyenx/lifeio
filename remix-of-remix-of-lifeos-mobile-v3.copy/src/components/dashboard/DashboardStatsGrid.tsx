@@ -1,4 +1,4 @@
-import { Target, CheckCircle2, Sparkles, Zap, BookOpen, FileText, Clock, Flame } from 'lucide-react';
+import { Target, CheckCircle2, Sparkles, Zap, BookOpen, FileText, Clock, CalendarCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,9 @@ export default function DashboardStatsGrid() {
   const journalEntries = useLifeOSStore((s) => s.journalEntries);
   const notes = useLifeOSStore((s) => s.notes);
   const pomodoroSessions = useLifeOSStore((s) => s.pomodoroSessions);
+  const weeklyReviews = useLifeOSStore((s) => s.weeklyReviews);
+  const monthlyReviews = useLifeOSStore((s) => s.monthlyReviews);
+  const yearlyReviews = useLifeOSStore((s) => s.yearlyReviews);
 
   const todayStr = new Date().toISOString().split('T')[0];
   
@@ -60,6 +63,12 @@ export default function DashboardStatsGrid() {
   // Pomodoro stats
   const todayPomodoros = pomodoroSessions.filter((s) => s.completedAt.startsWith(todayStr));
   const totalFocusMinutes = todayPomodoros.reduce((sum, s) => sum + (s.duration || 25), 0);
+
+  // Review stats
+  const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const totalReviews = weeklyReviews.length + monthlyReviews.length + yearlyReviews.length;
+  const hasMonthlyReview = monthlyReviews.some(r => r.month === currentMonthStr);
+  const hasYearlyReview = yearlyReviews.some(r => r.year === new Date().getFullYear());
 
   const stats: {
     label: string;
@@ -118,11 +127,11 @@ export default function DashboardStatsGrid() {
       sublabel: `${todayPomodoros.length} phiên`
     },
     {
-      label: 'Streaks',
-      value: bestStreak.toString(),
-      icon: Flame,
-      color: 'warning',
-      sublabel: 'ngày liên tiếp'
+      label: 'Reviews',
+      value: totalReviews.toString(),
+      icon: CalendarCheck,
+      color: 'info',
+      sublabel: `${hasMonthlyReview ? '✓' : '—'} T. ${hasYearlyReview ? '✓' : '—'} N.`
     }
   ];
 

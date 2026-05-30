@@ -1,11 +1,20 @@
-// Service Worker for LifeOS PWA - Enhanced Offline First
-// Version: 2.0 - Improved caching, offline fallback, auto-sync
+// Service Worker DISABLED - Self-destructing to clear old caches
+// Version: 3.0 - Cleanup only
 
-const CACHE_VERSION = 'v2';
-const CACHE_PREFIX = 'lifeos';
-const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`;
-const DYNAMIC_CACHE = `${CACHE_PREFIX}-dynamic-${CACHE_VERSION}`;
-const OFFLINE_CACHE = `${CACHE_PREFIX}-offline-${CACHE_VERSION}`;
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((key) => caches.delete(key)))
+    ).then(() => self.clients.matchAll()).then((clients) => {
+      clients.forEach((client) => client.navigate(client.url));
+      return self.registration.unregister();
+    })
+  );
+});
 
 // Core static assets to cache immediately
 const STATIC_ASSETS = [

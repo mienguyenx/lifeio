@@ -1,73 +1,83 @@
-# Welcome to your Lovable project
+# LifeOS Web (Vite + React + Tailwind)
 
-## Project info
+Ứng dụng LifeOS web, build bằng Vite/React/TypeScript/shadcn-ui. Hướng dẫn dưới đây dùng cho local dev, build Docker image và deploy trên Coolify (kéo image từ GitHub Container Registry để máy chủ nhẹ).
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 1) Yêu cầu
+- Node.js 20+ và npm 10+
+- (Tùy chọn) Docker 24+
 
-## How can I edit this code?
+## 2) Thiết lập môi trường
+Tạo file `.env` (hoặc export biến khi build Docker):
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+VITE_SUPABASE_URL=...        # ví dụ: https://life.hoanong.com/supabase
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+VITE_GOOGLE_CLIENT_ID=...
+VITE_GOOGLE_API_KEY=...
 ```
 
-**Edit a file directly in GitHub**
+> Không commit khóa bí mật. Với build Docker, truyền qua `--build-arg` hoặc biến CI.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 3) Chạy local
+```bash
+npm ci
+npm run dev
+# mở http://localhost:5173
+```
 
-**Use GitHub Codespaces**
+Build production để kiểm tra:
+```bash
+npm run build
+npm run preview
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 4) Docker build (image nhẹ, serve bằng nginx)
+Dockerfile đã có sẵn multi-stage:
+```bash
+docker build \
+  --build-arg VITE_SUPABASE_URL=https://life.hoanong.com/supabase \
+  --build-arg VITE_SUPABASE_PUBLISHABLE_KEY=xxx \
+  --build-arg VITE_GOOGLE_CLIENT_ID=xxx \
+  --build-arg VITE_GOOGLE_API_KEY=xxx \
+  -t ghcr.io/<your-org>/lifeos-web:latest .
 
-## What technologies are used for this project?
+docker run -p 8080:80 ghcr.io/<your-org>/lifeos-web:latest
+```
 
-This project is built with:
+### Push lên GitHub Container Registry (GHCR)
+```bash
+echo $GITHUB_TOKEN | docker login ghcr.io -u <your-username> --password-stdin
+docker push ghcr.io/<your-org>/lifeos-web:latest
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 5) Triển khai trên Coolify (kéo image từ GHCR)
+1. Tạo **Container > Docker Registry** trong Coolify.
+2. Image: `ghcr.io/<your-org>/lifeos-web:latest`.
+3. Port: `80` (container port).
+4. Env lúc build đã bake sẵn trong image (qua build-arg). Nếu muốn đổi Supabase URL/key → rebuild/push image.
+5. Gán domain trong Coolify, bật HTTPS (qua Traefik nội bộ của Coolify).
 
-## How can I deploy this project?
+### Tùy chọn: build trong Coolify
+Nếu muốn Coolify tự build từ repo thay vì image sẵn:
+- Repository: GitHub `https://github.com/huynhlongdai/LifeOS.git` (thư mục: `remix-of-remix-of-lifeos-mobile-v3.copy`).
+- Dockerfile: `Dockerfile` ở thư mục này.
+- Build args: giống mục 4.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## 6) Dọn dẹp
+- Không commit `node_modules/`, `dist/`, hoặc file `.env`. Đã có `.gitignore`.
+- Backups/zip giữ ngoài repo nếu không cần deploy.
 
-## Can I connect a custom domain to my Lovable project?
+## 7) Scripts chính
+- `npm run dev` — Dev server
+- `npm run build` — Build production
+- `npm run preview` — Serve build
+- `npm run lint` — ESLint
 
-Yes, you can!
+## 8) Công nghệ
+- Vite 5, React 18, TypeScript 5
+- TailwindCSS, shadcn-ui
+- Zustand, React Query, Supabase JS
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 9) Ghi chú bảo mật
+- Không để lộ PUBLISHABLE_KEY nếu private; dùng repo secret/GH Actions để build image và push GHCR.
+- Nếu chạy sau proxy (Coolify/Traefik), domain phải khớp VITE_SUPABASE_URL để tránh CORS.

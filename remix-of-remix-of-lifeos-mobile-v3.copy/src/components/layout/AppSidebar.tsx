@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, LayoutDashboard, Target, CheckSquare, Compass, BookOpen, Calendar, PieChart, Heart, Wallet, GraduationCap, Users, ChevronDown } from 'lucide-react';
+import { Home, LayoutDashboard, Target, CheckSquare, Compass, BookOpen, Calendar, CalendarDays, CalendarRange, Map, Award, PieChart, Heart, Wallet, GraduationCap, Users, ChevronDown, Settings2, Brain, Scale, BarChart3, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { useNotificationBadges, GoalsBadge, TasksBadge, HabitsBadge } from '@/hooks/useNotificationBadges';
@@ -8,14 +8,21 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DatabaseIndicator } from './DatabaseIndicator';
+import { useBranding } from '@/hooks/useBranding';
+import { notificationService } from '@/services/notificationService';
+import { useTheme } from 'next-themes';
 
 // Menu groups configuration
 const MENU_GROUPS = {
   daily: {
     label: 'Hàng ngày',
     items: [
+      { path: '/journey', icon: Trophy, label: 'Hành trình', badgeKey: null },
       { path: '/', icon: Home, label: 'Today', badgeKey: null },
       { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', badgeKey: null },
+      { path: '/calendar', icon: CalendarRange, label: 'Calendar', badgeKey: null },
+      { path: '/personalization', icon: Settings2, label: 'Cá nhân hóa', badgeKey: null },
+      { path: '/area-dashboard', icon: BarChart3, label: 'Area Dashboard', badgeKey: null },
     ],
   },
   productivity: {
@@ -24,6 +31,7 @@ const MENU_GROUPS = {
       { path: '/tasks', icon: CheckSquare, label: 'Tasks', badgeKey: 'tasks' as const },
       { path: '/habits', icon: Target, label: 'Habits', badgeKey: 'habits' as const },
       { path: '/goals', icon: Compass, label: 'Goals', badgeKey: 'goals' as const },
+      { path: '/decisions', icon: Scale, label: 'Decision Log', badgeKey: null },
     ],
   },
   reflection: {
@@ -31,6 +39,10 @@ const MENU_GROUPS = {
     items: [
       { path: '/journal', icon: BookOpen, label: 'Journal', badgeKey: null },
       { path: '/weekly-review', icon: Calendar, label: 'Weekly Review', badgeKey: null },
+      { path: '/monthly-review', icon: CalendarDays, label: 'Monthly Review', badgeKey: null },
+      { path: '/yearly-planning', icon: Map, label: 'Yearly Planning', badgeKey: null },
+      { path: '/yearly-review', icon: Award, label: 'Yearly Review', badgeKey: null },
+      { path: '/ai-memory', icon: Brain, label: 'AI Memory', badgeKey: null },
     ],
   },
   overview: {
@@ -298,19 +310,48 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
   const badges = useNotificationBadges();
+  const branding = useBranding();
+  const { resolvedTheme } = useTheme();
+  const [unreadCount, setUnreadCount] = useState(0);
   
   // Check if any overview item is active to auto-expand
   const isOverviewActive = MENU_GROUPS.overview.items.some(item => location.pathname === item.path);
   const [overviewOpen, setOverviewOpen] = useState(isOverviewActive);
 
+  useEffect(() => {
+    const unsub = notificationService.subscribe((notifs) => {
+      setUnreadCount(notifs.filter(n => !n.read).length);
+    });
+    setUnreadCount(notificationService.getUnreadCount());
+    return unsub;
+  }, []);
+
+  const logoUrl = resolvedTheme === 'dark' && branding.logo_dark_url
+    ? branding.logo_dark_url
+    : branding.logo_url;
+  const showBadge = branding.show_notification_badge_on_logo && unreadCount > 0;
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">L</span>
+          <div className="relative">
+            {logoUrl ? (
+              <img src={logoUrl} alt={branding.app_name} className="w-8 h-8 rounded-lg object-contain" />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">{branding.app_name.charAt(0)}</span>
+              </div>
+            )}
+            {showBadge && (
+              <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 text-[10px] font-bold flex items-center justify-center rounded-full bg-destructive text-destructive-foreground border-2 border-background">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </div>
-          {!isCollapsed && <span className="font-bold text-lg">LifeOS</span>}
+          {!isCollapsed && branding.sidebar_logo_style !== 'icon' && (
+            <span className="font-bold text-lg">{branding.app_name}</span>
+          )}
         </div>
       </SidebarHeader>
 
@@ -430,7 +471,7 @@ export function AppSidebar() {
         </div>
         {!isCollapsed && (
           <div className="text-xs text-muted-foreground text-center">
-            LifeOS v1.0
+            {branding.app_name} v1.0
           </div>
         )}
       </SidebarFooter>

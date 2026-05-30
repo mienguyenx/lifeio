@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -319,17 +319,11 @@ export default function LearningPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Thêm mới</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Thêm {addType === 'course' ? 'khóa học' : 'sách'}</DialogTitle>
-            </DialogHeader>
+          <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Thêm mới</span>
+          </Button>
+          <AdaptiveModal open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} title={`Thêm ${addType === 'course' ? 'khóa học' : 'sách'}`}>
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Button
@@ -428,13 +422,8 @@ export default function LearningPage() {
                 </>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Chỉnh sửa {editingItem?.type === 'course' ? 'khóa học' : 'sách'}</DialogTitle>
-            </DialogHeader>
+          </AdaptiveModal>
+          <AdaptiveModal open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} title={`Chỉnh sửa ${editingItem?.type === 'course' ? 'khóa học' : 'sách'}`}>
             <div className="space-y-4">
               {editingItem?.type === 'course' ? (
                 <>
@@ -514,8 +503,7 @@ export default function LearningPage() {
                 </>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
+          </AdaptiveModal>
         <Button
           variant="ghost"
           size="sm"

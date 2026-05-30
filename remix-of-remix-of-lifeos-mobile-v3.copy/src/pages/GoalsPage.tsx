@@ -7,7 +7,7 @@ import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -456,26 +456,25 @@ export default function GoalsPage() {
     });
   };
 
+  const AddGoalButton = (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button size={isMobile ? "sm" : "default"} onClick={() => setIsDialogOpen(true)}>
+            <Plus className="w-4 h-4" />
+            {!isMobile && <span className="ml-2">Thêm Goal</span>}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p className="font-medium">Thêm Goal mới</p>
+          <p className="text-xs text-muted-foreground">Tạo mục tiêu với milestones và deadline</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   const AddGoalDialog = (
-    <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setShowTemplates('form'); }}>
-      <TooltipProvider delayDuration={200}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DialogTrigger asChild>
-              <Button size={isMobile ? "sm" : "default"}>
-                <Plus className="w-4 h-4" />
-                {!isMobile && <span className="ml-2">Thêm Goal</span>}
-              </Button>
-            </DialogTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p className="font-medium">Thêm Goal mới</p>
-            <p className="text-xs text-muted-foreground">Tạo mục tiêu với milestones và deadline</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Thêm Goal mới</DialogTitle></DialogHeader>
+    <AdaptiveModal open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setShowTemplates('form'); }} title="Thêm Goal mới">
         <div className="space-y-4 mt-4">
           {/* Template view / Form view switcher */}
           {showTemplates === 'templates' ? (
@@ -576,8 +575,7 @@ export default function GoalsPage() {
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </AdaptiveModal>
   );
 
   return (
@@ -717,7 +715,7 @@ export default function GoalsPage() {
             setSelectedGoal(goal);
             setIsDetailModalOpen(true);
           }} />
-          {AddGoalDialog}
+          {AddGoalButton}
           {/* Sidebar Toggle Button for Desktop */}
           <TooltipProvider>
             <Tooltip>
@@ -877,6 +875,8 @@ export default function GoalsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {AddGoalDialog}
     </div>
   );
 }

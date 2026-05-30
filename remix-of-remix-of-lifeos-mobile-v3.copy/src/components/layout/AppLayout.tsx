@@ -1,4 +1,4 @@
-import { ReactNode, useState, CSSProperties } from 'react';
+import { ReactNode, CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useOverdueNotification } from '@/hooks/useOverdueNotification';

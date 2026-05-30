@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Target } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -36,13 +36,7 @@ export function TodayAddHabitModal({ open, onOpenChange, onAdd }: TodayAddHabitM
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" /> Thêm Habit mới
-          </DialogTitle>
-        </DialogHeader>
+    <AdaptiveModal open={open} onOpenChange={onOpenChange} title="Thêm Habit mới">
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Gợi ý nhanh</label>
@@ -106,7 +100,6 @@ export function TodayAddHabitModal({ open, onOpenChange, onAdd }: TodayAddHabitM
             <Plus className="w-4 h-4 mr-2" /> Thêm Habit
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </AdaptiveModal>
   );
 }

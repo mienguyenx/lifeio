@@ -76,6 +76,7 @@ export interface Habit {
   color?: string; // Custom color override
   icon?: string; // Custom emoji icon
   challenge?: HabitChallenge; // Active challenge
+  minimumVersion?: string; // Minimum version of this habit (e.g., "5 phút đi bộ" for "Tập thể dục 30 phút")
   goalId?: string; // Link to parent goal
   targetDays?: number; // Target days to complete for goal progress (e.g., 30 days)
   createdAt: string;
@@ -254,6 +255,97 @@ export interface WeeklyReview {
   gratitude?: string[]; // Things to be grateful for
   highlight?: string; // Highlight of the week
   lowlight?: string; // Lowlight of the week
+  createdAt: string;
+}
+
+// Monthly Review
+export interface MonthlyReview {
+  id: string;
+  month: string; // 'YYYY-MM' format
+  wins: string[];
+  challenges: string[];
+  lessonsLearned: string[];
+  nextMonthFocus: string[];
+  overallRating: 1 | 2 | 3 | 4 | 5;
+  areaRatings?: Record<LifeArea, number>; // 1-10 rating for each life area
+  gratitude?: string[];
+  highlight?: string;
+  lowlight?: string;
+  // Auto-calculated stats (stored for offline access)
+  stats?: {
+    tasksCompleted: number;
+    tasksCreated: number;
+    habitsCompletionRate: number; // 0-100
+    goalsProgress: Record<string, number>; // goalId -> progress delta
+    journalEntries: number;
+    pomodoroSessions: number;
+    pomodoroMinutes: number;
+  };
+  createdAt: string;
+}
+
+// Yearly Planning
+export interface YearlyPlanning {
+  id: string;
+  year: number; // e.g. 2026
+  theme: string; // Theme/word of the year
+  mantra?: string; // Personal mantra
+  yearlyGoals: YearlyGoalItem[];
+  bucketList: BucketListItem[];
+  quarterlyFocus: QuarterlyFocus[];
+  reflections?: string; // Free-form text
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface YearlyGoalItem {
+  id: string;
+  title: string;
+  area: LifeArea;
+  description?: string;
+  linkedGoalId?: string; // Link to existing Goal
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  progress: number; // 0-100
+}
+
+export interface BucketListItem {
+  id: string;
+  title: string;
+  category?: string; // travel, experience, skill, etc.
+  completed: boolean;
+  completedAt?: string;
+}
+
+export interface QuarterlyFocus {
+  quarter: 1 | 2 | 3 | 4;
+  focus: string[];
+  review?: string; // End-of-quarter reflection
+}
+
+// Yearly Review
+export interface YearlyReview {
+  id: string;
+  year: number;
+  overallRating: 1 | 2 | 3 | 4 | 5;
+  topAchievements: string[];
+  biggestChallenges: string[];
+  lessonsLearned: string[];
+  gratitude: string[];
+  letterToFutureSelf?: string;
+  wordOfTheYear?: string; // One word to describe the year
+  areaRatings?: Record<LifeArea, number>;
+  // Auto-calculated stats
+  stats?: {
+    totalTasksCompleted: number;
+    totalHabitsTracked: number;
+    avgHabitCompletionRate: number;
+    goalsCompleted: number;
+    goalsCreated: number;
+    journalEntries: number;
+    totalPomodoroMinutes: number;
+    booksRead?: number;
+    coursesCompleted?: number;
+  };
   createdAt: string;
 }
 
@@ -450,4 +542,96 @@ export interface Note {
 export interface TrashSettings {
   autoCleanupDays: number; // 0 = never auto cleanup
   enabled: boolean;
+}
+
+// User Preferences for personalization
+export type AITone = 'gentle' | 'direct' | 'strategic' | 'concise' | 'detailed';
+export type PlanningStyle = 'deep_work' | 'sprint' | 'checklist' | 'calendar' | 'flexible';
+export type UserArchetype = 'beginner' | 'busy_professional' | 'builder' | 'student' | 'health_focused' | 'recovery' | 'reflective';
+
+export interface UserPreferences {
+  // AI Coaching
+  aiTone: AITone;
+  coachingFocus?: string; // e.g., "productivity", "health", "balance"
+  
+  // Energy & Schedule
+  energyPeakStart?: string; // HH:mm
+  energyPeakEnd?: string; // HH:mm
+  wakeUpTime?: string; // HH:mm
+  sleepTime?: string; // HH:mm
+  
+  // Work style
+  planningStyle: PlanningStyle;
+  preferredReviewDay?: number; // 0-6 (0 = Sunday)
+  
+  // Personalization
+  archetype: UserArchetype;
+  lifeAreaPriorities: LifeArea[]; // Ordered by priority
+  
+  // Notifications
+  morningCheckinEnabled: boolean;
+  morningCheckinTime?: string; // HH:mm
+  eveningReviewEnabled: boolean;
+  eveningReviewTime?: string; // HH:mm
+  
+  // Display
+  showTodayFocus: boolean;
+  showAISuggestions: boolean;
+  showStreaks: boolean;
+  
+  // Timestamps
+  onboardingCompleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Evening Review Entry
+export interface EveningReviewEntry {
+  id: string;
+  date: string;
+  completedWell: string; // What went well today
+  couldImprove: string; // What could be improved
+  gratitude: string; // One thing grateful for
+  tomorrowFocus?: string; // Main focus for tomorrow
+  energyLevel: 1 | 2 | 3 | 4 | 5;
+  createdAt: string;
+}
+
+// Morning Checkin Entry
+export interface MorningCheckinEntry {
+  id: string;
+  date: string;
+  mainGoal: string; // One main goal for today
+  top3Tasks: string[]; // Top 3 tasks
+  avoidItem?: string; // One thing to avoid
+  energyLevel: 1 | 2 | 3 | 4 | 5;
+  createdAt: string;
+}
+
+// AI Memory Event
+export interface AIMemoryEvent {
+  id: string;
+  memoryText: string;
+  source: 'chat' | 'review' | 'system' | 'manual';
+  status: 'proposed' | 'accepted' | 'rejected' | 'edited';
+  category?: string; // e.g., 'habit_pattern', 'preference', 'life_context'
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Decision Log
+export interface DecisionLog {
+  id: string;
+  title: string;
+  context: string;
+  options: string[];
+  valuesInvolved?: string[];
+  decision: string;
+  expectedOutcome?: string;
+  reviewDate?: string;
+  actualOutcome?: string;
+  area?: LifeArea;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string;
 }

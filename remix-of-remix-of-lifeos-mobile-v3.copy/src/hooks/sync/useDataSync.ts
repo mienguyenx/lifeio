@@ -144,6 +144,9 @@ export function useDataSync() {
       const backgroundLoads = await Promise.allSettled([
         retryLoad(() => additionalSync.loadLifeWheelScores(), 2, 'lifeWheelScores'),
         retryLoad(() => additionalSync.loadWeeklyReviews(), 2, 'weeklyReviews'),
+        retryLoad(() => additionalSync.loadMonthlyReviews(), 2, 'monthlyReviews'),
+        retryLoad(() => additionalSync.loadYearlyPlannings(), 2, 'yearlyPlannings'),
+        retryLoad(() => additionalSync.loadYearlyReviews(), 2, 'yearlyReviews'),
         retryLoad(() => additionalSync.loadDailyIntentions(), 2, 'dailyIntentions'),
         retryLoad(() => additionalSync.loadPomodoroSessions(), 2, 'pomodoroSessions'),
         retryLoad(() => additionalSync.loadChatMessages(), 2, 'chatMessages'),
@@ -189,6 +192,9 @@ export function useDataSync() {
       const [
         lifeWheelScoresResult,
         weeklyReviewsResult,
+        monthlyReviewsResult,
+        yearlyPlanningsResult,
+        yearlyReviewsResult,
         dailyIntentionsResult,
         pomodoroSessionsResult,
         chatMessagesResult,
@@ -236,6 +242,15 @@ export function useDataSync() {
       }
       if (weeklyReviewsResult.status === 'fulfilled' && Array.isArray(weeklyReviewsResult.value)) {
         newState.weeklyReviews = weeklyReviewsResult.value;
+      }
+      if (monthlyReviewsResult.status === 'fulfilled' && Array.isArray(monthlyReviewsResult.value)) {
+        newState.monthlyReviews = monthlyReviewsResult.value;
+      }
+      if (yearlyPlanningsResult.status === 'fulfilled' && Array.isArray(yearlyPlanningsResult.value)) {
+        newState.yearlyPlannings = yearlyPlanningsResult.value;
+      }
+      if (yearlyReviewsResult.status === 'fulfilled' && Array.isArray(yearlyReviewsResult.value)) {
+        newState.yearlyReviews = yearlyReviewsResult.value;
       }
       if (dailyIntentionsResult.status === 'fulfilled' && Array.isArray(dailyIntentionsResult.value)) {
         newState.dailyIntentions = dailyIntentionsResult.value;

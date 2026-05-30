@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { AlertTriangle, CheckCircle, Info, XCircle, Search, Filter, Trash2, Download, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Info, XCircle, Search, Filter, Trash2, Download, RefreshCw, ScrollText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useSystemLogs, useClearSystemLogs } from '@/hooks/useAdminData';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { PageTransition } from '@/components/admin/AdminAnimations';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -123,7 +125,7 @@ export default function AdminLogs() {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
         <div className="space-y-3">
@@ -134,50 +136,45 @@ export default function AdminLogs() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">System Logs</h1>
-          <p className="text-muted-foreground">View system activity and error logs</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />Refresh
-          </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />Export
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2 className="w-4 h-4 mr-2" />Clear Logs
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Clear System Logs?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Choose how to clear logs. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="flex flex-col gap-2 py-4">
-                <Button variant="outline" onClick={() => handleClearLogs(30)}>
-                  Clear logs older than 30 days
+    <PageTransition className="p-6 space-y-6">
+      <AdminPageHeader
+        title="System Logs"
+        description="View system activity and error logs"
+        icon={ScrollText}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              <RefreshCw className="w-4 h-4 mr-2" />Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="w-4 h-4 mr-2" />Export
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="w-4 h-4 mr-2" />Clear
                 </Button>
-                <Button variant="outline" onClick={() => handleClearLogs(7)}>
-                  Clear logs older than 7 days
-                </Button>
-                <Button variant="destructive" onClick={() => handleClearLogs()}>
-                  Clear ALL logs
-                </Button>
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear System Logs?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Choose how to clear logs. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="flex flex-col gap-2 py-4">
+                  <Button variant="outline" onClick={() => handleClearLogs(30)}>Clear logs older than 30 days</Button>
+                  <Button variant="outline" onClick={() => handleClearLogs(7)}>Clear logs older than 7 days</Button>
+                  <Button variant="destructive" onClick={() => handleClearLogs()}>Clear ALL logs</Button>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -319,6 +316,6 @@ export default function AdminLogs() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageTransition>
   );
 }

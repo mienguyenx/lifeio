@@ -38,7 +38,11 @@ interface APIKey {
 const PROVIDERS = [
   { value: 'gemini', label: 'Google Gemini' },
   { value: 'perplexity', label: 'Perplexity AI' },
+  { value: 'openai-compatible', label: 'OpenAI Compatible' },
+  { value: 'anthropic-compatible', label: 'Anthropic Compatible' },
 ];
+
+const PROVIDERS_WITH_BASE_URL = ['openai-compatible', 'anthropic-compatible'];
 
 export default function AdminAPIKeys() {
   const queryClient = useQueryClient();
@@ -51,6 +55,8 @@ export default function AdminAPIKeys() {
     provider: 'gemini',
     name: '',
     api_key: '',
+    base_url: '',
+    model: '',
     is_active: true,
     is_primary: false,
     limit_per_day: '',
@@ -184,6 +190,8 @@ export default function AdminAPIKeys() {
       provider: 'gemini',
       name: '',
       api_key: '',
+      base_url: '',
+      model: '',
       is_active: true,
       is_primary: false,
       limit_per_day: '',
@@ -197,7 +205,9 @@ export default function AdminAPIKeys() {
     setFormData({
       provider: key.provider,
       name: key.name,
-      api_key: key.api_key, // Show existing key
+      api_key: key.api_key,
+      base_url: key.metadata?.base_url || '',
+      model: key.metadata?.model || '',
       is_active: key.is_active,
       is_primary: key.is_primary,
       limit_per_day: key.limit_per_day?.toString() || '',
@@ -217,6 +227,10 @@ export default function AdminAPIKeys() {
       name: formData.name,
       is_active: formData.is_active,
       is_primary: formData.is_primary,
+      metadata: {
+        ...(formData.base_url && { base_url: formData.base_url }),
+        ...(formData.model && { model: formData.model }),
+      },
     };
 
     // Only update API key if it's new or changed
@@ -301,6 +315,33 @@ export default function AdminAPIKeys() {
                   placeholder="Nhập API key"
                 />
               </div>
+              {PROVIDERS_WITH_BASE_URL.includes(formData.provider) && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="base_url">Base URL</Label>
+                    <Input
+                      id="base_url"
+                      value={formData.base_url}
+                      onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
+                      placeholder={formData.provider === 'anthropic-compatible' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1'}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {formData.provider === 'anthropic-compatible'
+                        ? 'VD: https://api.anthropic.com hoặc custom proxy'
+                        : 'VD: https://api.openai.com/v1 hoặc custom proxy'}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Model (mặc định)</Label>
+                    <Input
+                      id="model"
+                      value={formData.model}
+                      onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                      placeholder={formData.provider === 'anthropic-compatible' ? 'claude-sonnet-4-20250514' : 'gpt-4o-mini'}
+                    />
+                  </div>
+                </>
+              )}
               <div className="flex items-center space-x-2">
                 <Switch
                   id="is_active"
@@ -374,6 +415,7 @@ export default function AdminAPIKeys() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -504,6 +546,7 @@ export default function AdminAPIKeys() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           ))}

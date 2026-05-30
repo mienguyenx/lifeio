@@ -6,7 +6,7 @@ import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -385,32 +385,26 @@ export default function JournalPage() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DialogTrigger asChild>
-                    <Button size={isMobile ? "sm" : "default"}>
-                      <Plus className="w-4 h-4" />
-                      <span className="ml-1">{isMobile ? "Viết" : "Viết hôm nay"}</span>
-                    </Button>
-                  </DialogTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p className="font-medium">Viết Journal</p>
-                  <p className="text-xs text-muted-foreground">Ghi lại cảm xúc và suy nghĩ trong ngày</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle>Journal - {format(new Date(), 'dd/MM/yyyy')}</DialogTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setIsTemplateModalOpen(true)}>
-                    <FileText className="w-4 h-4 mr-1" /> Templates
-                  </Button>
-                </div>
-              </DialogHeader>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size={isMobile ? "sm" : "default"} onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="w-4 h-4" />
+                  <span className="ml-1">{isMobile ? "Viết" : "Viết hôm nay"}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="font-medium">Viết Journal</p>
+                <p className="text-xs text-muted-foreground">Ghi lại cảm xúc và suy nghĩ trong ngày</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <AdaptiveModal open={isDialogOpen} onOpenChange={setIsDialogOpen} title={`Journal - ${format(new Date(), 'dd/MM/yyyy')}`}>
+            <div className="flex justify-end mb-2">
+              <Button variant="ghost" size="sm" onClick={() => setIsTemplateModalOpen(true)}>
+                <FileText className="w-4 h-4 mr-1" /> Templates
+              </Button>
+            </div>
               <div className="space-y-4 mt-4">
                 {/* Mood */}
                 <div>
@@ -558,8 +552,7 @@ export default function JournalPage() {
 
                 <Button className="w-full" onClick={handleAddEntry}>Lưu Journal</Button>
               </div>
-            </DialogContent>
-          </Dialog>
+          </AdaptiveModal>
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>

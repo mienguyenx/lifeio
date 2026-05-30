@@ -1869,6 +1869,8 @@ export type Database = {
       user_settings: {
         Row: {
           created_at: string | null
+          onboarding_completed: boolean | null
+          preferences: Record<string, unknown> | null
           pomodoro_break_duration: number | null
           pomodoro_long_break_duration: number | null
           pomodoro_sessions_before_long_break: number | null
@@ -1880,6 +1882,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          onboarding_completed?: boolean | null
+          preferences?: Record<string, unknown> | null
           pomodoro_break_duration?: number | null
           pomodoro_long_break_duration?: number | null
           pomodoro_sessions_before_long_break?: number | null
@@ -1891,6 +1895,8 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          onboarding_completed?: boolean | null
+          preferences?: Record<string, unknown> | null
           pomodoro_break_duration?: number | null
           pomodoro_long_break_duration?: number | null
           pomodoro_sessions_before_long_break?: number | null
@@ -1959,6 +1965,171 @@ export type Database = {
             foreignKeyName: "user_subscriptions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_reviews: {
+        Row: {
+          id: string
+          user_id: string
+          month: string
+          wins: string[] | null
+          challenges: string[] | null
+          lessons_learned: string[] | null
+          next_month_focus: string[] | null
+          overall_rating: number | null
+          area_ratings: Json | null
+          gratitude: string[] | null
+          highlight: string | null
+          lowlight: string | null
+          stats: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          month: string
+          wins?: string[] | null
+          challenges?: string[] | null
+          lessons_learned?: string[] | null
+          next_month_focus?: string[] | null
+          overall_rating?: number | null
+          area_ratings?: Json | null
+          gratitude?: string[] | null
+          highlight?: string | null
+          lowlight?: string | null
+          stats?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          month?: string
+          wins?: string[] | null
+          challenges?: string[] | null
+          lessons_learned?: string[] | null
+          next_month_focus?: string[] | null
+          overall_rating?: number | null
+          area_ratings?: Json | null
+          gratitude?: string[] | null
+          highlight?: string | null
+          lowlight?: string | null
+          stats?: Json | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yearly_plannings: {
+        Row: {
+          id: string
+          user_id: string
+          year: number
+          theme: string
+          mantra: string | null
+          yearly_goals: Json
+          bucket_list: Json
+          quarterly_focus: Json
+          reflections: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          year: number
+          theme: string
+          mantra?: string | null
+          yearly_goals?: Json
+          bucket_list?: Json
+          quarterly_focus?: Json
+          reflections?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          year?: number
+          theme?: string
+          mantra?: string | null
+          yearly_goals?: Json
+          bucket_list?: Json
+          quarterly_focus?: Json
+          reflections?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yearly_plannings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yearly_reviews: {
+        Row: {
+          id: string
+          user_id: string
+          year: number
+          overall_rating: number | null
+          top_achievements: string[] | null
+          biggest_challenges: string[] | null
+          lessons_learned: string[] | null
+          gratitude: string[] | null
+          letter_to_future_self: string | null
+          word_of_the_year: string | null
+          area_ratings: Json | null
+          stats: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          year: number
+          overall_rating?: number | null
+          top_achievements?: string[] | null
+          biggest_challenges?: string[] | null
+          lessons_learned?: string[] | null
+          gratitude?: string[] | null
+          letter_to_future_self?: string | null
+          word_of_the_year?: string | null
+          area_ratings?: Json | null
+          stats?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          year?: number
+          overall_rating?: number | null
+          top_achievements?: string[] | null
+          biggest_challenges?: string[] | null
+          lessons_learned?: string[] | null
+          gratitude?: string[] | null
+          letter_to_future_self?: string | null
+          word_of_the_year?: string | null
+          area_ratings?: Json | null
+          stats?: Json | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yearly_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

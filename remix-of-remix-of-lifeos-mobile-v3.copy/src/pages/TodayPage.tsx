@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval, addDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { getTodayDateString, getTodayStart } from '@/utils/dateUtils';
-import { Plus, Flame, CheckCircle2, Play, Target, Sparkles, BookOpen, Calendar, ChevronRight, Lightbulb, Zap, Smile, Frown, Meh, CalendarIcon, ListTodo, Heart, PenLine } from 'lucide-react';
+import { Plus, Flame, CheckCircle2, Play, Target, Sparkles, BookOpen, Calendar, ChevronRight, Lightbulb, Zap, Smile, Frown, Meh, CalendarIcon, ListTodo, Heart, PenLine, Clock, Send, Star, TrendingUp } from 'lucide-react';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
@@ -10,20 +10,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { LIFE_AREAS, LifeArea } from '@/types/lifeos';
 import { Link } from 'react-router-dom';
 import { AISuggestionsCard } from '@/components/ai/AISuggestionsCard';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HabitDetailModal } from '@/components/habits/HabitDetailModal';
 import type { Habit } from '@/types/lifeos';
-import { TodayStatsRow } from '@/components/today/TodayStatsRow';
+import { ProgressRing } from '@/components/today/ProgressRing';
 import { TodayAddTaskModal } from '@/components/today/TodayAddTaskModal';
 import { TodayAddHabitModal } from '@/components/today/TodayAddHabitModal';
 import { TodayAddJournalModal } from '@/components/today/TodayAddJournalModal';
+import { TodayFocusCard } from '@/components/today/TodayFocusCard';
+import { MorningCheckin } from '@/components/today/MorningCheckin';
+import { EveningReview } from '@/components/today/EveningReview';
+import { HabitRescueCard } from '@/components/today/HabitRescueCard';
+import { AIDailyBriefing } from '@/components/today/AIDailyBriefing';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
+import { RecommendationsCard } from '@/components/today/RecommendationsCard';
+import { usePreferencesSync } from '@/hooks/sync/usePreferencesSync';
 // Motivational quotes
 const QUOTES = [
   { text: "Hành trình ngàn dặm bắt đầu từ một bước chân", author: "Lão Tử" },
@@ -57,6 +64,20 @@ export default function TodayPage() {
   const dailyIntentions = useLifeOSStore((s) => s.dailyIntentions);
   const journalEntries = useLifeOSStore((s) => s.journalEntries);
   const weeklyReviews = useLifeOSStore((s) => s.weeklyReviews);
+  const monthlyReviews = useLifeOSStore((s) => s.monthlyReviews);
+  const userPreferences = useLifeOSStore((s) => s.userPreferences);
+  const { loadOnboardingState } = usePreferencesSync();
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+
+  // On mount: check Supabase for onboarding state (fixes new-browser-profile issue)
+  useEffect(() => {
+    loadOnboardingState().then((completed) => {
+      setOnboardingChecked(true);
+    }).catch(() => {
+      setOnboardingChecked(true); // fallback to local state on error
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Use synced store for CRUD operations that need to sync to Supabase
   const { 
@@ -125,6 +146,9 @@ export default function TodayPage() {
   }, 0);
 
   const currentWeekReview = weeklyReviews.find(r => r.weekStart === format(weekStart, 'yyyy-MM-dd'));
+  const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonthReview = monthlyReviews.find(r => r.month === currentMonthStr);
+  const isNearMonthEnd = today.getDate() >= 25;
   const todayJournal = journalEntries.find((j) => j.date === todayStr);
   const topPriorityTask = todayTasks.find(t => t.priority === 'high') || todayTasks[0];
 
@@ -155,57 +179,91 @@ export default function TodayPage() {
     toast.success('Đã đặt intention cho hôm nay');
   };
 
+  // Overall day progress
+  const totalItems = todayHabits.length + todayTasks.length + overdueTasks.length;
+  const completedItems = completedHabitsToday.length + completedTasksToday.length;
+  const dayProgress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
   return (
     <div className="p-4 md:p-6 space-y-3 md:space-y-4">
-      {/* Header */}
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-muted-foreground text-xs">
-            {format(today, 'EEEE, dd MMMM yyyy', { locale: vi })}
-          </p>
-          <h1 className="text-xl md:text-2xl font-bold truncate">
-            {greeting}, {user.name}!
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Stats inline */}
-          <div className="hidden sm:flex items-center gap-2">
-            <Badge variant="outline" className="text-sm px-3 py-1 bg-area-health/10 border-area-health/30">
-              <Target className="w-4 h-4 mr-1.5 text-area-health" />
-              <span className="font-semibold">{completedHabitsToday.length}/{todayHabits.length}</span>
-              <span className="ml-1 text-muted-foreground font-normal">Habits</span>
-            </Badge>
-            <Badge variant="outline" className="text-sm px-3 py-1 bg-area-career/10 border-area-career/30">
-              <CheckCircle2 className="w-4 h-4 mr-1.5 text-area-career" />
-              <span className="font-semibold">{completedTasksToday.length}</span>
-              <span className="ml-1 text-muted-foreground font-normal">Tasks</span>
-            </Badge>
-            <Badge variant="outline" className="text-sm px-3 py-1 bg-pomodoro-work/10 border-pomodoro-work/30">
-              <span className="mr-1">🍅</span>
-              <span className="font-semibold">{todayPomodoros.length}</span>
-              <span className="ml-1 text-muted-foreground font-normal">Pomo</span>
-            </Badge>
+      {/* Summary Hero Card */}
+      <Card className="bg-gradient-to-br from-primary/5 via-background to-accent/5 border-primary/20 overflow-hidden">
+        <CardContent className="p-4 md:p-5">
+          <div className="flex items-center gap-4 md:gap-6">
+            {/* Progress Ring */}
+            <ProgressRing
+              size={100}
+              strokeWidth={8}
+              progress={dayProgress}
+              color={dayProgress >= 80 ? 'hsl(var(--success))' : dayProgress >= 50 ? 'hsl(var(--primary))' : 'hsl(var(--warning))'}
+              className="shrink-0"
+            >
+              <div className="text-center">
+                <span className="text-2xl font-bold">{dayProgress}</span>
+                <span className="text-[10px] text-muted-foreground block -mt-1">%</span>
+              </div>
+            </ProgressRing>
+
+            <div className="flex-1 min-w-0 space-y-2">
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {format(today, 'EEEE, dd MMMM yyyy', { locale: vi })}
+                </p>
+                <h1 className="text-lg md:text-xl font-bold truncate">
+                  {greeting}, {user.name}!
+                </h1>
+              </div>
+
+              {/* Mini Stats Row */}
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-area-health/10 border-area-health/30">
+                  <Target className="w-3 h-3 mr-1 text-area-health" />
+                  {completedHabitsToday.length}/{todayHabits.length}
+                </Badge>
+                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-area-career/10 border-area-career/30">
+                  <CheckCircle2 className="w-3 h-3 mr-1 text-area-career" />
+                  {completedTasksToday.length} done
+                </Badge>
+                {overdueTasks.length > 0 && (
+                  <Badge variant="destructive" className="text-xs px-2 py-0.5">
+                    {overdueTasks.length} quá hạn
+                  </Badge>
+                )}
+                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-pomodoro-work/10 border-pomodoro-work/30">
+                  🍅 {todayPomodoros.length}
+                </Badge>
+                {isPomodoroRunning && (
+                  <Badge variant="secondary" className="animate-pulse text-xs px-2 py-0.5">
+                    <Clock className="w-3 h-3 mr-1" /> Focus
+                  </Badge>
+                )}
+              </div>
+
+              {/* Quote */}
+              <p className="text-xs text-muted-foreground italic line-clamp-1">
+                <Sparkles className="w-3 h-3 inline mr-1 text-primary" />
+                "{todayQuote.text}" — {todayQuote.author}
+              </p>
+            </div>
+
+            {/* Pomodoro Button */}
+            <div className="hidden sm:block shrink-0">
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={() => startPomodoro()} size="sm" className="h-9 bg-gradient-to-r from-pomodoro-work to-pomodoro-work/80 hover:from-pomodoro-work/90 hover:to-pomodoro-work/70 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                      <Play className="w-4 h-4 mr-1" /> Focus
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p className="text-xs">Bắt đầu Pomodoro 25 phút</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
-          {isPomodoroRunning && (
-            <Badge variant="secondary" className="animate-pulse text-xs">
-              <Clock className="w-3 h-3 mr-1" /> Pomodoro
-            </Badge>
-          )}
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={() => startPomodoro()} size="sm" className="h-8 bg-gradient-to-r from-pomodoro-work to-pomodoro-work/80 hover:from-pomodoro-work/90 hover:to-pomodoro-work/70 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
-                  <Play className="w-4 h-4 mr-1" /> Start
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px]">
-                <p className="font-medium">Bắt đầu Pomodoro</p>
-                <p className="text-xs text-muted-foreground">Tập trung làm việc 25 phút với kỹ thuật Pomodoro để tăng năng suất</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </header>
+        </CardContent>
+      </Card>
 
       {/* Getting Started for New Users */}
       {isNewUser && (
@@ -261,12 +319,27 @@ export default function TodayPage() {
         </Card>
       )}
 
+      {/* Onboarding Wizard — only show after Supabase check to avoid false positive on new browsers */}
+      {onboardingChecked && userPreferences?.onboardingCompleted === false && (
+        <OnboardingWizard onComplete={() => {}} />
+      )}
+
+      {/* AI Daily Briefing */}
+      <AIDailyBriefing />
+
+      {/* Morning Checkin / Evening Review */}
+      {userPreferences?.morningCheckinEnabled !== false && <MorningCheckin />}
+      {userPreferences?.eveningReviewEnabled !== false && <EveningReview />}
+
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-3">
-          {/* Focus Zone */}
-          <Card className="bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border-primary/20">
+          {/* Today Focus Card */}
+          {userPreferences?.showTodayFocus !== false && <TodayFocusCard />}
+
+          {/* Intention + Focus Zone */}
+          <Card className="border-primary/15">
             <CardContent className="px-3 py-3 space-y-2">
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-accent shrink-0" />
@@ -290,77 +363,52 @@ export default function TodayPage() {
               </div>
 
               {topPriorityTask && !isPomodoroRunning && (
-                <div className="flex items-center gap-2 px-2 py-2 rounded-md bg-background/50">
-                  <Target className="w-4 h-4 text-primary" />
+                <div className="flex items-center gap-2 px-2 py-2 rounded-md bg-muted/50">
+                  <Target className="w-4 h-4 text-primary shrink-0" />
                   <span className="truncate flex-1 text-sm font-medium">{topPriorityTask.title}</span>
-                  <Button size="sm" variant="secondary" className="h-7 px-2" onClick={() => { startPomodoro(topPriorityTask.id); updateTask(topPriorityTask.id, { status: 'in_progress' }); }}>
+                  <Button size="sm" variant="secondary" className="h-7 px-2 shrink-0" onClick={() => { startPomodoro(topPriorityTask.id); updateTask(topPriorityTask.id, { status: 'in_progress' }); }}>
                     <Play className="w-3.5 h-3.5 mr-1" /> Focus
                   </Button>
                 </div>
               )}
-
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-                <p className="italic">"{todayQuote.text}"</p>
-              </div>
             </CardContent>
           </Card>
 
           {/* Quick Actions */}
-          <TooltipProvider delayDuration={200}>
-            <div className="flex gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    size="sm" 
-                    onClick={() => setShowTaskModal(true)} 
-                    className="flex-1 h-10 bg-gradient-to-r from-area-career to-area-career/80 hover:from-area-career/90 hover:to-area-career/70 text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
-                  >
-                    <ListTodo className="w-4 h-4 mr-1.5" />
-                    Task
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[200px]">
-                  <p className="font-medium">Thêm Task mới</p>
-                  <p className="text-xs text-muted-foreground">Tạo công việc cần làm hôm nay với độ ưu tiên và deadline</p>
-                </TooltipContent>
-              </Tooltip>
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    size="sm" 
-                    onClick={() => setShowHabitModal(true)} 
-                    className="flex-1 h-10 bg-gradient-to-r from-area-health to-area-health/80 hover:from-area-health/90 hover:to-area-health/70 text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
-                  >
-                    <Heart className="w-4 h-4 mr-1.5" />
-                    Habit
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[200px]">
-                  <p className="font-medium">Thêm Habit mới</p>
-                  <p className="text-xs text-muted-foreground">Xây dựng thói quen tốt với tần suất hàng ngày hoặc hàng tuần</p>
-                </TooltipContent>
-              </Tooltip>
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    size="sm" 
-                    onClick={() => setShowJournalModal(true)} 
-                    className="flex-1 h-10 bg-gradient-to-r from-area-personal to-area-personal/80 hover:from-area-personal/90 hover:to-area-personal/70 text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
-                  >
-                    <PenLine className="w-4 h-4 mr-1.5" />
-                    Journal
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[200px]">
-                  <p className="font-medium">Viết Journal</p>
-                  <p className="text-xs text-muted-foreground">Ghi lại cảm xúc, suy nghĩ và những điều biết ơn trong ngày</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            <Button 
+              size="sm" 
+              onClick={() => setShowTaskModal(true)} 
+              className="h-11 bg-gradient-to-r from-area-career to-area-career/80 hover:from-area-career/90 hover:to-area-career/70 text-white shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <ListTodo className="w-4 h-4 mr-1.5" />
+              Task
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => setShowHabitModal(true)} 
+              className="h-11 bg-gradient-to-r from-area-health to-area-health/80 hover:from-area-health/90 hover:to-area-health/70 text-white shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <Heart className="w-4 h-4 mr-1.5" />
+              Habit
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => setShowJournalModal(true)} 
+              className="h-11 bg-gradient-to-r from-area-personal to-area-personal/80 hover:from-area-personal/90 hover:to-area-personal/70 text-white shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <PenLine className="w-4 h-4 mr-1.5" />
+              Journal
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => startPomodoro()} 
+              className="h-11 sm:flex hidden bg-gradient-to-r from-pomodoro-work to-pomodoro-work/80 hover:from-pomodoro-work/90 hover:to-pomodoro-work/70 text-white shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <Play className="w-4 h-4 mr-1.5" />
+              Focus
+            </Button>
+          </div>
 
           {/* Habits & Tasks */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -493,17 +541,6 @@ export default function TodayPage() {
         {/* Right Column - Sidebar */}
         <div className="space-y-3 max-h-[calc(100vh-160px)] overflow-y-auto pr-1">
 
-          {/* Stats - Mobile only */}
-          <div className="sm:hidden">
-            <Card>
-              <CardContent className="grid grid-cols-3 gap-2 py-2 px-3">
-                <div className="text-center p-1.5 rounded-md bg-area-health/10"><div className="text-base font-bold text-area-health">{completedHabitsToday.length}/{todayHabits.length}</div><p className="text-[9px] text-muted-foreground">Habits</p></div>
-                <div className="text-center p-1.5 rounded-md bg-area-career/10"><div className="text-base font-bold text-area-career">{completedTasksToday.length}</div><p className="text-[9px] text-muted-foreground">Tasks</p></div>
-                <div className="text-center p-1.5 rounded-md bg-pomodoro-work/10"><div className="text-base font-bold text-pomodoro-work">🍅 {todayPomodoros.length}</div><p className="text-[9px] text-muted-foreground">{todayPomodoros.length * 25}p</p></div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Weekly */}
           <Card>
             <CardHeader className="py-1.5 px-3">
@@ -523,7 +560,28 @@ export default function TodayPage() {
             </CardContent>
           </Card>
 
-          <AISuggestionsCard compact />
+          {/* Monthly */}
+          {isNearMonthEnd && (
+            <Card className={currentMonthReview ? 'border-green-500/30 bg-green-500/5' : 'border-amber-500/30 bg-amber-500/5'}>
+              <CardContent className="py-2 px-3 flex items-center gap-2">
+                <CalendarIcon className={cn('w-4 h-4 shrink-0', currentMonthReview ? 'text-green-500' : 'text-amber-500')} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{currentMonthReview ? `Monthly ✓ (${currentMonthReview.overallRating}/5)` : 'Chưa review tháng này'}</p>
+                </div>
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" asChild>
+                  <Link to="/monthly-review">{currentMonthReview ? 'Xem' : 'Viết'}</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Habit Rescue */}
+          <HabitRescueCard />
+
+          {userPreferences?.showAISuggestions !== false && <AISuggestionsCard compact />}
+
+          {/* Recommendations */}
+          <RecommendationsCard />
 
           {/* Life Areas */}
           <Card>

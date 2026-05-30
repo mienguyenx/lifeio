@@ -10,7 +10,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { isExternalSupabaseConfigured } from '@/integrations/supabase/externalClient';
 import type { 
   Task, Habit, Goal, JournalEntry, Note, Subtask, TaskTag,
-  LifeWheelScore, WeeklyReview, DailyIntention, PomodoroSession, LifeArea,
+  LifeWheelScore, WeeklyReview, MonthlyReview, YearlyPlanning, YearlyReview,
+  DailyIntention, PomodoroSession, LifeArea,
   JournalTag, NoteTag, ChatMessage
 } from '@/types/lifeos';
 
@@ -596,6 +597,75 @@ export function useSyncedStore() {
     }
   }, [store, additionalSync, shouldSync]);
 
+  // ================== MONTHLY REVIEW ==================
+  const addMonthlyReview = useCallback(async (review: Omit<MonthlyReview, 'id' | 'createdAt'>) => {
+    store.addMonthlyReview(review);
+    const reviews = useLifeOSStore.getState().monthlyReviews;
+    const newReview = reviews[reviews.length - 1];
+    if (shouldSync && newReview) {
+      await additionalSync.saveMonthlyReview(newReview);
+    }
+  }, [store, additionalSync, shouldSync]);
+
+  const updateMonthlyReview = useCallback(async (id: string, updates: Partial<MonthlyReview>) => {
+    store.updateMonthlyReview(id, updates);
+    if (shouldSync) {
+      const review = useLifeOSStore.getState().monthlyReviews.find(r => r.id === id);
+      if (review) await additionalSync.saveMonthlyReview({ ...review, ...updates });
+    }
+  }, [store, additionalSync, shouldSync]);
+
+  const deleteMonthlyReview = useCallback(async (id: string) => {
+    store.deleteMonthlyReview(id);
+    if (shouldSync) await additionalSync.deleteMonthlyReview(id);
+  }, [store, additionalSync, shouldSync]);
+
+  // ================== YEARLY PLANNING ==================
+  const addYearlyPlanning = useCallback(async (planning: Omit<YearlyPlanning, 'id' | 'createdAt' | 'updatedAt'>) => {
+    store.addYearlyPlanning(planning);
+    const plannings = useLifeOSStore.getState().yearlyPlannings;
+    const newPlanning = plannings[plannings.length - 1];
+    if (shouldSync && newPlanning) {
+      await additionalSync.saveYearlyPlanning(newPlanning);
+    }
+  }, [store, additionalSync, shouldSync]);
+
+  const updateYearlyPlanning = useCallback(async (id: string, updates: Partial<YearlyPlanning>) => {
+    store.updateYearlyPlanning(id, updates);
+    if (shouldSync) {
+      const planning = useLifeOSStore.getState().yearlyPlannings.find(p => p.id === id);
+      if (planning) await additionalSync.saveYearlyPlanning({ ...planning, ...updates });
+    }
+  }, [store, additionalSync, shouldSync]);
+
+  const deleteYearlyPlanning = useCallback(async (id: string) => {
+    store.deleteYearlyPlanning(id);
+    if (shouldSync) await additionalSync.deleteYearlyPlanning(id);
+  }, [store, additionalSync, shouldSync]);
+
+  // ================== YEARLY REVIEW ==================
+  const addYearlyReview = useCallback(async (review: Omit<YearlyReview, 'id' | 'createdAt'>) => {
+    store.addYearlyReview(review);
+    const reviews = useLifeOSStore.getState().yearlyReviews;
+    const newReview = reviews[reviews.length - 1];
+    if (shouldSync && newReview) {
+      await additionalSync.saveYearlyReview(newReview);
+    }
+  }, [store, additionalSync, shouldSync]);
+
+  const updateYearlyReview = useCallback(async (id: string, updates: Partial<YearlyReview>) => {
+    store.updateYearlyReview(id, updates);
+    if (shouldSync) {
+      const review = useLifeOSStore.getState().yearlyReviews.find(r => r.id === id);
+      if (review) await additionalSync.saveYearlyReview({ ...review, ...updates });
+    }
+  }, [store, additionalSync, shouldSync]);
+
+  const deleteYearlyReview = useCallback(async (id: string) => {
+    store.deleteYearlyReview(id);
+    if (shouldSync) await additionalSync.deleteYearlyReview(id);
+  }, [store, additionalSync, shouldSync]);
+
   // ================== DAILY INTENTIONS ==================
   const addDailyIntention = useCallback(async (intentionText: string) => {
     store.addDailyIntention(intentionText);
@@ -888,6 +958,21 @@ export function useSyncedStore() {
     addWeeklyReview,
     updateWeeklyReview,
     deleteWeeklyReview,
+
+    // Synced monthly review actions
+    addMonthlyReview,
+    updateMonthlyReview,
+    deleteMonthlyReview,
+
+    // Synced yearly planning actions
+    addYearlyPlanning,
+    updateYearlyPlanning,
+    deleteYearlyPlanning,
+
+    // Synced yearly review actions
+    addYearlyReview,
+    updateYearlyReview,
+    deleteYearlyReview,
     
     // Synced daily intention actions
     addDailyIntention,
@@ -920,6 +1005,9 @@ export function useSyncedStore() {
     notes: store.notes,
     lifeWheelScores: store.lifeWheelScores,
     weeklyReviews: store.weeklyReviews,
+    monthlyReviews: store.monthlyReviews,
+    yearlyPlannings: store.yearlyPlannings,
+    yearlyReviews: store.yearlyReviews,
     dailyIntentions: store.dailyIntentions,
     pomodoroSessions: store.pomodoroSessions,
     taskTags: store.taskTags,

@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { activeSupabase as supabase } from "@/integrations/supabase/externalClient";
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { PageTransition } from '@/components/admin/AdminAnimations';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,44 +161,44 @@ export default function AdminEmailLogs() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-10 w-48" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20" />)}
+        </div>
         <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Lịch sử Email</h1>
-          <p className="text-muted-foreground">Theo dõi tất cả email đã gửi từ hệ thống</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Làm mới
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Xuất CSV
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => clearLogs.mutate(30)}
-            disabled={clearLogs.isPending}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Xóa cũ hơn 30 ngày
-          </Button>
-        </div>
-      </div>
+    <PageTransition className="p-6 space-y-6">
+      <AdminPageHeader
+        title="Lịch sử Email"
+        description="Theo dõi tất cả email đã gửi từ hệ thống"
+        icon={Mail}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Làm mới</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Xuất CSV</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => clearLogs.mutate(30)}
+              disabled={clearLogs.isPending}
+            >
+              <Trash2 className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Xóa &gt;30 ngày</span>
+            </Button>
+          </div>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -246,7 +248,7 @@ export default function AdminEmailLogs() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -283,6 +285,7 @@ export default function AdminEmailLogs() {
               <p>Chưa có email nào được gửi</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -326,6 +329,7 @@ export default function AdminEmailLogs() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -394,6 +398,6 @@ export default function AdminEmailLogs() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PageTransition>
   );
 }

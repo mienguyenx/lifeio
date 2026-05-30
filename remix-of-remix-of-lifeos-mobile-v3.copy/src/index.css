@@ -60,6 +60,22 @@
 
     /* Streak Color */
     --streak: 25 100% 55%;
+
+    /* Surface Elevation Tokens */
+    --surface-1: 0 0% 100%;
+    --surface-2: 220 20% 98%;
+    --surface-3: 220 15% 96%;
+
+    /* Interactive States */
+    --interactive: 250 95% 60%;
+    --interactive-hover: 250 95% 55%;
+    --interactive-muted: 250 40% 92%;
+
+    /* Soft Status Colors */
+    --success-soft: 145 50% 95%;
+    --warning-soft: 45 95% 95%;
+    --danger-soft: 0 55% 95%;
+    --info-soft: 200 90% 95%;
   }
 
   .dark {
@@ -114,6 +130,22 @@
     --info: 200 85% 55%;
 
     --streak: 25 95% 55%;
+
+    /* Surface Elevation Tokens - Dark */
+    --surface-1: 220 25% 12%;
+    --surface-2: 220 25% 15%;
+    --surface-3: 220 25% 18%;
+
+    /* Interactive States - Dark */
+    --interactive: 250 90% 65%;
+    --interactive-hover: 250 90% 70%;
+    --interactive-muted: 250 40% 20%;
+
+    /* Soft Status Colors - Dark */
+    --success-soft: 145 40% 15%;
+    --warning-soft: 45 60% 15%;
+    --danger-soft: 0 40% 15%;
+    --info-soft: 200 60% 15%;
   }
 }
 
@@ -177,5 +209,26 @@
   .no-select {
     -webkit-user-select: none;
     user-select: none;
+  }
+
+  /* Mobile nav safe area */
+  .pb-nav {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Tap highlight removal */
+  .tap-transparent {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Hardware accelerated transforms */
+  .gpu {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* Overscroll containment */
+  .overscroll-contain {
+    overscroll-behavior: contain;
   }
 }

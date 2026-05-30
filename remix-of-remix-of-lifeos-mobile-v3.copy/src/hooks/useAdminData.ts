@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { activeSupabase as supabase } from '@/integrations/supabase/externalClient';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
+import type { AdminAIProvider } from '@/types/admin';
+import { BUILTIN_PROVIDERS } from '@/types/admin';
 
 // Plugins
 export interface Plugin {
@@ -1279,5 +1281,149 @@ export function useRecentGoals() {
       if (error) throw error;
       return data;
     },
+  });
+}
+
+// AI Memories
+export interface AIMemory {
+  id: string;
+  user_id: string | null;
+  type: string;
+  content: string;
+  importance: string;
+  source: string;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export function useAIMemories(userId?: string) {
+  return useQuery({
+    queryKey: ['admin', 'ai-memories', userId],
+    queryFn: async () => {
+      let query = supabase
+        .from('ai_memories')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as AIMemory[];
+    },
+  });
+}
+
+export function useCreateAIMemory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (memory: Omit<AIMemory, 'id' | 'created_at' | 'updated_at'>) => {
+      const { error } = await supabase.from('ai_memories').insert(memory);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ai-memories'] });
+      toast.success('Memory created');
+    },
+    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
+  });
+}
+
+export function useUpdateAIMemory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<AIMemory> & { id: string }) => {
+      const { error } = await supabase.from('ai_memories').update(updates).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ai-memories'] });
+      toast.success('Memory updated');
+    },
+    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
+  });
+}
+
+export function useDeleteAIMemory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('ai_memories').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ai-memories'] });
+      toast.success('Memory deleted');
+    },
+    onError: () => toast.error('Failed to delete'),
+  });
+}
+
+// AI Providers
+export function useAIProviders() {
+  return useQuery({
+    queryKey: ['admin', 'ai-providers'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admin_ai_providers')
+          .select('*')
+          .order('sort_order', { ascending: true });
+        if (error) throw error;
+        return data as AdminAIProvider[];
+      } catch {
+        // Fallback: table doesn't exist yet — use builtin seeds
+        return BUILTIN_PROVIDERS.map((p, i) => ({
+          ...p,
+          id: `builtin-${p.slug}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })) as AdminAIProvider[];
+      }
+    },
+  });
+}
+
+export function useCreateAIProvider() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (provider: Omit<AdminAIProvider, 'id' | 'created_at' | 'updated_at'>) => {
+      const { error } = await supabase.from('admin_ai_providers').insert(provider);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ai-providers'] });
+      toast.success('Provider created');
+    },
+    onError: (e: Error) => toast.error(`Failed to create provider: ${e.message}`),
+  });
+}
+
+export function useUpdateAIProvider() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<AdminAIProvider> & { id: string }) => {
+      const { error } = await supabase.from('admin_ai_providers').update(updates).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ai-providers'] });
+      toast.success('Provider updated');
+    },
+    onError: (e: Error) => toast.error(`Failed to update provider: ${e.message}`),
+  });
+}
+
+export function useDeleteAIProvider() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('admin_ai_providers').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ai-providers'] });
+      toast.success('Provider deleted');
+    },
+    onError: (e: Error) => toast.error(`Failed to delete provider: ${e.message}`),
   });
 }

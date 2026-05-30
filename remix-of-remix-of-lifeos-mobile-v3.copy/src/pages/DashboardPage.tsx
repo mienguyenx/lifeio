@@ -14,6 +14,8 @@ import DashboardAICoach from '@/components/dashboard/DashboardAICoach';
 import WeeklyReviewReminder from '@/components/weeklyreview/WeeklyReviewReminder';
 import { AIImprovementSuggestions } from '@/components/ai/AIImprovementSuggestions';
 import { LifeWheelMiniChart } from '@/components/lifewheel/LifeWheelMiniChart';
+import MonthlyReviewReminder from '@/components/monthlyreview/MonthlyReviewReminder';
+import YearlyReviewReminder from '@/components/yearlyreview/YearlyReviewReminder';
 
 export default function DashboardPage() {
   const lifeWheelScores = useLifeOSStore((s) => s.lifeWheelScores);
@@ -52,8 +54,10 @@ export default function DashboardPage() {
         {/* Upcoming */}
         <DashboardUpcoming />
 
-        {/* Weekly Review & AI */}
+        {/* Weekly & Monthly Review + AI */}
         <WeeklyReviewReminder />
+        <MonthlyReviewReminder />
+        <YearlyReviewReminder />
         <AIImprovementSuggestions />
       </div>
     );
@@ -104,8 +108,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Weekly Review Reminder + AI Suggestions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           <WeeklyReviewReminder />
+          <MonthlyReviewReminder />
+          <YearlyReviewReminder />
           <AIImprovementSuggestions />
         </div>
       </div>

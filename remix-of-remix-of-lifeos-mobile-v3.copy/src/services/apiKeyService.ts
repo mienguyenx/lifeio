@@ -4,18 +4,21 @@ export interface APIKeyInfo {
   id: string;
   api_key: string;
   name: string;
+  metadata?: Record<string, any>;
 }
 
 /**
  * Get active API key for a provider
  * Returns primary key if available, otherwise returns least used active key
  */
-export async function getActiveAPIKey(provider: 'gemini' | 'perplexity'): Promise<APIKeyInfo | null> {
+export type AIProvider = 'gemini' | 'perplexity' | 'openai-compatible' | 'anthropic-compatible' | 'openrouter' | 'ollama' | 'groq' | 'together' | 'deepseek' | 'mistral' | 'xai' | (string & {});
+
+export async function getActiveAPIKey(provider: AIProvider): Promise<APIKeyInfo | null> {
   try {
     // Try to get primary key first
     const { data: primaryKey, error: primaryError } = await supabase
       .from('api_keys')
-      .select('id, api_key, name')
+      .select('id, api_key, name, metadata')
       .eq('provider', provider)
       .eq('is_active', true)
       .eq('is_primary', true)
@@ -28,7 +31,7 @@ export async function getActiveAPIKey(provider: 'gemini' | 'perplexity'): Promis
     // If no primary, get least used active key
     const { data: keys, error } = await supabase
       .from('api_keys')
-      .select('id, api_key, name')
+      .select('id, api_key, name, metadata')
       .eq('provider', provider)
       .eq('is_active', true)
       .order('usage_count', { ascending: true })
@@ -51,7 +54,7 @@ export async function getActiveAPIKey(provider: 'gemini' | 'perplexity'): Promis
  * Get next available API key (for rotation when limit is reached)
  */
 export async function getNextAPIKey(
-  provider: 'gemini' | 'perplexity',
+  provider: AIProvider,
   excludeId?: string
 ): Promise<APIKeyInfo | null> {
   try {
@@ -178,7 +181,7 @@ export async function recordAPIKeyError(keyId: string, errorMessage: string): Pr
  * Get API key with automatic rotation if limit is reached
  */
 export async function getAPIKeyWithRotation(
-  provider: 'gemini' | 'perplexity',
+  provider: AIProvider,
   currentKeyId?: string
 ): Promise<APIKeyInfo | null> {
   // If we have a current key, check if it's still valid

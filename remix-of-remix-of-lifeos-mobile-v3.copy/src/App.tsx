@@ -12,7 +12,7 @@ import { syncPerformanceTracker } from "@/utils/syncPerformance";
 const queryClient = new QueryClient();
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
+// FloatingActionButton removed — AI Coach is now in the More menu
 import { OfflineIndicator } from "@/components/offline/OfflineIndicator";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
@@ -34,6 +34,15 @@ import HealthPage from "./pages/HealthPage";
 import FinancePage from "./pages/FinancePage";
 import LearningPage from "./pages/LearningPage";
 import RelationshipsPage from "./pages/RelationshipsPage";
+import MonthlyReviewPage from "./pages/MonthlyReviewPage";
+import YearlyPlanningPage from "./pages/YearlyPlanningPage";
+import YearlyReviewPage from "./pages/YearlyReviewPage";
+import CalendarPage from "./pages/CalendarPage";
+import PersonalizationPage from "./pages/PersonalizationPage";
+import AIMemoryPage from "./pages/AIMemoryPage";
+import DecisionLogPage from "./pages/DecisionLogPage";
+import AreaDashboardPage from "./pages/AreaDashboardPage";
+import GettingStartedPage from "./pages/GettingStartedPage";
 import NotFound from "./pages/NotFound";
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -46,6 +55,8 @@ import AdminThemes from "./pages/admin/AdminThemes";
 import AdminLanguages from "./pages/admin/AdminLanguages";
 import AdminTranslations from "./pages/admin/AdminTranslations";
 import AdminAIModels from "./pages/admin/AdminAIModels";
+import AdminAIProviders from "./pages/admin/AdminAIProviders";
+import AdminAIMemory from "./pages/admin/AdminAIMemory";
 import AdminAIPrompts from "./pages/admin/AdminAIPrompts";
 import AdminAPIKeys from "./pages/admin/AdminAPIKeys";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
@@ -71,15 +82,24 @@ function MainApp() {
         <Route path="/journal" element={<JournalPage />} />
         <Route path="/life-wheel" element={<LifeWheelPage />} />
         <Route path="/weekly-review" element={<WeeklyReviewPage />} />
+        <Route path="/monthly-review" element={<MonthlyReviewPage />} />
+        <Route path="/yearly-planning" element={<YearlyPlanningPage />} />
+        <Route path="/yearly-review" element={<YearlyReviewPage />} />
         <Route path="/ai-chat" element={<AIChatPage />} />
         <Route path="/notes" element={<NotesPage />} />
         <Route path="/health" element={<HealthPage />} />
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/learning" element={<LearningPage />} />
         <Route path="/relationships" element={<RelationshipsPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/trash" element={<TrashPage />} />
         <Route path="/me" element={<MePage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/personalization" element={<PersonalizationPage />} />
+        <Route path="/ai-memory" element={<AIMemoryPage />} />
+        <Route path="/decisions" element={<DecisionLogPage />} />
+        <Route path="/area-dashboard" element={<AreaDashboardPage />} />
+        <Route path="/journey" element={<GettingStartedPage />} />
       </Routes>
     </AppLayout>
   );
@@ -103,7 +123,9 @@ function AdminApp() {
         <Route path="themes" element={<AdminThemes />} />
         <Route path="languages" element={<AdminLanguages />} />
         <Route path="translations" element={<AdminTranslations />} />
+        <Route path="ai/providers" element={<AdminAIProviders />} />
         <Route path="ai/models" element={<AdminAIModels />} />
+        <Route path="ai/memory" element={<AdminAIMemory />} />
         <Route path="ai/prompts" element={<AdminAIPrompts />} />
         <Route path="api-keys" element={<AdminAPIKeys />} />
         <Route path="analytics" element={<AdminAnalytics />} />
@@ -189,7 +211,6 @@ const App = () => (
                   <ProtectedRoute>
                     <DataSyncProvider>
                       <MainApp />
-                      <FloatingActionButton />
                       <OfflineIndicator />
                     </DataSyncProvider>
                   </ProtectedRoute>

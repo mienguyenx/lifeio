@@ -30,20 +30,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-notifications",
-      [
-        "@react-native-community/netinfo",
-        {
-          "reachabilityUrl": "https://clients3.google.com/generate_204",
-          "reachabilityTest": "async (response) => response.status === 204",
-          "reachabilityLongTimeout": 60 * 1000,
-          "reachabilityShortTimeout": 5 * 1000,
-          "reachabilityRequestTimeout": 15 * 1000,
-          "reachabilityShouldRun": "async () => true",
-          "shouldFetchWiFiSSID": false,
-          "useNativeReachability": false
-        }
-      ]
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

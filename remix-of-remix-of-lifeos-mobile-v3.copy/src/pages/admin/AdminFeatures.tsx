@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { usePlugins, useUpdatePlugin, useCreatePlugin, useDeletePlugin, type Plugin } from '@/hooks/useAdminData';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { PageTransition } from '@/components/admin/AdminAnimations';
 import { pluginCategories, hookDescriptions, type PluginCategory } from '@/lib/pluginSystem';
 
 const categoryIcons: Record<string, React.ElementType> = {
@@ -74,64 +76,63 @@ export default function AdminFeatures() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Plugins & Features</h1>
-          <p className="text-muted-foreground">
-            Manage extensible features and plugins ({activeCount} active, {systemCount} system)
-          </p>
-        </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" />Add Plugin</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Plugin</DialogTitle>
-              <DialogDescription>Add a new plugin to extend app functionality</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Plugin Name</Label>
-                  <Input value={newPlugin.name} onChange={(e) => setNewPlugin({ ...newPlugin, name: e.target.value })} placeholder="e.g., My Plugin" />
+    <PageTransition className="p-6 space-y-6">
+      <AdminPageHeader
+        title="Plugins & Features"
+        description={`Manage extensible features and plugins (${activeCount} active, ${systemCount} system)`}
+        icon={Puzzle}
+        actions={
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="w-4 h-4 mr-2" />Add Plugin</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Plugin</DialogTitle>
+                <DialogDescription>Add a new plugin to extend app functionality</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Plugin Name</Label>
+                    <Input value={newPlugin.name} onChange={(e) => setNewPlugin({ ...newPlugin, name: e.target.value })} placeholder="e.g., My Plugin" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Slug (unique)</Label>
+                    <Input value={newPlugin.slug} onChange={(e) => setNewPlugin({ ...newPlugin, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} placeholder="e.g., my-plugin" />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Slug (unique)</Label>
-                  <Input value={newPlugin.slug} onChange={(e) => setNewPlugin({ ...newPlugin, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} placeholder="e.g., my-plugin" />
+                  <Label>Description</Label>
+                  <Textarea value={newPlugin.description} onChange={(e) => setNewPlugin({ ...newPlugin, description: e.target.value })} placeholder="What does this plugin do?" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Author</Label>
+                    <Input value={newPlugin.author} onChange={(e) => setNewPlugin({ ...newPlugin, author: e.target.value })} placeholder="e.g., Your Name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <select 
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      value={newPlugin.category}
+                      onChange={(e) => setNewPlugin({ ...newPlugin, category: e.target.value })}
+                    >
+                      {Object.entries(pluginCategories).map(([key, { label }]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea value={newPlugin.description} onChange={(e) => setNewPlugin({ ...newPlugin, description: e.target.value })} placeholder="What does this plugin do?" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Author</Label>
-                  <Input value={newPlugin.author} onChange={(e) => setNewPlugin({ ...newPlugin, author: e.target.value })} placeholder="e.g., Your Name" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Category</Label>
-                  <select 
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                    value={newPlugin.category}
-                    onChange={(e) => setNewPlugin({ ...newPlugin, category: e.target.value })}
-                  >
-                    {Object.entries(pluginCategories).map(([key, { label }]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={!newPlugin.name || !newPlugin.slug}>Create</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreate} disabled={!newPlugin.name || !newPlugin.slug}>Create</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -311,7 +312,7 @@ export default function AdminFeatures() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageTransition>
   );
 }
 

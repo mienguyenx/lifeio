@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { format, addDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { Plus, CalendarIcon } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -43,13 +43,7 @@ export function TodayAddTaskModal({ open, onOpenChange, onAdd }: TodayAddTaskMod
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5" /> Thêm Task mới
-          </DialogTitle>
-        </DialogHeader>
+    <AdaptiveModal open={open} onOpenChange={onOpenChange} title="Thêm Task mới">
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Tên task *</label>
@@ -136,7 +130,6 @@ export function TodayAddTaskModal({ open, onOpenChange, onAdd }: TodayAddTaskMod
             <Plus className="w-4 h-4 mr-2" /> Thêm Task
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </AdaptiveModal>
   );
 }

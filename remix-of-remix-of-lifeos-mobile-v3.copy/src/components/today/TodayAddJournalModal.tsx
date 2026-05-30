@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Smile, Frown, Meh } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -52,13 +52,7 @@ export function TodayAddJournalModal({ open, onOpenChange, todayStr, onAdd }: To
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            📝 Ghi Journal
-          </DialogTitle>
-        </DialogHeader>
+    <AdaptiveModal open={open} onOpenChange={onOpenChange} title="Ghi Journal">
         <div className="space-y-4">
           {/* Journal Prompts */}
           <div className="space-y-2">
@@ -115,7 +109,6 @@ export function TodayAddJournalModal({ open, onOpenChange, todayStr, onAdd }: To
             📝 Lưu Journal
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </AdaptiveModal>
   );
 }
