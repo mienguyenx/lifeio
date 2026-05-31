@@ -45,3 +45,63 @@ export function getPolicy(table: string): TablePolicy | undefined {
 }
 
 export const SUPPORTED_TABLES = Object.keys(TABLE_REGISTRY);
+
+// Tables the frontend still queries but that have not been ported to the new
+// backend yet (admin, workspaces, area modules, reviews, health/finance/learning/
+// relationships, history/audit tables, ...). Until each is ported into
+// TABLE_REGISTRY, the gateway treats reads as empty result sets and writes as
+// no-ops so the local-first frontend degrades gracefully instead of erroring on
+// every background sync. Move a table out of this set and into TABLE_REGISTRY
+// when its schema + scoping are implemented.
+export const DEFERRED_TABLES: ReadonlySet<string> = new Set([
+  'admin_ai_models',
+  'admin_ai_prompts',
+  'admin_ai_providers',
+  'admin_languages',
+  'admin_plugins',
+  'admin_settings',
+  'admin_templates',
+  'admin_themes',
+  'ai_memories',
+  'api_keys',
+  'backup_history',
+  'backup_progress',
+  'backup_settings',
+  'chat_messages',
+  'daily_intentions',
+  'feature_flags',
+  'finance_transactions',
+  'google_drive_tokens',
+  'health_logs',
+  'learning_books',
+  'learning_courses',
+  'life_milestones',
+  'life_milestones_history',
+  'life_role_goals',
+  'life_roles',
+  'life_roles_history',
+  'life_visions',
+  'life_visions_history',
+  'life_wheel_scores',
+  'monthly_reviews',
+  'personal_traits',
+  'personal_traits_history',
+  'personal_values',
+  'personal_values_history',
+  'pomodoro_sessions',
+  'relationships_contacts',
+  'relationships_interactions',
+  'subscription_plans',
+  'system_logs',
+  'user_subscriptions',
+  'weekly_reviews',
+  'workspace_invitations',
+  'workspace_members',
+  'workspaces',
+  'yearly_plannings',
+  'yearly_reviews',
+]);
+
+export function isDeferredTable(table: string): boolean {
+  return DEFERRED_TABLES.has(table);
+}

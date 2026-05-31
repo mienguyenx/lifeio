@@ -4,6 +4,7 @@ import {
   integer,
   pgTable,
   text,
+  time,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
@@ -29,6 +30,7 @@ export const tasks = pgTable('tasks', {
   recurringWeekDays: integer('recurring_week_days').array(),
   recurringEndDate: date('recurring_end_date'),
   reminderMinutes: integer('reminder_minutes'),
+  reminderTime: time('reminder_time'),
   lastReminded: timestamp('last_reminded', { withTimezone: true }),
   archived: boolean('archived').default(false),
   archivedAt: timestamp('archived_at', { withTimezone: true }),

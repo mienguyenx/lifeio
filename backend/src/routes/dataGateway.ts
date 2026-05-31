@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { pool } from '../db';
 import { getColumns, isValidColumn } from '../lib/columnCache';
-import { getPolicy, type TablePolicy } from '../lib/dbRegistry';
+import { getPolicy, isDeferredTable, type TablePolicy } from '../lib/dbRegistry';
 import { getUserId } from '../lib/context';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 
@@ -149,6 +149,12 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const userId = getUserId(request);
       const { table, filters = [], order = [], limit, offset, single, count, head } = request.body;
+      if (isDeferredTable(table)) {
+        // Not ported yet: behave like an empty table so background sync no-ops.
+        if (count || head) return reply.send({ data: head ? [] : undefined, count: 0, error: null });
+        if (single) return reply.send({ data: null, error: null });
+        return reply.send({ data: [], error: null });
+      }
       const policy = requirePolicy(table);
       const params = new ParamList();
       const where = buildWhere(table, policy, userId, filters, params);
@@ -197,6 +203,7 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
       const userId = getUserId(request);
       const { table, onConflict, returning = true } = request.body;
       const rows = request.body.rows ?? [];
+      if (isDeferredTable(table)) return reply.send({ data: returning ? [] : null, error: null });
       const policy = requirePolicy(table);
       if (rows.length === 0) throw badRequest('No rows to insert');
 
@@ -235,6 +242,7 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const userId = getUserId(request);
       const { table, set, filters = [], returning = true } = request.body;
+      if (isDeferredTable(table)) return reply.send({ data: returning ? [] : null, error: null });
       const policy = requirePolicy(table);
       const entries = Object.entries(set ?? {});
       if (entries.length === 0) throw badRequest('No fields to update');
@@ -259,6 +267,7 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const userId = getUserId(request);
       const { table, filters = [], returning = false } = request.body;
+      if (isDeferredTable(table)) return reply.send({ data: returning ? [] : null, error: null });
       const policy = requirePolicy(table);
       const params = new ParamList();
       const where = buildWhere(table, policy, userId, filters, params);
