@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
+import { functionUrl, getAccessToken } from '@/integrations/api/httpClient';
 
 const QUICK_PROMPTS = [
   { icon: '💪', text: 'Làm sao để duy trì habit tốt hơn?' },
@@ -24,7 +25,7 @@ const QUICK_PROMPTS = [
   { icon: '🧭', text: 'Tư vấn dựa trên Vision & Values của tôi' },
 ];
 
-const AI_COACH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-coach`;
+const AI_COACH_URL = functionUrl('ai-coach');
 
 export default function AIChatPage() {
   const chatMessages = useLifeOSStore((s) => s.chatMessages);
@@ -83,11 +84,12 @@ export default function AIChatPage() {
       }));
       apiMessages.push({ role: 'user', content: userMessage });
 
+      const accessToken = await getAccessToken();
       const resp = await fetch(AI_COACH_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({ messages: apiMessages, userContext }),
       });

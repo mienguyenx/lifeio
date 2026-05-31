@@ -96,6 +96,17 @@ export function getSession(): ApiSession | null {
   return currentSession;
 }
 
+/** Current access token (after ensuring it is valid). For raw fetch/streaming. */
+export async function getAccessToken(): Promise<string | null> {
+  await ensureValidSession();
+  return currentSession?.access_token ?? null;
+}
+
+/** Absolute URL for a backend "function" endpoint (replaces edge functions). */
+export function functionUrl(name: string): string {
+  return `${API_URL}/functions/${name}`;
+}
+
 export function setSession(session: ApiSession | null, event: AuthEvent): void {
   currentSession = session;
   if (typeof localStorage !== 'undefined') {

@@ -10,6 +10,29 @@ const schema = z.object({
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(30),
   CORS_ORIGINS: z.string().default('*'),
+
+  // --- AI (Phase 3) ---
+  // OpenAI-compatible chat-completions gateway used by the AI endpoints.
+  // Defaults to Gemini's OpenAI-compatible endpoint; can be repointed to
+  // Lovable (https://ai.gateway.lovable.dev/v1/chat/completions) or OpenAI.
+  AI_GATEWAY_URL: z
+    .string()
+    .default('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'),
+  AI_MODEL: z.string().default('gemini-2.5-flash'),
+  // Gateway key. Falls back to GEMINI_API_KEY / LOVABLE_API_KEY if unset.
+  AI_GATEWAY_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  PERPLEXITY_API_KEY: z.string().optional(),
+  LOVABLE_API_KEY: z.string().optional(),
+
+  // --- Email (Phase 3, send-email) ---
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
+  EMAIL_FROM_NAME: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  SMTP_USERNAME: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;

@@ -10,12 +10,14 @@ import authPlugin from './plugins/auth';
 import agentTokenRoutes from './routes/agentTokens';
 import authRoutes from './routes/auth';
 import dataGatewayRoutes from './routes/dataGateway';
+import functionRoutes from './routes/functions';
 import goalRoutes from './routes/goals';
 import habitRoutes from './routes/habits';
 import healthRoutes from './routes/health';
 import journalRoutes from './routes/journal';
 import noteRoutes from './routes/notes';
 import profileRoutes from './routes/profiles';
+import rpcRoutes from './routes/rpc';
 import taskRoutes from './routes/tasks';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -75,6 +77,8 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(authRoutes);
       await api.register(agentTokenRoutes);
       await api.register(dataGatewayRoutes);
+      await api.register(functionRoutes);
+      await api.register(rpcRoutes);
       await api.register(profileRoutes);
       await api.register(taskRoutes);
       await api.register(habitRoutes);
