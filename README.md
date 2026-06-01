@@ -29,13 +29,29 @@
 ```bash
 cd frontend
 npm install
-cp .env.example .env   # điền VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY (tạm thời)
+cp .env.example .env   # điền VITE_API_URL (mặc định http://localhost:4000/api/v1)
 npm run dev            # chạy dev server
 npm run build          # build production -> dist/
 npm run lint
 ```
 
-Frontend đọc cấu hình backend qua biến môi trường `VITE_*` lúc build (xem `frontend/.env.example`).
+Frontend đọc URL backend qua `VITE_API_URL` lúc build (bao gồm hậu tố `/api/v1`).
+
+## Build & Deploy (GitHub Actions → GHCR → Coolify)
+
+- **CI build images**: `.github/workflows/build-images.yml` build và push 2 image
+  lên GHCR (`ghcr.io/<owner>/lifeio/backend`, `.../frontend`) khi push lên `main`
+  hoặc tạo tag `v*`, đồng thời đóng gói extension thành artifact `lifeos-extension.zip`.
+  - Đặt repo **Variable** `VITE_API_URL` = URL API production (vd
+    `https://api.life.example.com/api/v1`); tùy chọn `VITE_GOOGLE_CLIENT_ID` và
+    **Secret** `VITE_GOOGLE_API_KEY` (được bake vào bundle frontend lúc build).
+- **Coolify**: dùng `deploy/coolify/docker-compose.yml` (Postgres + backend +
+  frontend, backend tự chạy migration khi khởi động qua `npm run start:prod`).
+  Khai báo biến môi trường theo `deploy/coolify/.env.example`.
+- **Migrate dữ liệu cũ**: `scripts/migrate-supabase-dump.sh` nạp dump Supabase cũ
+  (`db/backups/*.sql`) vào schema Postgres mới (users + các bảng nghiệp vụ, idempotent).
+  Xem header của script để biết cách dùng. Lưu ý: hash mật khẩu cũ là **bcrypt**
+  còn backend mới verify **argon2** → người dùng cần reset mật khẩu sau khi migrate.
 
 ## Lộ trình tái kiến trúc (đang thực hiện)
 

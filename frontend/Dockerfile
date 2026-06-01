@@ -12,15 +12,14 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build arguments for environment variables
-ARG VITE_SUPABASE_URL=http://localhost:54321
-ARG VITE_SUPABASE_PUBLISHABLE_KEY
+# Build arguments for environment variables.
+# VITE_API_URL points at the LifeOS backend REST API (includes the /api/v1 prefix).
+ARG VITE_API_URL=http://localhost:4000/api/v1
 ARG VITE_GOOGLE_CLIENT_ID
 ARG VITE_GOOGLE_API_KEY
 
-# Set environment variables for build
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
+# Set environment variables for build (Vite inlines these at build time)
+ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 ENV VITE_GOOGLE_API_KEY=$VITE_GOOGLE_API_KEY
 
