@@ -5,7 +5,7 @@ import { LIFE_AREAS, type LifeArea } from '@/types/lifeos';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { jsPDF } from 'jspdf';
-import { getActiveSupabase } from '@/integrations/supabase/externalClient';
+import { functionUrl, getAccessToken } from '@/integrations/api/httpClient';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -423,39 +423,20 @@ export function useAICoachState() {
     setIsLoading(true);
 
     try {
-      // Get Supabase URL and key
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Cấu hình Supabase chưa đầy đủ. Vui lòng kiểm tra biến môi trường.');
-      }
-
-      // Get auth token if available
-      let authToken = supabaseKey;
-      let authSource: 'anon' | 'session' = 'anon';
-      try {
-        const supabase = getActiveSupabase();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          authToken = session.access_token;
-          authSource = 'session';
-        }
-      } catch (e) {
-        console.warn('Could not get auth token, using anon key:', e);
-      }
+      // Get the user's access token from the LifeOS REST API auth state.
+      const accessToken = await getAccessToken();
 
       // Use fetch for streaming response
       let response: Response;
       try {
-        const url = `${supabaseUrl}/functions/v1/ai-coach`;
+        const url = functionUrl('ai-coach');
         response = await fetch(
           url,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${authToken}`,
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
             },
             body: JSON.stringify({
               messages: newMessages.map(m => ({ role: m.role, content: m.content })),
@@ -521,7 +502,7 @@ export function useAICoachState() {
           status: response.status,
           statusText: response.statusText,
           errorDetails,
-          url: `${supabaseUrl}/functions/v1/ai-coach`
+          url: functionUrl('ai-coach')
         });
         throw new Error(errorMessage);
       }

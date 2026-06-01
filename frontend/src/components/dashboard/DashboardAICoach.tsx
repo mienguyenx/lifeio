@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { LIFE_AREAS, type LifeArea } from '@/types/lifeos';
+import { functionUrl, getAccessToken } from '@/integrations/api/httpClient';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -141,13 +142,14 @@ export default function DashboardAICoach({ onClose }: DashboardAICoachProps) {
   const fetchDailySuggestion = async () => {
     setIsLoadingSuggestion(true);
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-coach`,
+        functionUrl('ai-coach'),
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
           },
           body: JSON.stringify({
             messages: [{ 
@@ -207,13 +209,14 @@ export default function DashboardAICoach({ onClose }: DashboardAICoachProps) {
     setIsLoading(true);
 
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-coach`,
+        functionUrl('ai-coach'),
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
           },
           body: JSON.stringify({
             messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),

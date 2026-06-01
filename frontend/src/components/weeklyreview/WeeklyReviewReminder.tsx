@@ -10,6 +10,7 @@ import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { Link } from 'react-router-dom';
 import { LIFE_AREAS, type LifeArea } from '@/types/lifeos';
 import { cn } from '@/lib/utils';
+import { functionUrl, getAccessToken } from '@/integrations/api/httpClient';
 
 export default function WeeklyReviewReminder() {
   const weeklyReviews = useLifeOSStore((s) => s.weeklyReviews);
@@ -82,13 +83,14 @@ export default function WeeklyReviewReminder() {
         formattedScores[areaNames[key] || key] = value;
       });
 
+      const accessToken = await getAccessToken();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-coach`,
+        functionUrl('ai-coach'),
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
           },
           body: JSON.stringify({
             messages: [{ 

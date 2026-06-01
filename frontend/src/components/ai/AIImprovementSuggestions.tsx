@@ -8,6 +8,7 @@ import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { LIFE_AREAS, type LifeArea, type Habit, type Task } from '@/types/lifeos';
 import { toast } from 'sonner';
+import { functionUrl, getAccessToken } from '@/integrations/api/httpClient';
 import { cn } from '@/lib/utils';
 
 interface AISuggestion {
@@ -54,13 +55,14 @@ export function AIImprovementSuggestions() {
     setAddedTasks([]);
 
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-suggest`,
+        functionUrl('ai-suggest'),
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
           },
           body: JSON.stringify({
             type: 'suggest-improvements',

@@ -16,9 +16,11 @@ import {
   buildThemeRequest,
   buildTranslatePrompts,
   buildVisionValuesPrompts,
+  buildSuggestPrompts,
   TEMPLATE_SYSTEM_PROMPTS,
   TRANSLATE_JSON_TYPES,
   type TranslateParams,
+  type SuggestParams,
 } from '../lib/aiFunctionDefs';
 import {
   buildSseFromText,
@@ -106,6 +108,26 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ templates: [], raw: content, error: 'Failed to parse structured response' });
       }
       return reply.send({ templates: Array.isArray(parsed) ? parsed : [parsed] });
+    },
+  );
+
+  // ----------------------------- ai-suggest -----------------------------
+  fastify.post<{ Body: SuggestParams }>(
+    '/functions/ai-suggest',
+    { schema: { tags: ['ai'], summary: 'Suggest habits/tasks to improve low life areas', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      const { systemPrompt, userPrompt } = buildSuggestPrompts(request.body);
+      const { content } = await chatCompletion({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      });
+      const parsed = parseJsonFromContent<Record<string, unknown> | null>(content, null);
+      if (parsed === null) {
+        return reply.send({ habits: [], tasks: [], insights: content, error: 'Failed to parse structured response' });
+      }
+      return reply.send(parsed);
     },
   );
 

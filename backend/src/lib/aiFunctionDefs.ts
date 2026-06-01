@@ -377,3 +377,61 @@ Each theme should have a distinct personality and use case.`,
     ],
   };
 }
+
+// ----------------------------- ai-suggest -----------------------------
+export interface SuggestArea {
+  id: string;
+  name?: string;
+  score: number;
+}
+
+export interface SuggestParams {
+  type: string;
+  lowestAreas?: SuggestArea[];
+  userContext?: { lifePurpose?: string; personalValues?: Array<{ name?: string }> };
+}
+
+const SUGGEST_AREA_NAMES: Record<string, string> = {
+  health: 'Sức khỏe', emotional: 'Cảm xúc', career: 'Sự nghiệp',
+  finance: 'Tài chính', relationships: 'Quan hệ', learning: 'Học tập',
+  personal: 'Mục tiêu cá nhân', fun: 'Giải trí', environment: 'Môi trường',
+  spirituality: 'Tâm linh', contribution: 'Đóng góp',
+};
+
+export function buildSuggestPrompts(params: SuggestParams): { systemPrompt: string; userPrompt: string } {
+  const systemPrompt = `Bạn là một AI Life Coach chuyên giúp người dùng cải thiện cuộc sống. 
+Bạn đưa ra gợi ý CỤ THỂ và CÓ THỂ HÀNH ĐỘNG NGAY.
+
+Trả về JSON với format:
+{
+  "habits": [
+    { "name": "Tên thói quen", "description": "Mô tả ngắn", "frequency": "daily", "area": "area_id" }
+  ],
+  "tasks": [
+    { "title": "Tiêu đề task", "description": "Mô tả", "priority": "high|medium|low", "area": "area_id" }
+  ],
+  "insights": "Phân tích ngắn về tình trạng hiện tại và lý do đề xuất"
+}
+
+Chỉ trả về JSON, không có text khác.`;
+
+  const lowestAreas = params.lowestAreas ?? [];
+  const userContext = params.userContext;
+  const userPrompt = `Dựa trên các mảng cuộc sống có điểm thấp nhất sau:
+${lowestAreas.map((a) => `- ${SUGGEST_AREA_NAMES[a.id] || a.name || a.id} (${a.id}): ${a.score}/10`).join('\n')}
+
+${userContext?.lifePurpose ? `Mục đích sống của người dùng: ${userContext.lifePurpose}` : ''}
+${userContext?.personalValues && userContext.personalValues.length > 0 ? `Giá trị cốt lõi: ${userContext.personalValues.map((v) => v.name).join(', ')}` : ''}
+
+Hãy đề xuất:
+1. 2-3 thói quen mới phù hợp để cải thiện các mảng này (frequency: daily hoặc weekly)
+2. 2-3 tasks cụ thể có thể làm ngay trong tuần này (priority: high/medium/low)
+3. Phân tích ngắn gọn về tình trạng và hướng cải thiện
+
+Lưu ý:
+- Thói quen phải đơn giản, dễ thực hiện
+- Tasks phải cụ thể, có thể hoàn thành trong 1-2 giờ
+- Ưu tiên các hành động nhỏ nhưng đều đặn`;
+
+  return { systemPrompt, userPrompt };
+}

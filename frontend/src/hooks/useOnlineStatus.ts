@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSyncQueueCount } from '@/lib/indexedDB';
+import { API_URL } from '@/integrations/api/httpClient';
 
 interface OnlineStatus {
   isOnline: boolean;
@@ -13,44 +14,39 @@ let pingCache: { result: boolean; timestamp: number } | null = null;
 const PING_CACHE_DURATION = 10000; // 10 seconds
 const PING_TIMEOUT = 5000; // 5 seconds
 
-// Ping Supabase to check actual connectivity
-// This is a best-effort check - failures don't necessarily mean offline
-async function pingSupabase(): Promise<boolean> {
+// Ping the LifeOS REST API to check actual connectivity.
+// This is a best-effort check - failures don't necessarily mean offline.
+async function pingApi(): Promise<boolean> {
   // Check cache first
   if (pingCache && Date.now() - pingCache.timestamp < PING_CACHE_DURATION) {
     return pingCache.result;
   }
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl) {
-    // If no Supabase URL configured, assume online
+  if (!API_URL) {
+    // If no API URL configured, assume online
     return true;
   }
 
   try {
-    // Ping Supabase REST API endpoint with shorter timeout for mobile
+    // Ping the API health endpoint with a shorter timeout for mobile
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), PING_TIMEOUT);
-    
-    const response = await fetch(`${supabaseUrl}/rest/v1/`, {
-      method: 'HEAD',
-      headers: {
-        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
-      },
+
+    const response = await fetch(`${API_URL}/health`, {
+      method: 'GET',
       signal: controller.signal,
       cache: 'no-store',
-      // Add mode to handle CORS better on mobile
       mode: 'cors',
     });
-    
+
     clearTimeout(timeoutId);
-    
-    // Any response (even 401/403) means we're online and can reach Supabase
-    const isOnline = response.status >= 200 && response.status < 600; // Accept any HTTP response
-    
+
+    // Any HTTP response means we can reach the API
+    const isOnline = response.status >= 200 && response.status < 600;
+
     // Update cache
     pingCache = { result: isOnline, timestamp: Date.now() };
-    
+
     return isOnline;
   } catch (error) {
     // Network error - but don't cache as offline, let navigator.onLine decide
@@ -111,7 +107,7 @@ export function useOnlineStatus() {
       
       try {
         const pingResult = await Promise.race([
-          pingSupabase(),
+          pingApi(),
           new Promise<boolean>((resolve) => {
             // Timeout after 3 seconds - if ping takes too long, assume online
             setTimeout(() => resolve(navigatorOnline), 3000);
