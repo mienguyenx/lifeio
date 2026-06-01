@@ -91,7 +91,7 @@ jobs:
         run: |
           URL="${{ github.event.inputs.vite_api_url }}"
           if [ -z "$URL" ]; then URL="${{ vars.VITE_API_URL }}"; fi
-          if [ -z "$URL" ]; then URL="http://localhost:4000/api/v1"; fi
+          if [ -z "$URL" ]; then URL="https://api.life.example.com/api/v1"; fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Build & push frontend

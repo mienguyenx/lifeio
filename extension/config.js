@@ -1,19 +1,20 @@
 // LifeOS extension config.
 // Central place for the app + API URLs so nothing is hardcoded across files.
 //
-// Defaults target local development. For a deployed build, either:
-//   1) edit DEFAULT_CONFIG below, or
-//   2) set an override at runtime via chrome.storage.local
-//      ({ lifeOSConfig: { appUrl, apiUrl } }) — e.g. from an options page.
+// Defaults target the production deployment. For local development, set an
+// override at runtime via chrome.storage.local:
+//   chrome.storage.local.set({ lifeOSConfig: {
+//     appUrl: 'http://localhost:3222', apiUrl: 'http://localhost:4000/api/v1' } })
+// (e.g. from an options page or the service-worker console).
 //
-// NOTE: when you change APP_URL for production you must also update the
-// `frame-src` entry in manifest.json (CSP cannot read this file).
+// NOTE: when you change appUrl you must also update the `frame-src` entry in
+// manifest.json (CSP cannot read this file).
 
 const DEFAULT_CONFIG = {
   // The LifeOS frontend (what gets opened / iframed by the extension).
-  appUrl: 'http://localhost:3222',
+  appUrl: 'https://life.example.com',
   // The LifeOS backend REST API base (…/api/v1).
-  apiUrl: 'http://localhost:4000/api/v1',
+  apiUrl: 'https://api.life.example.com/api/v1',
 };
 
 // Synchronous defaults available immediately to every script.
