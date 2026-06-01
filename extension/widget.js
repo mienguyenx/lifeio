@@ -2,7 +2,8 @@
 (function() {
   'use strict';
 
-  const LIFEOOS_URL = 'https://life.hoanong.com';
+  // App URL resolved from config.js (loaded before this script).
+  let LIFEOOS_URL = (self.LIFEOS_CONFIG && self.LIFEOS_CONFIG.appUrl) || 'http://localhost:3222';
 
   const widget = document.getElementById('lifeos-widget');
   const widgetHeader = document.getElementById('widgetHeader');
@@ -10,6 +11,15 @@
   const widgetMobileView = document.getElementById('widgetMobileView');
   const widgetCompactView = document.getElementById('widgetCompactView');
   const lifeosAppIframe = document.getElementById('lifeos-app-iframe');
+
+  // Resolve config override, then point the app iframe at the app.
+  const configReady = self.lifeOSConfigReady || Promise.resolve();
+  configReady.then((cfg) => {
+    if (cfg && cfg.appUrl) LIFEOOS_URL = cfg.appUrl;
+    if (lifeosAppIframe && !lifeosAppIframe.src) {
+      lifeosAppIframe.src = LIFEOOS_URL;
+    }
+  });
   
   const toggleBtn = document.getElementById('toggleBtn');
   const toggleIcon = document.getElementById('toggleIcon');

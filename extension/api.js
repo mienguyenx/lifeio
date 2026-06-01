@@ -10,9 +10,12 @@ const DateUtils = typeof getTodayDateString !== 'undefined' ? {
   isBeforeToday
 } : null;
 
-const LIFEOOS_URL = 'https://life.hoanong.com';
-const SUPABASE_URL = 'https://supabase.hoanong.com';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+// Base URL of the LifeOS REST API (…/api/v1). Resolved from config.js, with a
+// safe fallback for local dev. No anon key needed — auth is the user's JWT.
+function getApiBase() {
+  const cfg = (typeof self !== 'undefined' && self.LIFEOS_CONFIG) || null;
+  return (cfg && cfg.apiUrl) || 'http://localhost:4000/api/v1';
+}
 
 class LifeOSAPI {
   constructor() {
@@ -111,26 +114,23 @@ class LifeOSAPI {
     });
   }
 
-  // Gọi Supabase REST API
-  async callSupabaseAPI(endpoint, options = {}) {
+  // Call the LifeOS data gateway (/db/query|insert|update|delete).
+  // Rows are auto-scoped to the authenticated user server-side, so callers
+  // don't pass a user_id filter. Returns the `data` payload (throws on error).
+  async callGateway(action, body) {
     const session = await this.getSession() || await this.getSessionFromPage();
-    
+
     if (!session || !session.access_token) {
       throw new Error('Not authenticated');
     }
 
-    const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-    const headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      ...options.headers,
-    };
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
+    const response = await fetch(`${getApiBase()}/db/${action}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -140,7 +140,11 @@ class LifeOSAPI {
       throw new Error(`API error: ${response.status}`);
     }
 
-    return response.json();
+    const json = await response.json();
+    if (json && json.error) {
+      throw new Error(json.error.message || 'Gateway error');
+    }
+    return json ? json.data : null;
   }
 
   // Lấy habits
@@ -151,9 +155,11 @@ class LifeOSAPI {
     if (!this.userId) return [];
 
     try {
-      const habits = await this.callSupabaseAPI(
-        `habits?user_id=eq.${this.userId}&deleted_at=is.null&select=*&order=created_at.desc`
-      );
+      const habits = await this.callGateway('query', {
+        table: 'habits',
+        filters: [{ column: 'deleted_at', op: 'is', value: null }],
+        order: [{ column: 'created_at', ascending: false }],
+      });
       return habits || [];
     } catch (error) {
       console.error('Error fetching habits:', error);
@@ -169,9 +175,11 @@ class LifeOSAPI {
     if (!this.userId) return [];
 
     try {
-      const tasks = await this.callSupabaseAPI(
-        `tasks?user_id=eq.${this.userId}&deleted_at=is.null&select=*&order=created_at.desc`
-      );
+      const tasks = await this.callGateway('query', {
+        table: 'tasks',
+        filters: [{ column: 'deleted_at', op: 'is', value: null }],
+        order: [{ column: 'created_at', ascending: false }],
+      });
       return tasks || [];
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -187,9 +195,11 @@ class LifeOSAPI {
     if (!this.userId) return [];
 
     try {
-      const goals = await this.callSupabaseAPI(
-        `goals?user_id=eq.${this.userId}&deleted_at=is.null&select=*&order=created_at.desc`
-      );
+      const goals = await this.callGateway('query', {
+        table: 'goals',
+        filters: [{ column: 'deleted_at', op: 'is', value: null }],
+        order: [{ column: 'created_at', ascending: false }],
+      });
       return goals || [];
     } catch (error) {
       console.error('Error fetching goals:', error);
@@ -207,10 +217,12 @@ class LifeOSAPI {
     try {
       // Use timezone-aware date utility
       const today = DateUtils ? DateUtils.getTodayDateString() : new Date().toISOString().split('T')[0];
-      const completions = await this.callSupabaseAPI(
-        `habit_completions?date=eq.${today}&select=habit_id`
-      );
-      return completions.map(c => c.habit_id) || [];
+      const completions = await this.callGateway('query', {
+        table: 'habit_completions',
+        select: ['habit_id'],
+        filters: [{ column: 'date', op: 'eq', value: today }],
+      });
+      return (completions || []).map(c => c.habit_id);
     } catch (error) {
       console.error('Error fetching habit completions:', error);
       return [];
@@ -227,10 +239,15 @@ class LifeOSAPI {
     try {
       // Use timezone-aware date utility
       const today = DateUtils ? DateUtils.getTodayDateString() : new Date().toISOString().split('T')[0];
-      const tasks = await this.callSupabaseAPI(
-        `tasks?user_id=eq.${this.userId}&status=eq.done&completed_at=gte.${today}T00:00:00&select=id`
-      );
-      return tasks.length || 0;
+      const tasks = await this.callGateway('query', {
+        table: 'tasks',
+        select: ['id'],
+        filters: [
+          { column: 'status', op: 'eq', value: 'done' },
+          { column: 'completed_at', op: 'gte', value: `${today}T00:00:00` },
+        ],
+      });
+      return (tasks || []).length;
     } catch (error) {
       console.error('Error fetching completed tasks:', error);
       return 0;
@@ -272,16 +289,9 @@ class LifeOSAPI {
       // Use timezone-aware date if date not provided
       const dateToUse = date || (DateUtils ? DateUtils.getTodayDateString() : new Date().toISOString().split('T')[0]);
       
-      const result = await this.callSupabaseAPI('habit_completions', {
-        method: 'POST',
-        headers: {
-          'Prefer': 'return=representation',
-        },
-        body: JSON.stringify({
-          habit_id: habitId,
-          date: dateToUse,
-          user_id: this.userId,
-        }),
+      const result = await this.callGateway('insert', {
+        table: 'habit_completions',
+        rows: [{ habit_id: habitId, date: dateToUse }],
       });
       return result;
     } catch (error) {
@@ -300,12 +310,13 @@ class LifeOSAPI {
     try {
       // Use timezone-aware date utility
       const today = DateUtils ? DateUtils.getTodayDateString() : new Date().toISOString().split('T')[0];
-      const result = await this.callSupabaseAPI(
-        `habit_completions?habit_id=eq.${habitId}&date=eq.${today}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const result = await this.callGateway('delete', {
+        table: 'habit_completions',
+        filters: [
+          { column: 'habit_id', op: 'eq', value: habitId },
+          { column: 'date', op: 'eq', value: today },
+        ],
+      });
       return result;
     } catch (error) {
       console.error('Error uncompleting habit:', error);
@@ -323,13 +334,11 @@ class LifeOSAPI {
     try {
       // Use current time in ISO format (timezone will be handled by server)
       const completedAt = new Date().toISOString();
-      
-      const result = await this.callSupabaseAPI(`tasks?id=eq.${taskId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: 'done',
-          completed_at: completedAt,
-        }),
+
+      const result = await this.callGateway('update', {
+        table: 'tasks',
+        set: { status: 'done', completed_at: completedAt },
+        filters: [{ column: 'id', op: 'eq', value: taskId }],
       });
       return result;
     } catch (error) {

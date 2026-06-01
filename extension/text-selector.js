@@ -10,6 +10,13 @@
   let translationPopup = null;
   let notePopup = null;
 
+  // Base URL of the LifeOS REST API (…/api/v1). Resolved from config.js
+  // (injected before this script), with a safe local-dev fallback.
+  function getApiBase() {
+    const cfg = (typeof self !== 'undefined' && self.LIFEOS_CONFIG) || null;
+    return (cfg && cfg.apiUrl) || 'http://localhost:4000/api/v1';
+  }
+
   // Khởi tạo
   function init() {
     createPopups();
@@ -309,20 +316,27 @@
       ]);
     };
 
-    // Try LifeOS API first with retry
+    // Try LifeOS AI translate endpoint first with retry (requires auth)
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
+        const session = await getSession();
+        if (!session || !session.access_token) {
+          throw new Error('Not authenticated');
+        }
+
         const response = await fetchWithTimeout(
-          'https://life.hoanong.com/api/translate',
+          `${getApiBase()}/functions/ai-translate`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({
-              text,
-              sourceLang,
-              targetLang,
+              type: 'translate',
+              content: text,
+              sourceLanguage: sourceLang === 'auto' ? 'auto-detect' : sourceLang,
+              targetLanguage: 'Vietnamese',
             }),
           },
           10000 // 10 second timeout
@@ -335,8 +349,8 @@
 
         const data = await response.json();
 
-        if (data && data.translatedText) {
-          return data.translatedText;
+        if (data && typeof data.result === 'string' && data.result.trim()) {
+          return data.result;
         }
 
         throw new Error('Invalid translation response format');
@@ -513,6 +527,7 @@
 
           // 2. Try localStorage
           const sessionKeys = [
+            'lifeos.session',
             'sb-supabase-auth-token',
             'sb-pxgdmyszzwamwygvifvj-auth-token',
             'external-supabase-auth-token'
@@ -594,48 +609,28 @@
     });
   }
 
-  // Create note via Supabase
+  // Create note via the LifeOS data gateway (auto-scoped to the user server-side)
   async function createNote(noteData) {
-    const SUPABASE_URL = 'https://supabase.hoanong.com';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
-
     const session = await getSession();
     if (!session || !session.access_token) {
       throw new Error('Chưa đăng nhập');
     }
 
-    // Generate UUID v4
-    const noteId = crypto.randomUUID ? crypto.randomUUID() :
-      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-
-    const now = new Date().toISOString();
-
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/notes`, {
+    const response = await fetch(`${getApiBase()}/db/insert`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${session.access_token}`,
-        'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-        id: noteId,
-        title: noteData.title,
-        content: noteData.content || null,
-        user_id: session.user.id,
-        is_pinned: false,
-        is_favorite: false,
-        tags: null,
-        area: null,
-        color: null,
-        updated_at: now,
-        deleted_at: null,
-        archived_at: null
-      })
+        table: 'notes',
+        rows: [{
+          title: noteData.title,
+          content: noteData.content || null,
+          is_pinned: false,
+          is_favorite: false,
+        }],
+      }),
     });
 
     if (!response.ok) {
@@ -644,7 +639,11 @@
       throw new Error(error || 'Không thể tạo note');
     }
 
-    return await response.json();
+    const json = await response.json();
+    if (json && json.error) {
+      throw new Error(json.error.message || 'Không thể tạo note');
+    }
+    return json ? json.data : null;
   }
 
   // Initialize when DOM is ready

@@ -92,28 +92,37 @@
     link.href = chrome.runtime.getURL('text-selector.css');
     document.head.appendChild(link);
 
-    // Inject API.js first (required by text-selector.js)
-    const apiScript = document.createElement('script');
-    apiScript.src = chrome.runtime.getURL('api.js');
-    apiScript.onload = () => {
-      console.log('[Content] API.js loaded');
-      
-      // Then inject text-selector.js
-      const script = document.createElement('script');
-      script.id = 'lifeos-text-selector-script';
-      script.src = chrome.runtime.getURL('text-selector.js');
-      script.onload = () => {
-        console.log('[Content] LifeOS Text Selector loaded successfully');
+    // Inject config.js first (provides LIFEOS_CONFIG for api.js + text-selector.js)
+    const configScript = document.createElement('script');
+    configScript.src = chrome.runtime.getURL('config.js');
+    configScript.onload = () => {
+      // Then API.js (required by text-selector.js)
+      const apiScript = document.createElement('script');
+      apiScript.src = chrome.runtime.getURL('api.js');
+      apiScript.onload = () => {
+        console.log('[Content] API.js loaded');
+
+        // Then inject text-selector.js
+        const script = document.createElement('script');
+        script.id = 'lifeos-text-selector-script';
+        script.src = chrome.runtime.getURL('text-selector.js');
+        script.onload = () => {
+          console.log('[Content] LifeOS Text Selector loaded successfully');
+        };
+        script.onerror = (error) => {
+          console.error('[Content] Error loading text selector:', error);
+        };
+        (document.head || document.documentElement).appendChild(script);
       };
-      script.onerror = (error) => {
-        console.error('[Content] Error loading text selector:', error);
+      apiScript.onerror = (error) => {
+        console.error('[Content] Error loading API.js:', error);
       };
-      (document.head || document.documentElement).appendChild(script);
+      (document.head || document.documentElement).appendChild(apiScript);
     };
-    apiScript.onerror = (error) => {
-      console.error('[Content] Error loading API.js:', error);
+    configScript.onerror = (error) => {
+      console.error('[Content] Error loading config.js:', error);
     };
-    (document.head || document.documentElement).appendChild(apiScript);
+    (document.head || document.documentElement).appendChild(configScript);
   }
 })();
 

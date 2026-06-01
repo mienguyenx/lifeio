@@ -4,7 +4,8 @@
 (function() {
   'use strict';
 
-  const LIFEOOS_URL = 'https://life.hoanong.com';
+  // App URL resolved from config.js (loaded before this script).
+  let LIFEOOS_URL = (self.LIFEOS_CONFIG && self.LIFEOS_CONFIG.appUrl) || 'http://localhost:3222';
   const LOADING_TIMEOUT = 10000;
   const MOBILE_WIDTH = 375;
   const MOBILE_HEIGHT = 667;
@@ -229,6 +230,15 @@
       if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
         toggleMinimize();
       }
+    }
+  });
+
+  // Resolve config override, then point the iframe at the app.
+  const configReady = self.lifeOSConfigReady || Promise.resolve();
+  configReady.then((cfg) => {
+    if (cfg && cfg.appUrl) LIFEOOS_URL = cfg.appUrl;
+    if (iframe && !iframe.src) {
+      iframe.src = LIFEOOS_URL;
     }
   });
 

@@ -2,7 +2,12 @@
 (function() {
   'use strict';
 
-  const LIFEOOS_URL = 'https://life.hoanong.com';
+  // App URL resolved from config.js (loaded before this script), with a
+  // local-dev fallback. Updated when the async config override resolves.
+  let LIFEOOS_URL = (self.LIFEOS_CONFIG && self.LIFEOS_CONFIG.appUrl) || 'http://localhost:3222';
+  if (self.lifeOSConfigReady) {
+    self.lifeOSConfigReady.then((cfg) => { if (cfg && cfg.appUrl) LIFEOOS_URL = cfg.appUrl; });
+  }
 
   const widgetStatus = document.getElementById('widgetStatus');
   const openSidePanelBtn = document.getElementById('openSidePanelBtn');

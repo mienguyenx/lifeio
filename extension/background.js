@@ -1,6 +1,14 @@
 // LifeOS Background Script
 // Xử lý context menu và các tác vụ nền
 
+// Provides LIFEOS_CONFIG (appUrl, apiUrl) in the service worker scope.
+importScripts('config.js');
+
+// App origin used to find the LifeOS tab and scope session sync.
+function getAppUrl() {
+  return (self.LIFEOS_CONFIG && self.LIFEOS_CONFIG.appUrl) || 'http://localhost:3222';
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   // Enable side panel to open when clicking the action button
   if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
@@ -75,7 +83,7 @@ async function syncSessionFromLifeOSTab() {
     console.log('[Background] Syncing session from LifeOS tab...');
 
     // Tìm tab LifeOS
-    const tabs = await chrome.tabs.query({ url: 'https://life.hoanong.com/*' });
+    const tabs = await chrome.tabs.query({ url: `${getAppUrl()}/*` });
 
     if (tabs.length === 0) {
       // Không có tab LifeOS → Check stored session
@@ -94,7 +102,9 @@ async function syncSessionFromLifeOSTab() {
     const results = await chrome.scripting.executeScript({
       target: { tabId: lifeOSTab.id },
       func: () => {
+        // New REST-API session key first, then legacy Supabase keys (fallback).
         const sessionKeys = [
+          'lifeos.session',
           'external-supabase-auth-token',
           'sb-supabase-auth-token',
           'sb-pxgdmyszzwamwygvifvj-auth-token'
