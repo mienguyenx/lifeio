@@ -1,14 +1,34 @@
-# Dependencies
-node_modules/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
 
-# Build output
+# Node
+node_modules/
 dist/
 dist-ssr/
+*.local
+*.log
 
 # Environment variables
 .env
-.env.*
-!.env.example
+.env.local
+.env.*.local
+*.env
+!*.env.example
+
+# Vite build artifacts
+**/vite.config.ts.timestamp-*.mjs
+
+# GitHub Token (nếu lưu trong file)
+*.token
+github_token.txt
 
 # IDE
 .vscode/
@@ -20,24 +40,14 @@ dist-ssr/
 .DS_Store
 Thumbs.db
 
-# Cursor / Claude
-.cursor/
-.claude/
-
-# Logs
-*.log
-npm-debug.log*
-
-# Vite temp files
-*.timestamp-*
-
-# Lockfiles (use npm only)
-bun.lockb
-
-# Workspace files
-*.code-workspace
-
-# Backups
+# Large backup files
 *.zip
 *.tar.gz
 *.tar
+
+# Cursor
+.cursor/
+
+# Claude settings
+.claude/
+
