@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, LayoutDashboard, Target, CheckSquare, Compass, BookOpen, Calendar, CalendarDays, CalendarRange, Map, Award, PieChart, Heart, Wallet, GraduationCap, Users, ChevronDown, Settings2, Brain, Scale, BarChart3, Trophy } from 'lucide-react';
+import { Home, LayoutDashboard, Target, CheckSquare, Compass, BookOpen, Calendar, CalendarDays, CalendarRange, Map, Award, PieChart, Heart, Wallet, GraduationCap, Users, ChevronDown, Settings2, Brain, Scale, BarChart3, Trophy, PanelsTopLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { useNotificationBadges, GoalsBadge, TasksBadge, HabitsBadge } from '@/hooks/useNotificationBadges';
@@ -17,6 +17,7 @@ const MENU_GROUPS = {
   daily: {
     label: 'Hàng ngày',
     items: [
+      { path: '/workspace', icon: PanelsTopLeft, label: 'Workspace', badgeKey: null },
       { path: '/journey', icon: Trophy, label: 'Hành trình', badgeKey: null },
       { path: '/', icon: Home, label: 'Today', badgeKey: null },
       { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', badgeKey: null },

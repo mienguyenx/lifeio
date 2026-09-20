@@ -19,6 +19,7 @@ import noteRoutes from './routes/notes';
 import profileRoutes from './routes/profiles';
 import rpcRoutes from './routes/rpc';
 import taskRoutes from './routes/tasks';
+import workspacesRoutes from './routes/workspaces';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -85,6 +86,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(goalRoutes);
       await api.register(journalRoutes);
       await api.register(noteRoutes);
+      await api.register(workspacesRoutes);
     },
     { prefix: '/api/v1' },
   );

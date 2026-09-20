@@ -43,6 +43,7 @@ import AIMemoryPage from "./pages/AIMemoryPage";
 import DecisionLogPage from "./pages/DecisionLogPage";
 import AreaDashboardPage from "./pages/AreaDashboardPage";
 import GettingStartedPage from "./pages/GettingStartedPage";
+import WorkspacePage from "./pages/WorkspacePage";
 import NotFound from "./pages/NotFound";
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -100,6 +101,7 @@ function MainApp() {
         <Route path="/decisions" element={<DecisionLogPage />} />
         <Route path="/area-dashboard" element={<AreaDashboardPage />} />
         <Route path="/journey" element={<GettingStartedPage />} />
+        <Route path="/workspace" element={<WorkspacePage />} />
       </Routes>
     </AppLayout>
   );

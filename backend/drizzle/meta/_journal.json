@@ -15,6 +15,13 @@
       "when": 1780236814508,
       "tag": "0001_add_task_reminder_time",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789863117441,
+      "tag": "0002_spicy_the_order",
+      "breakpoints": true
     }
   ]
 }
