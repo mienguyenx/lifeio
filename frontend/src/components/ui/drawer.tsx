@@ -34,10 +34,10 @@ const DrawerContent = React.forwardRef<
         "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
         className,
       )}
-      style={{ touchAction: 'manipulation' }}
       {...props}
+      style={{ touchAction: 'manipulation', ...props.style }}
     >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+      <div className="mx-auto mt-3 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/25" />
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>
