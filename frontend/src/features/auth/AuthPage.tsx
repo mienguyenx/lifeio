@@ -64,6 +64,10 @@ function CardHead({ icon, title, subtitle, onBack }: { icon: LifeIconName; title
   );
 }
 
+const TabHead = ({ title, subtitle }: { title: string; subtitle: string }) => (
+  <div className="mb-5"><p className="text-[22px] font-extrabold leading-tight tracking-tight">{title}</p><p className="mt-1 text-[13px] text-muted-foreground">{subtitle}</p></div>
+);
+
 const Logo = () => (
   <span className="inline-flex items-center gap-2">
     <span className="h-9 w-9 rounded-[12px] bg-primary/10 grid place-items-center text-[18px]">🌱</span>
@@ -73,7 +77,18 @@ const Logo = () => (
 
 export default function AuthPage() {
   const isMobile = useIsMobile();
-  const [mode, setMode] = useState<'welcome' | 'login' | 'register'>('welcome');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [mode, setModeState] = useState<'welcome' | 'login' | 'register'>(() => {
+    const m = new URLSearchParams(window.location.search).get('mode');
+    return m === 'signup' ? 'register' : m === 'login' ? 'login' : 'welcome';
+  });
+  // Đồng bộ chế độ với URL (?mode=login|signup) để có thể chia sẻ link thẳng tới form đăng ký.
+  const setMode = (m: 'welcome' | 'login' | 'register') => {
+    setModeState(m);
+    const next = new URLSearchParams(searchParams);
+    if (m === 'welcome') next.delete('mode'); else next.set('mode', m === 'register' ? 'signup' : 'login');
+    setSearchParams(next, { replace: true });
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -91,7 +106,6 @@ export default function AuthPage() {
   
   const { signIn, signUp, resetPassword, user, loading } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   // Auth page
 
   // Load remembered email from localStorage
@@ -283,7 +297,7 @@ export default function AuthPage() {
     </form>
   ) : (
     <form onSubmit={handleSignIn} className="space-y-4">
-      <CardHead icon="module/profile" title="Đăng nhập" subtitle="Chào mừng bạn trở lại!" onBack={isMobile ? () => setMode('welcome') : undefined} />
+      {isMobile ? <CardHead icon="module/profile" title="Đăng nhập" subtitle="Chào mừng bạn trở lại!" onBack={() => setMode('welcome')} /> : <TabHead title="Chào mừng bạn trở lại!" subtitle="Đăng nhập để tiếp tục hành trình của bạn." />}
       <TextInput id="signin-email" label="Email" icon={Mail} type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={isLoading} autoComplete="username" />
       <TextInput id="signin-password" label="Mật khẩu" icon={Lock} type={showPassword ? 'text' : 'password'} placeholder="Nhập mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={isLoading} autoComplete="current-password" reveal={showPassword} onReveal={() => setShowPassword(!showPassword)} />
       <div className="flex items-center justify-between text-[12.5px]">
@@ -297,7 +311,7 @@ export default function AuthPage() {
 
   const registerCard = (
     <form onSubmit={handleSignUp} className="space-y-3.5">
-      <CardHead icon="module/goals" title="Tạo tài khoản mới" subtitle="Bắt đầu hành trình tốt hơn của bạn!" onBack={isMobile ? () => setMode('welcome') : undefined} />
+      {isMobile ? <CardHead icon="module/goals" title="Tạo tài khoản mới" subtitle="Bắt đầu hành trình tốt hơn của bạn!" onBack={() => setMode('welcome')} /> : <TabHead title="Tạo tài khoản mới" subtitle="Bắt đầu hành trình tốt hơn của bạn!" />}
       <TextInput id="signup-name" label="Họ và tên" icon={User} placeholder="Nguyễn Văn A" value={name} onChange={(e) => setName(e.target.value)} disabled={isLoading} autoComplete="name" />
       <TextInput id="signup-email" label="Email" icon={Mail} type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={isLoading} autoComplete="email" />
       <TextInput id="signup-password" label="Mật khẩu" icon={Lock} type={showPassword ? 'text' : 'password'} placeholder="Tạo mật khẩu (tối thiểu 6 ký tự)" value={password} onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={isLoading} autoComplete="new-password" reveal={showPassword} onReveal={() => setShowPassword(!showPassword)} />
@@ -319,7 +333,7 @@ export default function AuthPage() {
   const topBar = (
     <header className="flex items-center justify-between gap-3 px-4 lg:px-8 h-16">
       <Logo />
-      <div className="flex items-center gap-2"><ThemeToggle />{!isMobile && !showResetPassword && <Button variant="outline" className="h-10 rounded-full px-5" onClick={() => document.getElementById('signin-email')?.focus()}>Đăng nhập</Button>}</div>
+      <div className="flex items-center gap-2"><ThemeToggle />{!isMobile && !showResetPassword && <Button variant="outline" className="h-10 rounded-full px-5" onClick={() => { setShowForgotPassword(false); setMode(mode === 'register' ? 'login' : 'register'); }}>{mode === 'register' ? 'Đăng nhập' : 'Tạo tài khoản'}</Button>}</div>
     </header>
   );
 
@@ -357,44 +371,57 @@ export default function AuthPage() {
     );
   }
 
+  const tab: 'login' | 'register' = mode === 'register' ? 'register' : 'login';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-mint/5">
-      <div className="max-w-[1280px] mx-auto">
+      <div className="max-w-[1180px] mx-auto">
         {topBar}
-        <main className="px-8 pb-10 space-y-5">
-          <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-lavender via-[#EEF3FF] to-[#E8FBF4] dark:from-primary/15 dark:via-card dark:to-card border border-border/60 shadow-soft px-10 py-8 flex items-center gap-8">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-[34px] font-extrabold leading-tight tracking-tight">Chào mừng đến với<br />LifeOS! 💙</h1>
-              <p className="mt-2 text-[15px] text-muted-foreground max-w-[420px]">Bắt đầu hành trình xây dựng cuộc sống ý nghĩa hơn ngay hôm nay!</p>
-              <div className="mt-6 flex flex-wrap gap-6">
-                {FEATURES.map((f) => (
-                  <span key={f.label} className="flex flex-col items-center gap-1.5 w-[92px] text-center">
-                    <span className={cn('h-11 w-11 rounded-[14px] grid place-items-center', TINTS[f.tint].bg)}><LifeIcon name={f.icon} size={24} variant="duotone" /></span>
-                    <span className="text-[12px] font-semibold leading-tight">{f.label}</span>
-                  </span>
-                ))}
+        <main className="px-8 pb-10">
+          <div className="grid grid-cols-[minmax(0,1fr)_440px] xl:grid-cols-[minmax(0,1fr)_460px] gap-6 items-stretch min-h-[calc(100vh-7rem)]">
+            {/* Bên trái: giới thiệu thương hiệu */}
+            <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-lavender via-[#EEF3FF] to-[#E8FBF4] dark:from-primary/15 dark:via-card dark:to-card border border-border/60 shadow-soft p-10 flex flex-col">
+              <div>
+                <h1 className="text-[34px] font-extrabold leading-tight tracking-tight">Chào mừng đến với<br />LifeOS! 💙</h1>
+                <p className="mt-2 text-[15px] text-muted-foreground max-w-[420px]">Bắt đầu hành trình xây dựng cuộc sống ý nghĩa hơn ngay hôm nay!</p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {FEATURES.map((f) => (
+                    <span key={f.label} className="inline-flex items-center gap-2 h-9 pl-1.5 pr-3.5 rounded-full bg-card/70 dark:bg-card/60 border border-border/60 text-[12.5px] font-semibold">
+                      <span className={cn('h-6 w-6 rounded-full grid place-items-center', TINTS[f.tint].bg)}><LifeIcon name={f.icon} size={15} variant="duotone" /></span>{f.label}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-            <Mascot name="taro" pose="go" size={200} float className="shrink-0" />
-            <p className="hidden xl:block w-[220px] shrink-0 text-[15px] italic text-primary/90 font-medium">“Một cuộc sống tốt đẹp hơn bắt đầu từ chính bạn!” 💙</p>
-          </section>
-          <div className="grid gap-5 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_280px] items-start">
-            <Surface className={cn('p-6 transition', mode === 'register' && 'opacity-90')}>{loginCard}</Surface>
-            <Surface className="p-6">{registerCard}</Surface>
-            <aside className="hidden xl:block space-y-4">
-              <Surface className="p-5 text-center bg-gradient-to-b from-lavender/70 to-card dark:from-primary/10">
-                <p className="text-[14px] italic text-primary/90 font-medium leading-relaxed">“Cuộc sống tốt đẹp hơn không tự nhiên mà có, nó được tạo nên từ những lựa chọn nhỏ mỗi ngày.” 💜</p>
-                <Mascot name="ori" pose="learn" size={120} className="mx-auto mt-3" />
-              </Surface>
-              <Surface className="p-4 space-y-3">
+              <div className="flex-1 grid place-items-center py-6">
+                <Mascot name="taro" pose="go" size={230} float />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
                 {HIGHLIGHTS.map((h) => (
-                  <div key={h.title} className="flex items-center gap-3">
-                    <span className={cn('h-10 w-10 rounded-[13px] grid place-items-center', TINTS[h.tint].bg)}><LifeIcon name={h.icon} size={22} variant="duotone" /></span>
-                    <span><span className="block text-[14px] font-extrabold">{h.title}</span><span className="block text-[11.5px] text-muted-foreground">{h.desc}</span></span>
+                  <div key={h.title} className="rounded-2xl bg-card/70 dark:bg-card/60 border border-border/60 p-3 flex items-center gap-2.5">
+                    <span className={cn('h-9 w-9 rounded-[12px] grid place-items-center shrink-0', TINTS[h.tint].bg)}><LifeIcon name={h.icon} size={20} variant="duotone" /></span>
+                    <span className="min-w-0"><span className="block text-[13px] font-extrabold leading-tight">{h.title}</span><span className="block text-[11px] text-muted-foreground leading-tight">{h.desc}</span></span>
                   </div>
                 ))}
+              </div>
+              <p className="mt-5 text-[14px] italic text-primary/90 font-medium">“Cuộc sống tốt đẹp hơn không tự nhiên mà có, nó được tạo nên từ những lựa chọn nhỏ mỗi ngày.” 💜</p>
+            </section>
+
+            {/* Bên phải: một thẻ duy nhất, chuyển tab Đăng nhập / Đăng ký */}
+            <div className="flex flex-col justify-center">
+              <Surface className="p-7">
+                {!showForgotPassword && (
+                  <div role="tablist" aria-label="Chọn hình thức" className="grid grid-cols-2 p-1 mb-6 rounded-full bg-secondary">
+                    {([['login', 'Đăng nhập'], ['register', 'Đăng ký']] as const).map(([k, label]) => (
+                      <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => { setErrors({}); setMode(k); }}
+                        className={cn('h-10 rounded-full text-[13.5px] font-semibold transition', tab === k ? 'bg-card shadow-soft text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {tab === 'register' && !showForgotPassword ? registerCard : loginCard}
               </Surface>
-            </aside>
+            </div>
           </div>
         </main>
       </div>
