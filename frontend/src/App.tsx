@@ -79,6 +79,13 @@ import AdminPlans from "./pages/admin/AdminPlans";
 import AdminUsersPage from "./features/admin/users/AdminUsersPage";
 import AdminWorkspacesPage from "./features/admin/workspaces/AdminWorkspacesPage";
 import AdminPlansPage from "./features/admin/plans/AdminPlansPage";
+import AdminAIProvidersPage from "./features/admin/ai/AdminAIProvidersPage";
+import AdminAIModelsPage from "./features/admin/ai/AdminAIModelsPage";
+import AdminAIPromptsPage from "./features/admin/ai/AdminAIPromptsPage";
+import AdminTemplatesLibrary from "./features/admin/templates/AdminTemplatesPage";
+import AdminAnalyticsPage from "./features/admin/analytics/AdminAnalyticsPage";
+import AdminLocalizationPage from "./features/admin/localization/AdminLocalizationPage";
+import AdminAPIKeysPage from "./features/admin/apikeys/AdminAPIKeysPage";
 import AdminFeatures from "./pages/admin/AdminFeatures";
 import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
 import AdminThemes from "./pages/admin/AdminThemes";
@@ -175,20 +182,32 @@ function AdminApp() {
         <Route path="plans" element={<AdminPlansPage />} />
         <Route path="plans/classic" element={<AdminPlans />} />
         <Route path="features" element={<AdminFeatures />} />
-        <Route path="templates/goals" element={<AdminTemplatesPage type="goals" />} />
-        <Route path="templates/habits" element={<AdminTemplatesPage type="habits" />} />
-        <Route path="templates/tasks" element={<AdminTemplatesPage type="tasks" />} />
-        <Route path="templates/journal" element={<AdminTemplatesPage type="journal" />} />
-        <Route path="templates/review" element={<AdminTemplatesPage type="review" />} />
+        <Route path="templates/goals" element={<AdminTemplatesLibrary type="goals" />} />
+        <Route path="templates/goals/classic" element={<AdminTemplatesPage type="goals" />} />
+        <Route path="templates/habits" element={<AdminTemplatesLibrary type="habits" />} />
+        <Route path="templates/habits/classic" element={<AdminTemplatesPage type="habits" />} />
+        <Route path="templates/tasks" element={<AdminTemplatesLibrary type="tasks" />} />
+        <Route path="templates/tasks/classic" element={<AdminTemplatesPage type="tasks" />} />
+        <Route path="templates/journal" element={<AdminTemplatesLibrary type="journal" />} />
+        <Route path="templates/journal/classic" element={<AdminTemplatesPage type="journal" />} />
+        <Route path="templates/review" element={<AdminTemplatesLibrary type="review" />} />
+        <Route path="templates/review/classic" element={<AdminTemplatesPage type="review" />} />
         <Route path="themes" element={<AdminThemes />} />
-        <Route path="languages" element={<AdminLanguages />} />
-        <Route path="translations" element={<AdminTranslations />} />
-        <Route path="ai/providers" element={<AdminAIProviders />} />
-        <Route path="ai/models" element={<AdminAIModels />} />
+        <Route path="languages" element={<AdminLocalizationPage initialView="languages" />} />
+        <Route path="languages/classic" element={<AdminLanguages />} />
+        <Route path="translations" element={<AdminLocalizationPage initialView="translations" />} />
+        <Route path="translations/classic" element={<AdminTranslations />} />
+        <Route path="ai/providers" element={<AdminAIProvidersPage />} />
+        <Route path="ai/providers/classic" element={<AdminAIProviders />} />
+        <Route path="ai/models" element={<AdminAIModelsPage />} />
+        <Route path="ai/models/classic" element={<AdminAIModels />} />
         <Route path="ai/memory" element={<AdminAIMemory />} />
-        <Route path="ai/prompts" element={<AdminAIPrompts />} />
-        <Route path="api-keys" element={<AdminAPIKeys />} />
-        <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="ai/prompts" element={<AdminAIPromptsPage />} />
+        <Route path="ai/prompts/classic" element={<AdminAIPrompts />} />
+        <Route path="api-keys" element={<AdminAPIKeysPage />} />
+        <Route path="api-keys/classic" element={<AdminAPIKeys />} />
+        <Route path="analytics" element={<AdminAnalyticsPage />} />
+        <Route path="analytics/classic" element={<AdminAnalytics />} />
         <Route path="logs" element={<AdminLogs />} />
         <Route path="flags" element={<AdminFlags />} />
         <Route path="settings" element={<AdminSettings />} />

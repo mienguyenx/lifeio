@@ -39,3 +39,46 @@ Mutation người dùng tách ra `hooks/useAdminUserActions.ts` (bản mới và
 - Trạng thái “online/hoạt động gần nhất” của người dùng, khóa/tạm ngưng tài khoản, nhật ký hoạt động (audit log) theo người dùng/workspace.
 - Thùng rác: “Hoạt động gần đây” (không có log) và quy tắc tự dọn theo từng loại (`TrashSettings` chỉ có `enabled` + `autoCleanupDays`).
 - Ghi chú: thư mục/sổ tay, chia sẻ, đính kèm tệp.
+
+---
+
+# Module 23–28 — AI, Thư viện mẫu, Phân tích, Bản địa hóa, Prompt, API key
+
+Cùng khung trang với Module 20–22: `PageHeader` (SearchToggle + nút chính) → `SegmentedTabs` → lưới `xl:[1fr_340px]` gồm HeroBanner + 4 StatTile + `Surface` bảng `GridHead/GridRow` (danh sách trên mobile) + `Pager` → cột phải: panel chi tiết khi chọn hàng (≥1280px, nhỏ hơn thì `AdaptiveModal`), nếu không là thẻ tổng quan + MascotCard → `Fab` trên mobile. Xóa luôn qua `ConfirmDialog`.
+
+| Route | File mới | Bản cũ | Tabs | Mascot |
+|---|---|---|---|---|
+| `/admin/ai/providers` | `features/admin/ai/AdminAIProvidersPage.tsx` | `/admin/ai/providers/classic` | Tất cả · Đang bật · Đang tắt · Tùy chỉnh | Ori (idea) |
+| `/admin/ai/models` | `features/admin/ai/AdminAIModelsPage.tsx` | `/admin/ai/models/classic` | Tất cả · Đang bật · Đang tắt · Thử model | Ori (learn) |
+| `/admin/templates/:loại` | `features/admin/templates/AdminTemplatesPage.tsx` | `/admin/templates/<loại>/classic` | Mục tiêu · Thói quen · Công việc · Nhật ký · Review | Mochi (focus) |
+| `/admin/analytics` | `features/admin/analytics/AdminAnalyticsPage.tsx` | `/admin/analytics/classic` | Tổng quan · Nội dung · Tương tác | Taro (go) |
+| `/admin/languages`, `/admin/translations` | `features/admin/localization/AdminLocalizationPage.tsx` | `/admin/languages/classic`, `/admin/translations/classic` | Ngôn ngữ · Bản dịch · Dịch AI | Ori (explore) |
+| `/admin/ai/prompts` | `features/admin/ai/AdminAIPromptsPage.tsx` | `/admin/ai/prompts/classic` | Tất cả + từng danh mục | Lumi (love) |
+| `/admin/api-keys` | `features/admin/apikeys/AdminAPIKeysPage.tsx` | `/admin/api-keys/classic` | Tất cả + từng provider | Taro (care) |
+
+Bổ sung `features/admin/shared.tsx`: `useIsXl`, `RowMenu` (menu “…” cuối hàng), `ConfirmDialog`, `CountBars` (thanh tỉ lệ cho thẻ tổng quan), `ToggleRow`, `MiniStat`, `PALETTE`, `fmtDate`.
+Mới `hooks/useAdminApiKeys.ts`: truy vấn/mutation bảng `api_keys` dùng chung cho trang Provider và API key (trước đây viết lặp trong 2 file).
+
+## Dữ liệu & tính năng (giữ nguyên từ code hiện có)
+- **Nhà cung cấp AI**: bảng provider (màu, tên, mô tả/base URL, loại, số model, số key, bật/tắt; provider có sẵn `builtin-*` chặn bật/tắt như bản cũ), thêm provider tùy chỉnh (tên, slug tự sinh, loại, xác thực, base URL, models endpoint, auth header/tiền tố, mô tả), xóa provider tùy chỉnh. Chi tiết: Model (Lấy model qua `fetchModelsFromProvider`, kiểm tra kết nối `testProviderConnection`, import từng cái/tất cả, xóa model), API key (thêm — key đầu tiên tự là key chính, bật/tắt, đặt key chính, hiện/ẩn, xóa, lượt dùng/lỗi), Cấu hình (chỉ đọc: loại, URL, endpoint, cách lấy, xác thực, streaming/tools, extra headers, link tài liệu/bảng giá). Tổng quan: donut model theo provider, đếm theo loại kết nối.
+- **Model AI**: bảng model (tên, model ID, provider, max tokens, temperature, năng lực, bật/tắt), lọc provider, tìm kiếm, đặt mặc định, cấu hình (tên, max tokens, temperature, mô tả, năng lực), thêm, xóa. “Lấy model từ provider” dùng danh sách provider + `fetchModelsFromProvider` (ghi đè base URL tùy chọn) thay cho khối `if/else` trùng lặp của bản cũ. Tab “Thử model” gọi `functions.invoke('ai-coach')` như bản cũ.
+- **Thư viện mẫu**: 5 loại trong một trang (tab đổi URL nên menu trái vẫn đúng), bảng (tên/mô tả, các trường nội dung, lượt dùng, cập nhật, bật/tắt), lọc trạng thái, xem nội dung dạng danh sách hoặc JSON, sao chép JSON, sửa/tạo (JSON + “Chèn khung trường” từ danh sách trường gợi ý có sẵn của từng loại + “Định dạng”), xóa, “Tạo bằng AI” (`ai-template-generate`: danh mục, hướng dẫn, thêm từng mẫu/tất cả). Tổng quan: số mẫu theo loại, top lượt dùng.
+- **Phân tích & Báo cáo**: từ `useExtendedAdminStats` + `useDashboardStats` + `profiles` — người dùng (tổng, mới 7/30 ngày), % hoàn thành mục tiêu/công việc, biểu đồ người dùng mới 6/12 tháng, số bản ghi 6 loại nội dung, bảng tỉ trọng + trung bình/người, Pomodoro/nhật ký/review, sức khỏe nền tảng (plugin, feature flag, ngôn ngữ đang bật).
+- **Ngôn ngữ & Bản dịch**: gộp 2 trang cũ. Ngôn ngữ: bảng (cờ, tên, tên bản địa, mã, tiến độ, số bản dịch, bật/tắt), thêm/sửa (mã, cờ gợi ý, tên, tên bản địa, tiến độ + nút tính tiến độ theo số bản dịch so với key tiếng Anh), xóa; chi tiết → “Bản dịch” lọc sẵn theo ngôn ngữ. Bản dịch: lọc namespace/ngôn ngữ, tìm key/nội dung, phân trang 10–100, thêm/sửa/xóa, sao chép. Dịch AI (`ai-translate`): dịch + gợi ý cách dịch (ngữ cảnh, độ trang trọng), dịch hàng loạt theo namespace từ chuỗi tiếng Anh (dữ liệu mẫu nếu DB trống), sao chép JSON.
+- **Thư viện prompt**: tab theo danh mục, bảng (tên/key, danh mục, model, số biến, bật/tắt), chi tiết (system prompt, mẫu user prompt, sao chép, model, độ dài), thêm/sửa (tên, key, danh mục, model hoặc mặc định, mô tả, system prompt, mẫu user prompt), xóa. Biến `{{ten}}` được nhận diện và lưu vào trường `variables` có sẵn.
+- **API key & bí mật**: tab theo provider + lọc Bật/Tắt/Lỗi, bảng (tên, key rút gọn/hiện, provider, lượt dùng + hạn mức ngày, lỗi, dùng gần nhất, bật/tắt), chi tiết (hạn mức ngày/tháng, lỗi gần nhất, base URL/model, thời gian), thêm/sửa (provider gồm danh sách cũ + provider trong Nhà cung cấp AI, tên, key, base URL & model mặc định cho OpenAI/Anthropic compatible, giới hạn ngày/tháng, bật, key chính), sao chép, xóa. Thẻ “Cần chú ý”: provider chưa có key chính đang bật, key ≥80% hạn mức, key có lỗi — đều tính từ cột có sẵn.
+
+## Sửa lỗi kèm theo (23–28)
+- Model AI: “Set Default” không bỏ cờ model mặc định cũ → có thể nhiều model mặc định. Bản mới chỉ giữ một.
+- API key: tạo/sửa key với “Key chính” không bỏ cờ key chính khác cùng provider (chỉ nút “Đặt làm chính” mới làm). Sửa key và xóa trống giới hạn ngày/tháng không bỏ được giới hạn. Đã sửa trong `useAdminApiKeys`.
+- Thư viện mẫu: ô JSON parse ngay khi gõ nên không gõ được JSON dở dang (giá trị bị đặt lại). Bản mới giữ chuỗi thô, kiểm tra khi lưu.
+- Bản dịch: sửa key/namespace rồi lưu (upsert) tạo bản ghi mới và để lại bản ghi cũ. Bản mới khóa ngôn ngữ/namespace/key khi sửa.
+- Thư viện prompt: trường `variables` luôn lưu rỗng — nay tự nhận diện từ `{{biến}}`.
+
+## Không làm (23–28, không có trong code hiện tại)
+- Số liệu sử dụng/độ trễ/chi phí theo model hay provider, tình trạng “health”/uptime, quy tắc định tuyến (routing/fallback) cấu hình được, playground nhiều lượt/so sánh model.
+- Mẫu: đánh giá/sao, marketplace, phiên bản mẫu, xem trước như giao diện người dùng, phân quyền theo gói.
+- Phân tích: so sánh kỳ trước (%), DAU/MAU/retention/cohort, bộ chọn khoảng ngày tùy ý, xuất PDF/Excel/CSV, lịch gửi báo cáo.
+- Bản địa hóa: import/export tệp ngôn ngữ, phát hiện key thiếu tự động theo mã nguồn, lịch sử chỉnh sửa, quy trình duyệt bản dịch.
+- Prompt: phiên bản/lịch sử, A/B test, chạy thử prompt với biến.
+- API key: mã hóa/che ở phía máy chủ, xoay vòng theo lịch, phạm vi quyền (scopes), IP allowlist, nhật ký truy cập.

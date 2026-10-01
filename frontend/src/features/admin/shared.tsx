@@ -1,6 +1,12 @@
 // Thành phần dùng chung cho các trang quản trị mới (LIO kit) — giữ cùng kiểu với app
-import type { ReactNode } from 'react';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { ChevronLeft, ChevronRight, Check, MoreHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ProgressBar } from '@/components/lio';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -125,4 +131,84 @@ export function monthlyCounts(dates: (string | null | undefined)[], months = 6) 
     if (b) b.v += 1;
   });
   return buckets.map(({ d, v }) => ({ d, v }));
+}
+
+/** Bảng màu dùng chung cho biểu đồ admin */
+export const PALETTE = ['#7C5CFC', '#22B07D', '#F5A524', '#2F7BF6', '#F0587A', '#14B8A6', '#9AA3B2', '#FF7A45'];
+export const fmtDate = (d?: string | null, f = 'dd/MM/yyyy') => (d ? format(new Date(d), f, { locale: vi }) : '—');
+
+/** true khi màn hình ≥ 1280px (hiện panel chi tiết bên phải thay vì modal) */
+export function useIsXl() {
+  const [xl, setXl] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1280px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1280px)');
+    const on = () => setXl(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return xl;
+}
+
+export interface MenuItem { label: string; icon?: ReactNode; onClick: () => void; danger?: boolean; hidden?: boolean; separator?: boolean }
+/** Menu “…” cuối hàng — dùng chung cho mọi bảng admin */
+export function RowMenu({ items, label = 'Tùy chọn' }: { items: MenuItem[]; label?: string }) {
+  const shown = items.filter((i) => !i.hidden);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label={label}><MoreHorizontal className="h-4 w-4" /></Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
+        {shown.map((i, k) => (
+          <div key={k}>
+            {i.separator && <DropdownMenuSeparator />}
+            <DropdownMenuItem onClick={i.onClick} className={i.danger ? 'text-destructive focus:text-destructive' : undefined}>
+              {i.icon && <span className="mr-2 inline-flex [&>svg]:h-4 [&>svg]:w-4">{i.icon}</span>}{i.label}
+            </DropdownMenuItem>
+          </div>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Hộp xác nhận xóa/hành động nguy hiểm */
+export function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel = 'Xóa', onConfirm }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; description?: ReactNode; confirmLabel?: string; onConfirm: () => void }) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="rounded-[24px]">
+        <AlertDialogHeader><AlertDialogTitle>{title}</AlertDialogTitle>{description && <AlertDialogDescription>{description}</AlertDialogDescription>}</AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="rounded-full">Hủy</AlertDialogCancel>
+          <AlertDialogAction className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={onConfirm}>{confirmLabel}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+/** Danh sách thanh ngang (nhãn – số – thanh tỉ lệ) cho các thẻ tổng quan */
+export function CountBars({ items, empty = 'Chưa có dữ liệu.' }: { items: { label: ReactNode; value: number; color?: string; hint?: ReactNode }[]; empty?: string }) {
+  const max = Math.max(1, ...items.map((i) => i.value));
+  if (!items.length) return <p className="text-[12.5px] text-muted-foreground">{empty}</p>;
+  return (
+    <div className="space-y-2.5">
+      {items.map((i, k) => (
+        <div key={k}>
+          <div className="flex items-center justify-between text-[12.5px] mb-1 gap-2"><span className="font-semibold truncate">{i.label}</span><span className="text-muted-foreground tabular-nums shrink-0">{i.hint ?? i.value.toLocaleString()}</span></div>
+          <ProgressBar value={(i.value / max) * 100} color={i.color ?? PALETTE[k % PALETTE.length]} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Hàng bật/tắt có nhãn + mô tả (form & panel) */
+export function ToggleRow({ title, hint, children }: { title: ReactNode; hint?: ReactNode; children: ReactNode }) {
+  return <div className="flex items-center justify-between gap-3 rounded-2xl bg-secondary/50 px-3 py-2.5"><div className="min-w-0"><p className="text-[13px] font-semibold">{title}</p>{hint && <p className="text-[11.5px] text-muted-foreground">{hint}</p>}</div>{children}</div>;
+}
+
+/** Ô thống kê nhỏ trong panel chi tiết */
+export function MiniStat({ label, value, hint }: { label: ReactNode; value: ReactNode; hint?: ReactNode }) {
+  return <div className="rounded-2xl bg-secondary/50 p-3 min-w-0"><p className="text-[18px] font-bold leading-none truncate">{value}</p><p className="text-[11.5px] font-semibold mt-1 truncate">{label}</p>{hint && <p className="text-[10.5px] text-muted-foreground truncate">{hint}</p>}</div>;
 }

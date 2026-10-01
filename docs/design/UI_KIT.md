@@ -70,3 +70,9 @@ Thứ tự khối: **Header → (Hero) → SegmentedTabs → Stat tiles → Filt
 - Chọn nhiều: checkbox bo `rounded-md` 18px; thanh thao tác hàng loạt `rounded-2xl bg-primary/10` với nút `outline` nền card.
 - Chip thời gian/ngày (7/30/90, 7/14/30/60/90): `h-8/h-9 rounded-full|xl`, chọn = `bg-primary text-primary-foreground`.
 - `Pill` tông mềm: green / amber / red / blue / violet / gray — dùng cho vai trò, trạng thái, gói.
+
+## Bổ sung Module 23–28 (AI, Mẫu, Phân tích, Bản địa hóa, Prompt, API key)
+- Dùng lại khung admin (xem `modules/ADMIN.md`). Thành phần mới trong `features/admin/shared.tsx`: `RowMenu` (menu “…” cuối hàng, mục `danger` màu đỏ, `separator`), `ConfirmDialog` (AlertDialog bo `rounded-[24px]`, nút pill), `CountBars` (nhãn – số – ProgressBar, màu từ `PALETTE`), `ToggleRow` (nền `bg-secondary/50`, Switch bên phải), `MiniStat` (ô số liệu nhỏ trong panel), `useIsXl`.
+- Biểu tượng hàng: ô `h-9 w-9 rounded-xl` — `bg-primary/10 text-primary` cho model/prompt/key, màu đặc theo loại cho provider (chữ cái đầu) và mẫu (icon loại), emoji cờ trên nền `bg-secondary` cho ngôn ngữ.
+- Giá trị kỹ thuật (slug, model ID, key, base URL, key bản dịch) dùng `font-mono` 11–13px; key bí mật luôn rút gọn `abcd1234…wxyz`, hiện/ẩn bằng IconButton.
+- Tab nhiều mục (loại mẫu, danh mục prompt, provider của key) đặt trong `overflow-x-auto` để cuộn ngang trên mobile.
