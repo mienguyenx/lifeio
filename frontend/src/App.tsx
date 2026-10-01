@@ -20,7 +20,8 @@ import AuthPage from "./pages/AuthPage";
 import TodayPage from "./pages/TodayPage";
 import DashboardPage from "./pages/DashboardPage";
 import HabitsPage from "./pages/HabitsPage";
-import TasksPage from "./pages/TasksPage";
+import TasksPage from "./features/tasks/TasksPage";
+import TasksPageLegacy from "./pages/TasksPageLegacy";
 import GoalsPage from "./pages/GoalsPage";
 import JournalPage from "./pages/JournalPage";
 import LifeWheelPage from "./pages/LifeWheelPage";
@@ -78,6 +79,7 @@ function MainApp() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/habits" element={<HabitsPage />} />
         <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/tasks/classic" element={<TasksPageLegacy />} />
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/journal" element={<JournalPage />} />
         <Route path="/life-wheel" element={<LifeWheelPage />} />

@@ -44,7 +44,7 @@ import { useAdminTemplates, useUpdateTemplate } from '@/hooks/useAdminData';
 
 // Types imported from TaskFilters component
 
-export default function TasksPage() {
+export default function TasksPageLegacy() {
   const tasks = useLifeOSStore((s) => s.tasks);
   const goals = useLifeOSStore((s) => s.goals);
   const archiveTask = useLifeOSStore((s) => s.archiveTask);
