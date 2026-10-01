@@ -54,7 +54,7 @@ const QUICK_EXPENSE_PRESETS = [
   { label: 'Cafe 45K', category: 'food', amount: 45000 },
 ];
 
-export default function FinancePage() {
+export default function FinancePageLegacy() {
   const { goals, lifeWheelScores, financeTransactions, addFinanceTransaction, updateFinanceTransaction, deleteFinanceTransaction } = useLifeOSStore();
   const { saveTransaction, updateTransaction: syncUpdateTransaction, deleteTransaction: syncDeleteTransaction } = useFinanceSync();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

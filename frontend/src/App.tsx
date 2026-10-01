@@ -36,8 +36,10 @@ import NotesPage from "./pages/NotesPage";
 import TrashPage from "./pages/TrashPage";
 import MePage from "./pages/MePage";
 import SettingsPage from "./pages/SettingsPage";
-import HealthPage from "./pages/HealthPage";
-import FinancePage from "./pages/FinancePage";
+import HealthPage from "./features/health/HealthPage";
+import HealthPageLegacy from "./pages/HealthPageLegacy";
+import FinancePage from "./features/finance/FinancePage";
+import FinancePageLegacy from "./pages/FinancePageLegacy";
 import LearningPage from "./pages/LearningPage";
 import RelationshipsPage from "./pages/RelationshipsPage";
 import MonthlyReviewPage from "./pages/MonthlyReviewPage";
@@ -101,7 +103,9 @@ function MainApp() {
         <Route path="/ai-chat/classic" element={<AIChatPageLegacy />} />
         <Route path="/notes" element={<NotesPage />} />
         <Route path="/health" element={<HealthPage />} />
+        <Route path="/health/classic" element={<HealthPageLegacy />} />
         <Route path="/finance" element={<FinancePage />} />
+        <Route path="/finance/classic" element={<FinancePageLegacy />} />
         <Route path="/learning" element={<LearningPage />} />
         <Route path="/relationships" element={<RelationshipsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />

@@ -43,7 +43,7 @@ const QUICK_LOG_PRESETS = [
   { label: '5000 bước', type: 'steps', value: 5000 },
 ];
 
-export default function HealthPage() {
+export default function HealthPageLegacy() {
   const { habits, goals, lifeWheelScores, healthLogs, addHealthLog, updateHealthLog, deleteHealthLog } = useLifeOSStore();
   const { saveHealthLog, updateHealthLog: syncUpdateHealthLog, deleteHealthLog: syncDeleteHealthLog } = useHealthSync();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

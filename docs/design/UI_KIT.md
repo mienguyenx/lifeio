@@ -37,3 +37,10 @@ Thứ tự khối: **Header → (Hero) → SegmentedTabs → Stat tiles → Filt
 ## Trạng thái
 - Trống: `EmptyState` (brand) với mascot của module.
 - Trống trong khối nhỏ: `<Empty>`.
+
+
+## Bổ sung Module 09–10
+- `PeriodNav {label, onPrev, onNext, onReset?, resetLabel?, nextDisabled?}` — điều hướng ngày/tháng; đặt trong `HeroBanner.action` hoặc góc phải tab. Mobile: bỏ nút reset để không đè mascot.
+- `ItemRow {icon, tint|iconBg, title, meta?, value?, valueClassName?, trailing?, onClick?}` — hàng danh sách chung (giao dịch, ghi nhận). Menu “⋯” đặt ở `trailing`.
+- `InsightCard {title?, subtitle?, items[{icon,tint,title,desc}], onChat?, empty?}` — “LifeOS AI Coach”, gợi ý tạo bằng quy tắc từ dữ liệu thật; `onChat` → `/ai-chat`.
+- `components/lio/charts.tsx`: `TrendArea` (d = yyyy-MM-dd hoặc yyyy-MM), `GroupedBars` (key `label`), `Donut` (+ chú giải), `StatStrip` (4 số liệu dưới biểu đồ), `CHART_TOOLTIP`. Mọi biểu đồ mới dùng các component này để cùng lưới/trục/tooltip.

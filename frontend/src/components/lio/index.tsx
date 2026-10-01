@@ -4,7 +4,7 @@
  * lọc nhanh dùng <FilterChips>; thẻ dùng <Surface>; số liệu dùng <StatTile>; nút thêm trên mobile dùng <Fab>.
  */
 import { useState, type ReactNode } from 'react';
-import { Plus, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MessageCircle, Plus, Search, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
@@ -229,4 +229,67 @@ export function HeroBanner({ mascot, pose, title, subtitle, action, aside, class
 
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="text-[12.5px] text-muted-foreground py-2">{children}</p>;
+}
+
+/* ───────── Kit mở rộng (Module 09+) ───────── */
+/** Điều hướng kỳ: ‹ nhãn › (+ Hôm nay). Dùng cho ngày (Health), tháng (Finance)… */
+export function PeriodNav({ label, onPrev, onNext, onReset, resetLabel = 'Hôm nay', nextDisabled, className }: {
+  label: ReactNode; onPrev: () => void; onNext: () => void; onReset?: () => void; resetLabel?: string; nextDisabled?: boolean; className?: string;
+}) {
+  const btn = 'h-9 w-9 grid place-items-center rounded-full bg-card border border-border/70 shadow-soft hover:bg-secondary disabled:opacity-40 shrink-0';
+  return (
+    <div className={cn('inline-flex items-center gap-1.5', className)}>
+      <button className={btn} onClick={onPrev} aria-label="Trước"><ChevronLeft className="h-4 w-4" /></button>
+      <span className="min-w-[120px] text-center text-[13.5px] font-bold px-1 truncate">{label}</span>
+      <button className={btn} onClick={onNext} disabled={nextDisabled} aria-label="Sau"><ChevronRight className="h-4 w-4" /></button>
+      {onReset && <button onClick={onReset} className="h-9 px-3 rounded-full text-[12.5px] font-semibold text-primary hover:bg-lavender">{resetLabel}</button>}
+    </div>
+  );
+}
+
+/** Hàng mục chung (giao dịch, ghi nhận, mục tiêu…): icon pastel · tiêu đề + meta · giá trị · hành động. */
+export function ItemRow({ icon, tint = 'violet', iconBg, title, meta, value, valueClassName, trailing, onClick, className }: {
+  icon: ReactNode; tint?: Tint; iconBg?: string; title: ReactNode; meta?: ReactNode; value?: ReactNode; valueClassName?: string; trailing?: ReactNode; onClick?: () => void; className?: string;
+}) {
+  return (
+    <div role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined} onClick={onClick} onKeyDown={(e) => onClick && e.key === 'Enter' && onClick()}
+      className={cn('flex items-center gap-3 rounded-[18px] px-3 py-2.5 transition-colors', onClick && 'cursor-pointer hover:bg-secondary/60', className)}>
+      <span className={cn('h-10 w-10 rounded-[13px] grid place-items-center shrink-0 text-[18px]', !iconBg && TINTS[tint].bg)} style={iconBg ? { background: iconBg } : undefined}>{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13.5px] font-semibold truncate">{title}</span>
+        {meta && <span className="block text-[11.5px] text-muted-foreground truncate">{meta}</span>}
+      </span>
+      {value !== undefined && <span className={cn('text-[13.5px] font-bold tabular-nums shrink-0', valueClassName)}>{value}</span>}
+      {trailing}
+    </div>
+  );
+}
+
+/** Thẻ “AI Insights” — gợi ý tạo từ dữ liệu thật + nút mở AI Coach. */
+export function InsightCard({ title = 'LifeOS AI Coach', subtitle, items, onChat, empty = 'Ghi nhận thêm dữ liệu để nhận gợi ý.', className }: {
+  title?: ReactNode; subtitle?: ReactNode; items: { icon: ReactNode; tint?: Tint; title: ReactNode; desc: ReactNode }[]; onChat?: () => void; empty?: ReactNode; className?: string;
+}) {
+  return (
+    <Surface className={cn('p-4', className)}>
+      <div className="flex items-center gap-2.5 mb-3">
+        <span className="h-9 w-9 rounded-[12px] grid place-items-center bg-lavender dark:bg-primary/15"><Sparkles className="h-[18px] w-[18px] text-primary" /></span>
+        <span className="min-w-0"><span className="block text-[14px] font-bold">{title}</span>{subtitle && <span className="block text-[11.5px] text-muted-foreground">{subtitle}</span>}</span>
+      </div>
+      {items.length === 0 ? <Empty>{empty}</Empty> : (
+        <ul className="space-y-1">
+          {items.map((it, i) => (
+            <li key={i} className="flex gap-3 rounded-2xl px-2 py-2">
+              <span className={cn('h-9 w-9 rounded-[12px] grid place-items-center shrink-0 text-[17px]', TINTS[it.tint ?? 'violet'].bg)}>{it.icon}</span>
+              <span className="min-w-0"><span className="block text-[13px] font-semibold">{it.title}</span><span className="block text-[12px] text-muted-foreground leading-snug">{it.desc}</span></span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {onChat && (
+        <button onClick={onChat} className="mt-3 w-full h-11 rounded-full bg-primary text-primary-foreground text-[13.5px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft">
+          <MessageCircle className="h-4 w-4" />Chat với AI Coach
+        </button>
+      )}
+    </Surface>
+  );
 }
