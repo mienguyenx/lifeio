@@ -44,3 +44,10 @@ Thứ tự khối: **Header → (Hero) → SegmentedTabs → Stat tiles → Filt
 - `ItemRow {icon, tint|iconBg, title, meta?, value?, valueClassName?, trailing?, onClick?}` — hàng danh sách chung (giao dịch, ghi nhận). Menu “⋯” đặt ở `trailing`.
 - `InsightCard {title?, subtitle?, items[{icon,tint,title,desc}], onChat?, empty?}` — “LifeOS AI Coach”, gợi ý tạo bằng quy tắc từ dữ liệu thật; `onChat` → `/ai-chat`.
 - `components/lio/charts.tsx`: `TrendArea` (d = yyyy-MM-dd hoặc yyyy-MM), `GroupedBars` (key `label`), `Donut` (+ chú giải), `StatStrip` (4 số liệu dưới biểu đồ), `CHART_TOOLTIP`. Mọi biểu đồ mới dùng các component này để cùng lưới/trục/tooltip.
+
+## Bổ sung Module 11–14
+- `components/lio/form.tsx`: `fieldCls`, `areaCls`, `Field {label, hint?}`, `ChoiceGrid {items[{id,label,icon,color}], cols 3|4|5}`, `StarRating`, `FormActions` (Hủy | Lưu). **Mọi modal mới dùng bộ này** (`AdaptiveModal` `sm:max-w-[520px] rounded-[28px] max-h-[92vh] overflow-y-auto`).
+- `features/life-wheel/components/ScoreEditor` (chấm 10 lĩnh vực) và `WheelRadar` — dùng lại cho Review.
+- Trang có >4 tab: bọc `SegmentedTabs` trong `overflow-x-auto no-scrollbar`; ≤4 tab: `full` trên mobile.
+- `lifeWheelScores`: phần tử mới nhất ở đầu — luôn dùng `lib/lifeWheel.ts`.
+- Mascot: Learning/Review → Ori, Relationships → Lumi, Life Wheel → Taro.

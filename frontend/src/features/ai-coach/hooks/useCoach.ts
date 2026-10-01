@@ -1,3 +1,4 @@
+import { latestWheel } from '@/lib/lifeWheel';
 import { useCallback, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -30,7 +31,7 @@ export function useCoach() {
     const activeGoals = goals.filter((g) => !g.deletedAt && !g.completedAt && g.progress < 100);
     const recentJ = journal.filter((j) => j.date >= format(new Date(Date.now() - 6 * 864e5), 'yyyy-MM-dd'));
     const latestJ = [...journal].sort((a, b) => b.date.localeCompare(a.date))[0];
-    const scores = wheel[wheel.length - 1]?.scores;
+    const scores = latestWheel(wheel)?.scores;
     const lowArea = scores ? LIFE_AREAS.map((a) => ({ a, v: (scores as Record<string, number>)[a.id] ?? 5 })).sort((x, y) => x.v - y.v)[0] : undefined;
     return {
       habitsDone: todayHabits.filter((h) => h.completedDates.includes(d)).length, habitsTotal: todayHabits.length,

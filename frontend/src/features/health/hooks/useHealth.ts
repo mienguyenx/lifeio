@@ -1,3 +1,4 @@
+import { latestWheel } from '@/lib/lifeWheel';
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
@@ -20,7 +21,7 @@ export function useHealth() {
   const healthGoals = useMemo(() => goals.filter((g) => g.area === 'health' && !g.deletedAt), [goals]);
   const healthHabits = useMemo(() => habits.filter((h) => h.area === 'health' && !h.deletedAt && !h.archivedAt), [habits]);
   /** Điểm sức khỏe = điểm “Sức khỏe” trong lần đánh giá Life Wheel gần nhất (thang 10 → %). */
-  const score = useMemo(() => { const w = wheel[wheel.length - 1]; return w ? Math.round((w.scores.health ?? 5) * 10) : null; }, [wheel]);
+  const score = useMemo(() => { const w = latestWheel(wheel); return w ? Math.round((w.scores.health ?? 5) * 10) : null; }, [wheel]);
 
   const add = useCallback(async (type: MetricId, value: number, date: string, notes?: string, label?: string) => {
     const log: HealthLog = { id: crypto.randomUUID(), date, type, value, unit: metricOf(type).unit, notes: notes || undefined };

@@ -28,8 +28,10 @@ import GoalsPage from "./features/goals/GoalsPage";
 import GoalsPageLegacy from "./pages/GoalsPageLegacy";
 import JournalPage from "./features/journal/JournalPage";
 import JournalPageLegacy from "./pages/JournalPageLegacy";
-import LifeWheelPage from "./pages/LifeWheelPage";
-import WeeklyReviewPage from "./pages/WeeklyReviewPage";
+import LifeWheelPage from "./features/life-wheel/LifeWheelPage";
+import LifeWheelPageLegacy from "./pages/LifeWheelPageLegacy";
+import WeeklyReviewPage from "./features/reviews/WeeklyReviewPage";
+import WeeklyReviewPageLegacy from "./pages/WeeklyReviewPageLegacy";
 import AICoachPage from "./features/ai-coach/AICoachPage";
 import AIChatPageLegacy from "./pages/AIChatPageLegacy";
 import NotesPage from "./pages/NotesPage";
@@ -40,11 +42,16 @@ import HealthPage from "./features/health/HealthPage";
 import HealthPageLegacy from "./pages/HealthPageLegacy";
 import FinancePage from "./features/finance/FinancePage";
 import FinancePageLegacy from "./pages/FinancePageLegacy";
-import LearningPage from "./pages/LearningPage";
-import RelationshipsPage from "./pages/RelationshipsPage";
-import MonthlyReviewPage from "./pages/MonthlyReviewPage";
-import YearlyPlanningPage from "./pages/YearlyPlanningPage";
-import YearlyReviewPage from "./pages/YearlyReviewPage";
+import LearningPage from "./features/learning/LearningPage";
+import LearningPageLegacy from "./pages/LearningPageLegacy";
+import RelationshipsPage from "./features/relationships/RelationshipsPage";
+import RelationshipsPageLegacy from "./pages/RelationshipsPageLegacy";
+import MonthlyReviewPage from "./features/reviews/MonthlyReviewPage";
+import MonthlyReviewPageLegacy from "./pages/MonthlyReviewPageLegacy";
+import YearlyPlanningPage from "./features/reviews/YearlyPlanningPage";
+import YearlyPlanningPageLegacy from "./pages/YearlyPlanningPageLegacy";
+import YearlyReviewPage from "./features/reviews/YearlyReviewPage";
+import YearlyReviewPageLegacy from "./pages/YearlyReviewPageLegacy";
 import CalendarPage from "./features/calendar/CalendarPage";
 import CalendarPageLegacy from "./pages/CalendarPageLegacy";
 import PersonalizationPage from "./pages/PersonalizationPage";
@@ -95,10 +102,15 @@ function MainApp() {
         <Route path="/journal" element={<JournalPage />} />
         <Route path="/journal/classic" element={<JournalPageLegacy />} />
         <Route path="/life-wheel" element={<LifeWheelPage />} />
+        <Route path="/life-wheel/classic" element={<LifeWheelPageLegacy />} />
         <Route path="/weekly-review" element={<WeeklyReviewPage />} />
+        <Route path="/weekly-review/classic" element={<WeeklyReviewPageLegacy />} />
         <Route path="/monthly-review" element={<MonthlyReviewPage />} />
+        <Route path="/monthly-review/classic" element={<MonthlyReviewPageLegacy />} />
         <Route path="/yearly-planning" element={<YearlyPlanningPage />} />
+        <Route path="/yearly-planning/classic" element={<YearlyPlanningPageLegacy />} />
         <Route path="/yearly-review" element={<YearlyReviewPage />} />
+        <Route path="/yearly-review/classic" element={<YearlyReviewPageLegacy />} />
         <Route path="/ai-chat" element={<AICoachPage />} />
         <Route path="/ai-chat/classic" element={<AIChatPageLegacy />} />
         <Route path="/notes" element={<NotesPage />} />
@@ -107,7 +119,9 @@ function MainApp() {
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/finance/classic" element={<FinancePageLegacy />} />
         <Route path="/learning" element={<LearningPage />} />
+        <Route path="/learning/classic" element={<LearningPageLegacy />} />
         <Route path="/relationships" element={<RelationshipsPage />} />
+        <Route path="/relationships/classic" element={<RelationshipsPageLegacy />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/calendar/classic" element={<CalendarPageLegacy />} />
         <Route path="/trash" element={<TrashPage />} />

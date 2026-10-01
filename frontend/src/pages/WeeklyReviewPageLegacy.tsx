@@ -44,7 +44,7 @@ const DEFAULT_AREA_RATINGS: Record<LifeArea, number> = {
   contribution: 5,
 };
 
-export default function WeeklyReviewPage() {
+export default function WeeklyReviewPageLegacy() {
   const weeklyReviews = useLifeOSStore((s) => s.weeklyReviews);
   const clearWeeklyReviewHistory = useLifeOSStore((s) => s.clearWeeklyReviewHistory);
   const habits = useLifeOSStore((s) => s.habits);

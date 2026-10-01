@@ -34,7 +34,7 @@ const BUCKET_CATEGORIES = [
   { value: 'other', label: '✨ Khác' },
 ];
 
-export default function YearlyPlanningPage() {
+export default function YearlyPlanningPageLegacy() {
   const yearlyPlannings = useLifeOSStore((s) => s.yearlyPlannings);
   const addYearlyPlanning = useLifeOSStore((s) => s.addYearlyPlanning);
   const updateYearlyPlanning = useLifeOSStore((s) => s.updateYearlyPlanning);

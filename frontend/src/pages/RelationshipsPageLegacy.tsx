@@ -44,7 +44,7 @@ const RELATIONSHIP_TIPS = [
   { icon: '❤️', text: 'Thể hiện sự biết ơn thường xuyên' },
 ];
 
-export default function RelationshipsPage() {
+export default function RelationshipsPageLegacy() {
   const { goals, lifeWheelScores, relationshipsContacts, relationshipsInteractions, addRelationshipContact, updateRelationshipContact, deleteRelationshipContact, addRelationshipInteraction, updateRelationshipInteraction, deleteRelationshipInteraction } = useLifeOSStore();
   const { saveContact, updateContact: syncUpdateContact, deleteContact: syncDeleteContact, saveInteraction, updateInteraction: syncUpdateInteraction, deleteInteraction: syncDeleteInteraction } = useRelationshipsSync();
   const [isAddContactOpen, setIsAddContactOpen] = useState(false);

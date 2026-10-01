@@ -1,3 +1,4 @@
+import { latestWheel, previousWheel } from '@/lib/lifeWheel';
 import { useMemo } from 'react';
 import { format, subDays } from 'date-fns';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
@@ -50,8 +51,8 @@ export function useInsights() {
     const hours = Array.from({ length: 24 }, (_, h) => ({ h, min: 0 }));
     work.filter((p) => new Date(p.completedAt) >= subDays(new Date(), 30)).forEach((p) => { hours[new Date(p.completedAt).getHours()].min += p.duration || 25; });
 
-    const latest = wheel[wheel.length - 1];
-    const prev = wheel[wheel.length - 2];
+    const latest = latestWheel(wheel);
+    const prev = previousWheel(wheel);
     const scores = (latest?.scores || Object.fromEntries(LIFE_AREAS.map((a) => [a.id, 5]))) as Record<LifeArea, number>;
     const ranked = LIFE_AREAS.map((a) => ({ ...a, v: scores[a.id] ?? 5, delta: prev ? (scores[a.id] ?? 5) - (prev.scores[a.id] ?? 5) : 0 })).sort((a, b) => b.v - a.v);
 

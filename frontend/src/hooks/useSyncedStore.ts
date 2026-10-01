@@ -568,7 +568,7 @@ export function useSyncedStore() {
     store.addWeeklyReview(review);
     
     const reviews = useLifeOSStore.getState().weeklyReviews;
-    const newReview = reviews[reviews.length - 1];
+    const newReview = reviews[0]; // store prepends → mới nhất ở đầu
     
     if (shouldSync && newReview) {
       console.log('Syncing new weekly review to Supabase:', newReview.weekStart);
@@ -601,7 +601,7 @@ export function useSyncedStore() {
   const addMonthlyReview = useCallback(async (review: Omit<MonthlyReview, 'id' | 'createdAt'>) => {
     store.addMonthlyReview(review);
     const reviews = useLifeOSStore.getState().monthlyReviews;
-    const newReview = reviews[reviews.length - 1];
+    const newReview = reviews[0]; // store prepends → mới nhất ở đầu
     if (shouldSync && newReview) {
       await additionalSync.saveMonthlyReview(newReview);
     }
@@ -624,7 +624,7 @@ export function useSyncedStore() {
   const addYearlyPlanning = useCallback(async (planning: Omit<YearlyPlanning, 'id' | 'createdAt' | 'updatedAt'>) => {
     store.addYearlyPlanning(planning);
     const plannings = useLifeOSStore.getState().yearlyPlannings;
-    const newPlanning = plannings[plannings.length - 1];
+    const newPlanning = plannings[0]; // store prepends → mới nhất ở đầu
     if (shouldSync && newPlanning) {
       await additionalSync.saveYearlyPlanning(newPlanning);
     }
@@ -647,7 +647,7 @@ export function useSyncedStore() {
   const addYearlyReview = useCallback(async (review: Omit<YearlyReview, 'id' | 'createdAt'>) => {
     store.addYearlyReview(review);
     const reviews = useLifeOSStore.getState().yearlyReviews;
-    const newReview = reviews[reviews.length - 1];
+    const newReview = reviews[0]; // store prepends → mới nhất ở đầu
     if (shouldSync && newReview) {
       await additionalSync.saveYearlyReview(newReview);
     }

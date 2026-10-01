@@ -35,7 +35,7 @@ const DEFAULT_AREA_RATINGS: Record<LifeArea, number> = {
   fun: 5, environment: 5, spirituality: 5, learning: 5, contribution: 5,
 };
 
-export default function MonthlyReviewPage() {
+export default function MonthlyReviewPageLegacy() {
   const monthlyReviews = useLifeOSStore((s) => s.monthlyReviews);
   const addMonthlyReview = useLifeOSStore((s) => s.addMonthlyReview);
   const updateMonthlyReview = useLifeOSStore((s) => s.updateMonthlyReview);

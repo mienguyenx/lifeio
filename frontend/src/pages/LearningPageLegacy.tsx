@@ -42,7 +42,7 @@ const BOOK_RECOMMENDATIONS = [
   { title: 'The Psychology of Money', author: 'Morgan Housel' },
 ];
 
-export default function LearningPage() {
+export default function LearningPageLegacy() {
   const { goals, habits, lifeWheelScores, learningCourses, learningBooks, addLearningCourse, updateLearningCourse, deleteLearningCourse, addLearningBook, updateLearningBook, deleteLearningBook } = useLifeOSStore();
   const { saveCourse, updateCourse: syncUpdateCourse, deleteCourse: syncDeleteCourse, saveBook, updateBook: syncUpdateBook, deleteBook: syncDeleteBook } = useLearningSync();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

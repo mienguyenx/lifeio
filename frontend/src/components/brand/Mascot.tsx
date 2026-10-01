@@ -35,7 +35,7 @@ export type MascotName = keyof typeof MASCOTS;
 export const MODULE_MASCOT = {
   home: 'lumi', onboarding: 'lumi', goals: 'lumi',
   tasks: 'mochi', focus: 'mochi', calendar: 'mochi',
-  habits: 'taro', health: 'taro', finance: 'lumi',
+  habits: 'taro', health: 'taro', lifewheel: 'taro', finance: 'lumi', relationships: 'lumi',
   ai: 'ori', insights: 'ori', journal: 'ori', review: 'ori', learning: 'ori',
 } as const satisfies Record<string, MascotName>;
 

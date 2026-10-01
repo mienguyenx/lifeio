@@ -42,7 +42,7 @@ const LIFE_WHEEL_TIPS = [
   { icon: '🎉', text: 'Ghi nhận những tiến bộ nhỏ mỗi ngày' },
 ];
 
-export default function LifeWheelPage() {
+export default function LifeWheelPageLegacy() {
   const lifeWheelScores = useLifeOSStore((s) => s.lifeWheelScores);
   const weeklyReviews = useLifeOSStore((s) => s.weeklyReviews);
   const clearLifeWheelHistory = useLifeOSStore((s) => s.clearLifeWheelHistory);
