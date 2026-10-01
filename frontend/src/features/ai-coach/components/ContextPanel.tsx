@@ -15,7 +15,7 @@ function Row({ icon, tint, title, desc }: { icon: LifeIconName; tint: Tint; titl
 }
 
 /** Bối cảnh mà AI Coach nhận kèm mỗi câu hỏi (userContext + dailyStats) và gợi ý hôm nay. */
-export function ContextPanel({ api, onPrompt }: { api: CoachApi; onPrompt: (p: string) => void }) {
+export function ContextPanel({ api, onPrompt, suggestions: showSuggestions = true }: { api: CoachApi; onPrompt: (p: string) => void; suggestions?: boolean }) {
   const { today, user, suggestions } = api;
   const mood = today.avgMood ? MOODS[Math.round(today.avgMood) - 1] : undefined;
   return (
@@ -28,7 +28,7 @@ export function ContextPanel({ api, onPrompt }: { api: CoachApi; onPrompt: (p: s
         <Row icon="mood/happy" tint="amber" title="Tâm trạng 7 ngày" desc={mood ? `${mood.emoji} ${mood.label} (${today.avgMood.toFixed(1)})` : 'Chưa có nhật ký'} />
         <Row icon="module/life-areas" tint="sky" title="Vision & Values" desc={user.lifePurpose ? user.lifePurpose : `${user.visions?.length || 0} tầm nhìn · ${user.personalValues?.length || 0} giá trị`} />
       </Surface>
-      <Surface className="p-4">
+      {showSuggestions && <Surface className="p-4">
         <SectionTitle title="Gợi ý hôm nay" />
         {suggestions.length === 0 ? <p className="text-[12.5px] text-muted-foreground">Bạn đã hoàn thành mọi thứ hôm nay 🎉</p> : (
           <div className="space-y-2">
@@ -40,7 +40,7 @@ export function ContextPanel({ api, onPrompt }: { api: CoachApi; onPrompt: (p: s
             ))}
           </div>
         )}
-      </Surface>
+      </Surface>}
     </div>
   );
 }

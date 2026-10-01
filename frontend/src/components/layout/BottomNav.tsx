@@ -8,14 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { QuickAddSheet } from './QuickAddSheet';
 import { FullScreenMenu } from './FullScreenMenu';
 import { LifeIcon, ROUTE_ICON } from '@/components/icons/LifeIcon';
+import { ALL_NAV_ITEMS, isActivePath } from './navigationConfig';
 
-// Paths that belong to "More" menu — used to highlight More tab
-const MORE_PATHS = [
-  '/dashboard', '/calendar', '/goals', '/weekly-review', '/monthly-review',
-  '/yearly-planning', '/yearly-review', '/life-wheel',
-  '/health', '/finance', '/learning', '/relationships',
-  '/ai-chat', '/notes', '/trash', '/settings', '/me',
-];
+// "Thêm" sáng khi đang ở bất kỳ trang nào ngoài 3 tab chính (lấy từ navigationConfig dùng chung).
+const MAIN_TABS = ['/', '/tasks', '/habits'];
+const MORE_PATHS = ALL_NAV_ITEMS.map((i) => i.path).filter((p) => !MAIN_TABS.includes(p));
 
 interface NavTabProps {
   path: string;
@@ -86,7 +83,7 @@ export function BottomNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const badges = useNotificationBadges();
 
-  const isMoreActive = MORE_PATHS.some((p) => location.pathname === p);
+  const isMoreActive = MORE_PATHS.some((p) => p !== '/' && isActivePath(location.pathname, p));
 
   // Vibrate on quick add open (haptic feedback)
   const handleQuickAdd = () => {
@@ -106,22 +103,24 @@ export function BottomNav() {
             isActive={location.pathname === '/'}
           />
 
-          {/* Habits */}
+          {/* Tasks */}
           <NavTab
-            path="/habits"
-            icon={Target}
-            label="Thói quen"
-            isActive={location.pathname === '/habits'}
-            badge={badges.habits.total}
+            path="/tasks"
+            icon={CheckSquare}
+            label="Công việc"
+            isActive={isActivePath(location.pathname, '/tasks')}
+            badge={badges.tasks.total}
+            badgeUrgent={badges.tasks.overdue > 0 || badges.tasks.high > 0}
           />
 
           {/* Center FAB — Quick Add */}
           <div className="flex-1 flex items-center justify-center -mt-5">
             <button
               onClick={handleQuickAdd}
+              aria-label="Thêm nhanh"
               className={cn(
                 'w-14 h-14 rounded-full flex items-center justify-center',
-                'bg-primary shadow-fab',
+                'bg-gradient-to-br from-[#8B7CF6] to-primary shadow-fab ring-4 ring-background',
                 'tap-transparent active:scale-90 transition-transform',
               )}
             >
@@ -129,14 +128,13 @@ export function BottomNav() {
             </button>
           </div>
 
-          {/* Tasks */}
+          {/* Habits */}
           <NavTab
-            path="/tasks"
-            icon={CheckSquare}
-            label="Công việc"
-            isActive={location.pathname === '/tasks'}
-            badge={badges.tasks.total}
-            badgeUrgent={badges.tasks.overdue > 0 || badges.tasks.high > 0}
+            path="/habits"
+            icon={Target}
+            label="Thói quen"
+            isActive={isActivePath(location.pathname, '/habits')}
+            badge={badges.habits.total}
           />
 
           {/* More */}

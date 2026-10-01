@@ -16,7 +16,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { OfflineIndicator } from "@/components/offline/OfflineIndicator";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
-import AuthPage from "./pages/AuthPage";
+import AuthPage from "./features/auth/AuthPage";
+import AuthPageLegacy from "./pages/AuthPage";
 import TodayPage from "./pages/TodayPage";
 import InsightsPage from "./features/insights/InsightsPage";
 import DashboardPageLegacy from "./pages/DashboardPageLegacy";
@@ -236,6 +237,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/auth/classic" element={<AuthPageLegacy />} />
               <Route path="/admin/*" element={<AdminProtectedRoute><AdminApp /></AdminProtectedRoute>} />
               <Route
                 path="/*"

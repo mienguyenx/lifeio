@@ -23,3 +23,11 @@ src/features/journal/
 
 ## Không làm
 - Ghi âm giọng nói, đính kèm file, lưu nháp tự động, yêu thích bài viết, xuất PDF/Markdown, rich-text toolbar — repo chưa có.
+
+---
+## Cập nhật Module 15 — Reflection Journal (tham chiếu `references/journal-ref-2.webp`)
+- **Khung trang thống nhất:** PageHeader → SegmentedTabs `Tổng quan | Nhật ký | Lịch | Thống kê` ngay dưới tiêu đề (trước đây tabs nằm dưới hero — lệch so với các module khác).
+- **Tổng quan:** HeroBanner (Ori/learn) + chọn kỳ `7 ngày | 30 ngày | 3 tháng | 1 năm | Tất cả` + 4 StatTile (Bài viết, Ngày liên tiếp, Tâm trạng TB, Chủ đề chính) + Biểu đồ tâm trạng (TrendArea, theo ngày hoặc theo tháng khi ≥1 năm) + Từ khóa nổi bật (thẻ & lĩnh vực; bấm thẻ → tab Nhật ký đã lọc) + Nhật ký gần đây.
+- **Side panel (xl):** Tổng quan cảm xúc (ring + Tích cực/Bình thường/Tiêu cực), Chủ đề thường gặp, Gợi ý từ AI Coach (rule-based từ dữ liệu: chưa viết hôm nay, chuỗi ngày, lòng biết ơn, tâm trạng tiêu cực, chủ đề nổi bật) + MascotCard.
+- Dữ liệu: `useJournalPeriod(entries, tags, range)` (hooks/useJournalPeriod.ts) — chỉ dùng mood, energy, tags, areas, gratitude đã có.
+- **Không làm:** AI Summary (tóm tắt bằng AI), thêm ảnh/“Gợi ý từ AI” trong trình soạn, lưu nháp, định dạng rich-text — repo chưa có.

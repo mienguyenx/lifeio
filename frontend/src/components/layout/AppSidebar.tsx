@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, LayoutDashboard, Target, CheckSquare, Compass, BookOpen, Calendar, CalendarDays, CalendarRange, Map, Award, PieChart, Heart, Wallet, GraduationCap, Users, ChevronDown, Settings2, Brain, Scale, BarChart3, Trophy, StickyNote, Bot, Settings } from 'lucide-react';
+import { ChevronDown, Shield } from 'lucide-react';
+import { useAdminRole } from '@/hooks/useAdminRole';
+import { NAV_GROUPS, ACCOUNT_ITEMS, isActivePath, type BadgeKey } from './navigationConfig';
 import { cn } from '@/lib/utils';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { useNotificationBadges, GoalsBadge, TasksBadge, HabitsBadge } from '@/hooks/useNotificationBadges';
@@ -11,67 +13,9 @@ import { DatabaseIndicator } from './DatabaseIndicator';
 import { useBranding } from '@/hooks/useBranding';
 import { notificationService } from '@/services/notificationService';
 import { useTheme } from 'next-themes';
-import { LifeIcon, ROUTE_ICON } from '@/components/icons/LifeIcon';
+import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
 
-// Menu groups configuration — V2: 14 mục chính, toàn bộ tiếng Việt.
-// Các trang ít dùng được gom vào nhóm "Thêm" (thu gọn) để không mất lối vào.
-const MENU_GROUPS = {
-  daily: {
-    label: 'Hàng ngày',
-    items: [
-      { path: '/', icon: Home, label: 'Hôm nay', badgeKey: null },
-      { path: '/calendar', icon: CalendarRange, label: 'Lịch', badgeKey: null },
-      { path: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan', badgeKey: null },
-    ],
-  },
-  productivity: {
-    label: 'Năng suất',
-    items: [
-      { path: '/tasks', icon: CheckSquare, label: 'Công việc', badgeKey: 'tasks' as const },
-      { path: '/habits', icon: Target, label: 'Thói quen', badgeKey: 'habits' as const },
-      { path: '/goals', icon: Compass, label: 'Mục tiêu', badgeKey: 'goals' as const },
-      { path: '/journey', icon: Trophy, label: 'Hành trình', badgeKey: null },
-    ],
-  },
-  reflection: {
-    label: 'Phản chiếu',
-    items: [
-      { path: '/journal', icon: BookOpen, label: 'Nhật ký', badgeKey: null },
-      { path: '/weekly-review', icon: Calendar, label: 'Review tuần', badgeKey: null },
-      { path: '/notes', icon: StickyNote, label: 'Ghi chú', badgeKey: null },
-    ],
-  },
-  insight: {
-    label: 'Cuộc sống',
-    items: [
-      { path: '/life-wheel', icon: PieChart, label: 'Bánh xe', badgeKey: null },
-      { path: '/area-dashboard', icon: BarChart3, label: '10 lĩnh vực', badgeKey: null },
-      { path: '/ai-chat', icon: Bot, label: 'AI Coach', badgeKey: null },
-    ],
-  },
-  overview: {
-    label: 'Thêm',
-    collapsible: true,
-    items: [
-      { path: '/monthly-review', icon: CalendarDays, label: 'Review tháng', badgeKey: null },
-      { path: '/yearly-planning', icon: Map, label: 'Kế hoạch năm', badgeKey: null },
-      { path: '/yearly-review', icon: Award, label: 'Review năm', badgeKey: null },
-      { path: '/decisions', icon: Scale, label: 'Nhật ký quyết định', badgeKey: null },
-      { path: '/ai-memory', icon: Brain, label: 'Bộ nhớ AI', badgeKey: null },
-      { path: '/health', icon: Heart, label: 'Sức khỏe', badgeKey: null },
-      { path: '/finance', icon: Wallet, label: 'Tài chính', badgeKey: null },
-      { path: '/learning', icon: GraduationCap, label: 'Học tập', badgeKey: null },
-      { path: '/relationships', icon: Users, label: 'Quan hệ', badgeKey: null },
-      { path: '/personalization', icon: Settings2, label: 'Cá nhân hóa', badgeKey: null },
-    ],
-  },
-  footer: {
-    label: '',
-    items: [
-      { path: '/settings', icon: Settings, label: 'Cài đặt', badgeKey: null },
-    ],
-  },
-};
+// Module 18: menu lấy từ navigationConfig (dùng chung với menu mobile & bảng lệnh Ctrl+K).
 
 function TasksTooltipContent({ tasks }: { tasks: TasksBadge }) {
   return (
@@ -246,16 +190,16 @@ function DotIndicator({ badgeKey, badges }: { badgeKey: 'habits' | 'tasks' | 'go
 
 interface MenuItemProps {
   path: string;
-  icon: any;
+  icon: LifeIconName;
   label: string;
-  badgeKey: 'habits' | 'tasks' | 'goals' | null;
+  badgeKey?: BadgeKey;
   isCollapsed: boolean;
   badges: ReturnType<typeof useNotificationBadges>;
 }
 
-function MenuItem({ path, icon: Icon, label, badgeKey, isCollapsed, badges }: MenuItemProps) {
+function MenuItem({ path, icon, label, badgeKey = null, isCollapsed, badges }: MenuItemProps) {
   const location = useLocation();
-  const isActive = location.pathname === path;
+  const isActive = isActivePath(location.pathname, path);
 
   const renderBadge = () => {
     if (!badgeKey) return null;
@@ -276,19 +220,12 @@ function MenuItem({ path, icon: Icon, label, badgeKey, isCollapsed, badges }: Me
     <Link 
       to={path} 
       className={cn(
-        'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative',
-        isActive ? 'bg-primary/10 text-primary-ink font-semibold shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.12)]' : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
+        'flex items-center gap-3 px-3 h-10 rounded-[14px] text-[13.5px] transition-colors relative',
+        isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
       )}
     >
-      {isActive && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
-      )}
       <div className="relative">
-        {ROUTE_ICON[path] ? (
-          <LifeIcon name={ROUTE_ICON[path]} size={20} variant={isActive ? 'filled' : 'duotone'} />
-        ) : (
-          <Icon className="w-5 h-5" strokeWidth={2} />
-        )}
+        <LifeIcon name={icon} size={20} variant={isActive ? 'filled' : 'duotone'} />
         {getBadgeCount() > 0 && isCollapsed && badgeKey && (
           <DotIndicator badgeKey={badgeKey} badges={badges} />
         )}
@@ -333,9 +270,10 @@ export function AppSidebar() {
   const { resolvedTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   
-  // Check if any overview item is active to auto-expand
-  const isOverviewActive = MENU_GROUPS.overview.items.some(item => location.pathname === item.path);
-  const [overviewOpen, setOverviewOpen] = useState(isOverviewActive);
+  const { isAdmin } = useAdminRole();
+  const moreGroup = NAV_GROUPS.find((g) => g.collapsible);
+  const isMoreActive = !!moreGroup?.items.some((item) => isActivePath(location.pathname, item.path));
+  const [overviewOpen, setOverviewOpen] = useState(isMoreActive);
 
   useEffect(() => {
     const unsub = notificationService.subscribe((notifs) => {
@@ -375,132 +313,48 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Daily Group */}
-        <SidebarGroup>
-          {!isCollapsed && <SidebarGroupLabel>{MENU_GROUPS.daily.label}</SidebarGroupLabel>}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {MENU_GROUPS.daily.items.map((item) => (
-                <MenuItem
-                  key={item.path}
-                  path={item.path}
-                  icon={item.icon}
-                  label={item.label}
-                  badgeKey={item.badgeKey}
-                  isCollapsed={isCollapsed}
-                  badges={badges}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Productivity Group */}
-        <SidebarGroup>
-          {!isCollapsed && <SidebarGroupLabel>{MENU_GROUPS.productivity.label}</SidebarGroupLabel>}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {MENU_GROUPS.productivity.items.map((item) => (
-                <MenuItem
-                  key={item.path}
-                  path={item.path}
-                  icon={item.icon}
-                  label={item.label}
-                  badgeKey={item.badgeKey}
-                  isCollapsed={isCollapsed}
-                  badges={badges}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Reflection Group */}
-        <SidebarGroup>
-          {!isCollapsed && <SidebarGroupLabel>{MENU_GROUPS.reflection.label}</SidebarGroupLabel>}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {MENU_GROUPS.reflection.items.map((item) => (
-                <MenuItem
-                  key={item.path}
-                  path={item.path}
-                  icon={item.icon}
-                  label={item.label}
-                  badgeKey={item.badgeKey}
-                  isCollapsed={isCollapsed}
-                  badges={badges}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Insight Group */}
-        <SidebarGroup>
-          {!isCollapsed && <SidebarGroupLabel>{MENU_GROUPS.insight.label}</SidebarGroupLabel>}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {MENU_GROUPS.insight.items.map((item) => (
-                <MenuItem key={item.path} path={item.path} icon={item.icon} label={item.label} badgeKey={item.badgeKey} isCollapsed={isCollapsed} badges={badges} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Overview Group - Collapsible */}
-        <SidebarGroup>
-          {!isCollapsed ? (
-            <Collapsible open={overviewOpen} onOpenChange={setOverviewOpen}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors">
-                <span>{MENU_GROUPS.overview.label}</span>
-                <ChevronDown className={cn(
-                  "w-4 h-4 transition-transform",
-                  overviewOpen && "rotate-180"
-                )} />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {MENU_GROUPS.overview.items.map((item) => (
-                      <MenuItem
-                        key={item.path}
-                        path={item.path}
-                        icon={item.icon}
-                        label={item.label}
-                        badgeKey={item.badgeKey}
-                        isCollapsed={isCollapsed}
-                        badges={badges}
-                      />
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          ) : (
+        {NAV_GROUPS.map((group) => {
+          const items = (
             <SidebarGroupContent>
               <SidebarMenu>
-                {MENU_GROUPS.overview.items.map((item) => (
-                  <MenuItem
-                    key={item.path}
-                    path={item.path}
-                    icon={item.icon}
-                    label={item.label}
-                    badgeKey={item.badgeKey}
-                    isCollapsed={isCollapsed}
-                    badges={badges}
-                  />
-                ))}
+                {group.items.map((item) => <MenuItem key={item.path} {...item} isCollapsed={isCollapsed} badges={badges} />)}
               </SidebarMenu>
             </SidebarGroupContent>
-          )}
-        </SidebarGroup>
+          );
+          return (
+            <SidebarGroup key={group.id} className="py-1">
+              {group.collapsible && !isCollapsed ? (
+                <Collapsible open={overviewOpen} onOpenChange={setOverviewOpen}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-1.5 text-[11.5px] font-semibold text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors">
+                    <span>{group.label}</span>
+                    <ChevronDown className={cn('w-4 h-4 transition-transform', overviewOpen && 'rotate-180')} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>{items}</CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <>
+                  {!isCollapsed && <SidebarGroupLabel className="text-[11.5px] font-semibold text-sidebar-foreground/60">{group.label}</SidebarGroupLabel>}
+                  {items}
+                </>
+              )}
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
         <SidebarMenu>
-          {MENU_GROUPS.footer.items.map((item) => (
-            <MenuItem key={item.path} path={item.path} icon={item.icon} label={item.label} badgeKey={item.badgeKey} isCollapsed={isCollapsed} badges={badges} />
-          ))}
+          {ACCOUNT_ITEMS.map((item) => <MenuItem key={item.path} {...item} isCollapsed={isCollapsed} badges={badges} />)}
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link to="/admin" className="flex items-center gap-3 px-3 h-10 rounded-[14px] text-[13.5px] text-foreground/80 hover:bg-secondary">
+                  <Shield className="w-5 h-5 text-primary" />
+                  {!isCollapsed && <span className="flex-1 flex items-center justify-between">Quản trị<span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5">ADMIN</span></span>}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
         <div className="flex justify-center">
           <DatabaseIndicator />

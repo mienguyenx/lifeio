@@ -23,7 +23,7 @@ export function WeeklyProgress({ week }: { week: DayPoint[] }) {
     <Surface className="p-5 flex flex-col h-full">
       <SectionTitle title="Tiến độ tuần" hint="7 ngày gần nhất" />
       <div className="flex-1 min-h-[220px]">
-        <ResponsiveContainer>
+        <ResponsiveContainer width="100%" height={240}>
           <BarChart data={data} margin={{ left: -22, right: 4, top: 6 }} barGap={2} barCategoryGap="22%">
             <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border" />
             <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />

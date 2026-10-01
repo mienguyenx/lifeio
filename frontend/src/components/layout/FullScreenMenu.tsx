@@ -1,10 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X, LayoutDashboard, Compass, CalendarCheck, CalendarDays, CalendarRange, Map, Award, CircleDot,
-  Heart, Wallet, GraduationCap, Users, StickyNote, User,
-  Settings2, Trash2, Sparkles, LogOut, Shield, Trophy,
-} from 'lucide-react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { X, User, LogOut, Shield } from 'lucide-react';
+import { LifeIcon } from '@/components/icons/LifeIcon';
+import { NAV_GROUPS, ACCOUNT_ITEMS, isActivePath } from './navigationConfig';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminRole } from '@/hooks/useAdminRole';
@@ -16,53 +14,16 @@ interface FullScreenMenuProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const menuGroups = [
-  {
-    label: 'Bắt đầu',
-    items: [
-      { path: '/journey', icon: Trophy, label: 'Hành trình' },
-    ],
-  },
-  {
-    label: 'Năng suất',
-    items: [
-      { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/calendar', icon: CalendarRange, label: 'Calendar' },
-      { path: '/goals', icon: Compass, label: 'Goals' },
-      { path: '/weekly-review', icon: CalendarCheck, label: 'Weekly Review' },
-      { path: '/monthly-review', icon: CalendarDays, label: 'Monthly Review' },
-      { path: '/yearly-planning', icon: Map, label: 'Yearly Planning' },
-      { path: '/yearly-review', icon: Award, label: 'Yearly Review' },
-    ],
-  },
-  {
-    label: 'Lĩnh vực',
-    items: [
-      { path: '/life-wheel', icon: CircleDot, label: 'Life Wheel' },
-      { path: '/health', icon: Heart, label: 'Sức khỏe' },
-      { path: '/finance', icon: Wallet, label: 'Tài chính' },
-      { path: '/learning', icon: GraduationCap, label: 'Học tập' },
-      { path: '/relationships', icon: Users, label: 'Quan hệ' },
-    ],
-  },
-  {
-    label: 'Khác',
-    items: [
-      { path: '/ai-chat', icon: Sparkles, label: 'AI Coach' },
-      { path: '/notes', icon: StickyNote, label: 'Notes' },
-      { path: '/trash', icon: Trash2, label: 'Thùng rác' },
-      { path: '/settings', icon: Settings2, label: 'Cài đặt' },
-    ],
-  },
-];
+// Module 18: dùng chung cấu hình với Sidebar desktop → mobile có đủ mọi trang (trước đây thiếu Nhật ký, 10 lĩnh vực, Quyết định, Bộ nhớ AI, Cá nhân hóa).
+const menuGroups = [...NAV_GROUPS.map((g) => ({ label: g.label, items: g.items })), { label: 'Tài khoản', items: ACCOUNT_ITEMS }];
 
-const overlayVariants = {
+const overlayVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.25 } },
   exit: { opacity: 0, transition: { duration: 0.2 } },
 };
 
-const menuVariants = {
+const menuVariants: Variants = {
   hidden: { y: '100%' },
   visible: {
     y: 0,
@@ -74,7 +35,7 @@ const menuVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 12 },
   visible: (i: number) => ({
     opacity: 1,
@@ -135,7 +96,7 @@ export function FullScreenMenu({ open, onOpenChange }: FullScreenMenuProps) {
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 shrink-0">
-              <h2 className="text-xl font-bold">Menu</h2>
+              <h2 className="text-[20px] font-extrabold">Khám phá LifeOS</h2>
               <button
                 onClick={() => onOpenChange(false)}
                 className="p-2 rounded-full hover:bg-muted tap-transparent active:scale-95 transition-transform"
@@ -148,13 +109,12 @@ export function FullScreenMenu({ open, onOpenChange }: FullScreenMenuProps) {
             <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
               {menuGroups.map((group) => (
                 <div key={group.label} className="mb-5">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                  <p className="text-[12px] font-semibold text-muted-foreground mb-2 px-1">
                     {group.label}
                   </p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-1.5">
                     {group.items.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = location.pathname === item.path;
+                      const isActive = isActivePath(location.pathname, item.path);
                       const idx = globalIndex++;
                       return (
                         <motion.button
@@ -165,14 +125,14 @@ export function FullScreenMenu({ open, onOpenChange }: FullScreenMenuProps) {
                           animate="visible"
                           onClick={() => handleNavigate(item.path)}
                           className={cn(
-                            'flex flex-col items-center gap-2 p-3 rounded-2xl transition-all tap-transparent active:scale-95',
-                            isActive
-                              ? 'bg-primary/10 text-primary'
-                              : 'hover:bg-muted text-foreground'
+                            'flex flex-col items-center gap-1.5 p-2.5 rounded-[18px] transition-all tap-transparent active:scale-95',
+                            isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'
                           )}
                         >
-                          <Icon className="w-6 h-6" />
-                          <span className="text-xs font-medium leading-tight text-center">{item.label}</span>
+                          <span className={cn('h-11 w-11 rounded-[14px] grid place-items-center', isActive ? 'bg-card shadow-soft' : 'bg-secondary/70')}>
+                            <LifeIcon name={item.icon} size={24} variant={isActive ? 'filled' : 'duotone'} />
+                          </span>
+                          <span className="text-[11.5px] font-medium leading-tight text-center">{item.label}</span>
                         </motion.button>
                       );
                     })}

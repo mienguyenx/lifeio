@@ -1,14 +1,15 @@
+import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LifeIcon } from '@/components/icons/LifeIcon';
 import { HeroBanner, SectionTitle, TINTS } from '@/components/lio';
 import { QUICK_ACTIONS, QUICK_PROMPTS } from '../utils/coach.utils';
 
-export function CoachHome({ name, hasProfile, onPrompt, compact }: { name?: string; hasProfile: boolean; onPrompt: (p: string) => void; compact?: boolean }) {
+export function CoachHome({ name, hasProfile, onPrompt, compact, hero = true }: { name?: string; hasProfile: boolean; onPrompt: (p: string) => void; compact?: boolean; hero?: boolean }) {
   return (
     <div className="space-y-5 py-1">
-      <HeroBanner mascot="ori" pose="idea" title={<>Xin chào{name ? `, ${name}` : ''}! 👋</>}
-        subtitle={hasProfile ? 'Mình là Ori — AI Coach của bạn. Mình đã hiểu Vision & Values của bạn, hãy hỏi mình bất cứ điều gì!' : 'Mình là Ori — AI Coach của bạn. Thiết lập Vision & Values trong trang “Me” để nhận tư vấn cá nhân hóa hơn.'} />
-      <div>
+      {hero && <HeroBanner mascot="ori" pose="idea" title={<>Xin chào{name ? `, ${name}` : ''}! 👋</>}
+        subtitle={hasProfile ? 'Mình là Ori — AI Coach của bạn. Mình đã hiểu Vision & Values của bạn, hãy hỏi mình bất cứ điều gì!' : 'Mình là Ori — AI Coach của bạn. Thiết lập Vision & Values trong trang “Me” để nhận tư vấn cá nhân hóa hơn.'} />}
+      {(hero || compact) && <div>
         <SectionTitle title="Mình có thể giúp gì cho bạn hôm nay?" />
         <div className={cn('grid gap-2.5', compact ? 'grid-cols-2' : 'grid-cols-2 2xl:grid-cols-3')}>
           {QUICK_ACTIONS.map((a) => (
@@ -19,7 +20,15 @@ export function CoachHome({ name, hasProfile, onPrompt, compact }: { name?: stri
             </button>
           ))}
         </div>
-      </div>
+      </div>}
+      {!hero && !compact && (
+        <div className="flex gap-3 max-w-[560px]">
+          <span className="h-9 w-9 rounded-full bg-lavender dark:bg-primary/15 grid place-items-center shrink-0"><Sparkles className="h-4 w-4 text-primary" /></span>
+          <div className="rounded-[20px] rounded-tl-md bg-secondary/60 px-4 py-3 text-[13px] leading-relaxed">
+            Chào {name || 'bạn'}! Mình là Ori — AI Coach của bạn 👋<br />Mình có thể giúp bạn lập kế hoạch, phân tích tiến độ và gợi ý cá nhân hóa. Hôm nay bạn muốn tập trung vào điều gì?
+          </div>
+        </div>
+      )}
       <div>
         <SectionTitle title="Câu hỏi gợi ý" />
         <div className="flex flex-wrap gap-2">

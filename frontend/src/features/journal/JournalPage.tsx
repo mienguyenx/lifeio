@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { EmptyState } from '@/components/brand/EmptyState';
-import { Fab, FilterChips, HeroBanner, IconButton, Page, PageHeader, SearchToggle, SectionTitle, SegmentedTabs, StatTile } from '@/components/lio';
+import { Fab, FilterChips, HeroBanner, IconButton, Page, PageHeader, SearchToggle, SectionTitle, SegmentedTabs, StatTile, Surface } from '@/components/lio';
 import { JournalHistoryModal } from '@/components/journal/JournalHistoryModal';
 import { JournalTagsManager } from '@/components/journal/JournalTagsManager';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -18,8 +18,11 @@ import { JournalEditor } from './components/JournalEditor';
 import { JournalReader } from './components/JournalReader';
 import { JournalCalendar } from './components/JournalCalendar';
 import { JournalInsights } from './components/JournalInsights';
+import { JournalOverview, JournalSidePanel } from './components/JournalOverview';
+import { useJournalPeriod, type JournalRange } from './hooks/useJournalPeriod';
+import { ModuleHelpButton } from '@/components/ui/ModuleHelpButton';
 
-type View = 'list' | 'calendar' | 'insights';
+type View = 'overview' | 'list' | 'calendar' | 'insights';
 const selCls = 'h-10 rounded-full bg-card border-border shadow-soft text-[13px] w-auto min-w-[130px]';
 
 export default function JournalPage() {
@@ -27,7 +30,7 @@ export default function JournalPage() {
   const api = useJournal();
   const { entries, tags, stats, tagOf } = api;
   const [params, setParams] = useSearchParams();
-  const [view, setView] = useState<View>('list');
+  const [view, setView] = useState<View>('overview');
   const [search, setSearch] = useState('');
   const [mood, setMood] = useState<string>('all');
   const [energy, setEnergy] = useState<string>('all');
@@ -36,6 +39,8 @@ export default function JournalPage() {
   const [editor, setEditor] = useState<{ mode: 'create' | 'edit'; initial: JournalDraft; entry?: JournalEntry } | null>(null);
   const [readingId, setReadingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<JournalEntry | null>(null);
+  const [range, setRange] = useState<JournalRange>('30');
+  const period = useJournalPeriod(entries, tags, range);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
 
@@ -59,12 +64,6 @@ export default function JournalPage() {
 
   const listView = (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 ">
-        <StatTile icon="module/journal" tint="violet" value={stats.total} label="Tổng bài viết" hint={stats.last7 ? <span className="text-primary">+{stats.last7} tuần này</span> : undefined} />
-        <StatTile icon={<span className="text-[22px]">🔥</span>} tint="orange" value={stats.streak} label="Ngày liên tiếp" />
-        <StatTile icon={<span className="text-[22px]">{avgMoodEmoji ?? '🙂'}</span>} tint="amber" value={stats.avgMood ? stats.avgMood.toFixed(1) : '–'} label="Tâm trạng TB" />
-        <StatTile icon="module/insights" tint="mint" value={`${stats.pct30}%`} label="Ghi chép 30 ngày" />
-      </div>
       <div className={cn('flex gap-2', isMobile ? 'flex-col' : 'items-center flex-wrap')}>
         <FilterChips items={moodChips} value={mood} onChange={setMood} />
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
@@ -98,7 +97,7 @@ export default function JournalPage() {
   return (
     <Page>
       <PageHeader
-        title="Nhật ký"
+        title={<span className="inline-flex items-center gap-2">Nhật ký <ModuleHelpButton module="journal" /></span>}
         subtitle="Ghi lại hôm nay, hiểu rõ bản thân, kiến tạo ngày mai tốt hơn"
         actions={<>
           <SearchToggle value={search} onChange={(v) => { setSearch(v); if (v) setView('list'); }} placeholder="Tìm kiếm nhật ký..." />
@@ -107,14 +106,29 @@ export default function JournalPage() {
           {!isMobile && <Button className="h-10 rounded-full px-5 shadow-soft" onClick={() => openCreate()}><Plus className="h-4 w-4 mr-1.5" />Viết nhật ký</Button>}
         </>}
       />
-      <HeroBanner mascot="ori" pose="learn" className="mb-4"
-        title={<>Chào bạn{api.userName ? `, ${api.userName}` : ''}! 👋</>}
-        subtitle={stats.writtenToday ? 'Bạn đã ghi chép hôm nay — tuyệt vời! Viết thêm nếu còn điều muốn lưu giữ.' : 'Mỗi trang nhật ký là một bước tiến đến phiên bản tốt hơn của chính bạn.'}
-        action={<div className="flex flex-wrap items-center gap-2">
-          <Button className="h-10 rounded-full px-5 shadow-soft" onClick={() => openCreate()}><Plus className="h-4 w-4 mr-1.5" />Viết nhật ký</Button>
-          {!isMobile && <span className="text-[12.5px] font-medium text-muted-foreground">{longDate(todayKey())}</span>}
-        </div>} />
-      <SegmentedTabs items={[{ id: 'list', label: 'Nhật ký' }, { id: 'calendar', label: 'Lịch' }, { id: 'insights', label: 'Thống kê' }]} value={view} onChange={setView} full={isMobile} className="mb-5" />
+      <SegmentedTabs items={[{ id: 'overview', label: 'Tổng quan' }, { id: 'list', label: 'Nhật ký' }, { id: 'calendar', label: 'Lịch' }, { id: 'insights', label: 'Thống kê' }]} value={view} onChange={setView} full={isMobile} className="mb-5" />
+      {view === 'overview' && (
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
+          <div className="space-y-4 min-w-0">
+            <HeroBanner mascot="ori" pose="learn"
+              title={<>Chào bạn{api.userName ? `, ${api.userName}` : ''}! 👋</>}
+              subtitle={stats.writtenToday ? 'Bạn đã ghi chép hôm nay — tuyệt vời! Viết thêm nếu còn điều muốn lưu giữ.' : 'Mỗi trang nhật ký là một bước tiến đến phiên bản tốt hơn của chính bạn.'}
+              action={<div className="flex flex-wrap items-center gap-2">
+                <Button className="h-10 rounded-full px-5 shadow-soft" onClick={() => openCreate()}><Plus className="h-4 w-4 mr-1.5" />Viết nhật ký</Button>
+                {!isMobile && <span className="text-[12.5px] font-medium text-muted-foreground">{longDate(todayKey())}</span>}
+              </div>} />
+            <JournalOverview period={period} range={range} onRange={setRange} streak={stats.streak} onTag={(id) => { setTag(id); setView('list'); }}
+              recent={<Surface className="p-5">
+                <SectionTitle title="Nhật ký gần đây" action={<button onClick={() => setView('list')} className="text-[12px] font-semibold text-primary">Xem tất cả</button>} />
+                {entries.length === 0
+                  ? <EmptyState mascot="ori" pose="learn" compact title="Bắt đầu trang nhật ký đầu tiên" description="Mỗi trang nhật ký là một bước tiến đến phiên bản tốt hơn của bạn." />
+                  : <div className="space-y-2.5">{entries.slice(0, 4).map((e) => <JournalCard key={e.id} layout="row" entry={e} tagOf={tagOf} onOpen={() => setReadingId(e.id)} onEdit={() => openEdit(e)} onDelete={() => setToDelete(e)} />)}</div>}
+              </Surface>} />
+            {isMobile && <JournalSidePanel period={period} stats={stats} />}
+          </div>
+          {!isMobile && <aside className="hidden xl:block sticky top-4"><JournalSidePanel period={period} stats={stats} /></aside>}
+        </div>
+      )}
       {view === 'list' && listView}
       {view === 'calendar' && <JournalCalendar entries={entries} onOpen={(e) => setReadingId(e.id)} onWrite={(d) => openCreate(d)} />}
       {view === 'insights' && <JournalInsights entries={entries} tags={tags} />}

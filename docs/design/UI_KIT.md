@@ -51,3 +51,9 @@ Thứ tự khối: **Header → (Hero) → SegmentedTabs → Stat tiles → Filt
 - Trang có >4 tab: bọc `SegmentedTabs` trong `overflow-x-auto no-scrollbar`; ≤4 tab: `full` trên mobile.
 - `lifeWheelScores`: phần tử mới nhất ở đầu — luôn dùng `lib/lifeWheel.ts`.
 - Mascot: Learning/Review → Ori, Relationships → Lumi, Life Wheel → Taro.
+
+## Bổ sung Module 15–18
+- **Mọi trang module** giờ cùng khung: PageHeader → SegmentedTabs ngay dưới → nội dung (Tổng quan: Hero + 4 StatTile + nội dung + side panel 320px ở xl). Đã áp dụng thêm cho Nhật ký, AI Coach, Tổng quan/Insights.
+- `navigationConfig.ts` là nguồn duy nhất cho menu/command palette/quick add — thêm trang mới chỉ cần khai báo một chỗ.
+- Biểu đồ recharts trong flex-col đứng riêng: truyền `height` số cho `ResponsiveContainer` (tránh cao 0).
+- Lớp phủ toàn màn hình (onboarding) dùng `z-[60]` để nằm trên BottomNav `z-50`.

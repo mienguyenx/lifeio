@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Search, Filter, Pin, Star, Trash2, Archive, ArchiveRestore, Edit2, Tag, MoreVertical, Calendar, X, PlusCircle } from 'lucide-react';
 import { format, subDays, isAfter, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -68,6 +69,11 @@ export default function NotesPage() {
   const isMobile = useIsMobile();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  // Thêm nhanh (QuickAdd / command palette): /notes?add mở hộp tạo ghi chú
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (params.has('add')) { setIsDialogOpen(true); params.delete('add'); setParams(params, { replace: true }); }
+  }, [params, setParams]);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('all');

@@ -56,9 +56,9 @@ export default function TasksPage() {
   const openQuick = useCallback((init?: Partial<TaskDraft>) => { setQuickInitial(init); setQuickOpen(true); }, []);
 
   useEffect(() => {
-    if (params.get('new') === '1') {
+    if (params.get('new') === '1' || params.has('add')) {
       openQuick();
-      params.delete('new');
+      params.delete('new'); params.delete('add');
       setParams(params, { replace: true });
     }
   }, [params, setParams, openQuick]);
