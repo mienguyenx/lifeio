@@ -76,6 +76,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminWorkspaces from "./pages/admin/AdminWorkspaces";
 import AdminPlans from "./pages/admin/AdminPlans";
+import AdminUsersPage from "./features/admin/users/AdminUsersPage";
+import AdminWorkspacesPage from "./features/admin/workspaces/AdminWorkspacesPage";
+import AdminPlansPage from "./features/admin/plans/AdminPlansPage";
 import AdminFeatures from "./pages/admin/AdminFeatures";
 import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
 import AdminThemes from "./pages/admin/AdminThemes";
@@ -165,9 +168,12 @@ function AdminApp() {
     <Routes>
       <Route path="/" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="workspaces" element={<AdminWorkspaces />} />
-        <Route path="plans" element={<AdminPlans />} />
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="users/classic" element={<AdminUsers />} />
+        <Route path="workspaces" element={<AdminWorkspacesPage />} />
+        <Route path="workspaces/classic" element={<AdminWorkspaces />} />
+        <Route path="plans" element={<AdminPlansPage />} />
+        <Route path="plans/classic" element={<AdminPlans />} />
         <Route path="features" element={<AdminFeatures />} />
         <Route path="templates/goals" element={<AdminTemplatesPage type="goals" />} />
         <Route path="templates/habits" element={<AdminTemplatesPage type="habits" />} />

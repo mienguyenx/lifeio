@@ -7,7 +7,7 @@ Form trong `AdaptiveModal` (Dialog desktop / Drawer mobile) dùng `Field`, `fiel
 | Route | File mới | Trang cũ (giữ nguyên) | Tabs | Mascot |
 |---|---|---|---|---|
 | `/` | `features/today/TodayPage.tsx` | `/today/classic` | — | Lumi |
-| `/notes` | `features/notes/NotesPage.tsx` | `/notes/classic` | Tất cả · Đã ghim · Yêu thích · Lưu trữ | Ori |
+| `/notes` | `features/notes/NotesPage.tsx` (tinh chỉnh thêm ở `ADMIN.md`) | `/notes/classic` | Tất cả · Đã ghim · Yêu thích · Lưu trữ | Ori |
 | `/trash` | `features/trash/TrashPage.tsx` | `/trash/classic` | Tất cả · Ghi chú · Công việc · Mục tiêu · Thói quen | Mochi |
 | `/me` | `features/me/MePage.tsx` | `/me/classic` | Tổng quan · Tầm nhìn & giá trị | Lumi |
 | `/settings` | `features/settings/SettingsPage.tsx` | `/settings/classic` | Chung · Dữ liệu · Tiện ích · Tài khoản | Mochi |

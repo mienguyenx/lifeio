@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Chrome, Download, ExternalLink, Globe, Loader2, LogOut, Monitor, Moon, Package, RefreshCw, RotateCcw, ShieldAlert, Sun, Trash2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
@@ -62,7 +62,10 @@ export default function SettingsPage() {
   const setPushNotificationsEnabled = useLifeOSStore((s) => s.setPushNotificationsEnabled);
   const isMobile = useIsMobile();
   const { theme } = useTheme();
-  const [view, setView] = useState<View>('general');
+  // /settings?tab=data mở thẳng tab tương ứng (dùng từ Thùng rác)
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [view, setView] = useState<View>(initialTab === 'data' || initialTab === 'extension' || initialTab === 'account' ? initialTab : 'general');
   const [extensionGuideOpen, setExtensionGuideOpen] = useState(false);
   
   const { clearAllAreaModuleData } = useProfileSync();

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { AlertTriangle, Clock, RotateCcw, Settings, Trash, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, Clock, RotateCcw, Settings, ShieldCheck, Trash, Trash2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -12,7 +13,7 @@ import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { EmptyState } from '@/components/brand/EmptyState';
 import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
-import { AreaChip, HeroBanner, IconButton, MascotCard, Page, PageHeader, SectionTitle, SegmentedTabs, StatTile, Surface, TINTS, type Tint } from '@/components/lio';
+import { HeroBanner, IconButton, MascotCard, Page, PageHeader, ProgressBar, SectionTitle, SegmentedTabs, StatTile, Surface, TINTS, type Tint } from '@/components/lio';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { Note, Task, Goal, Habit } from '@/types/lifeos';
@@ -32,6 +33,8 @@ type TrashItem =
   | { type: 'task'; data: Task }
   | { type: 'goal'; data: Goal }
   | { type: 'habit'; data: Habit };
+
+const TYPE_COLOR: Record<'note' | 'task' | 'goal' | 'habit', string> = { note: '#F5A524', task: '#7C5CFC', goal: '#F0587A', habit: '#22B07D' };
 
 type FilterType = 'all' | 'note' | 'task' | 'goal' | 'habit';
 
@@ -213,23 +216,113 @@ export default function TrashPage() {
   };
 
   const [emptyOpen, setEmptyOpen] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const keyOf = (i: TrashItem) => `${i.type}-${i.data.id}`;
   const soon = trashedItems.filter((i) => { const d = getDaysRemaining(i.data.deletedAt!); return d !== null && d <= 3; }).length;
-  const autoLabel = trashSettings.enabled && trashSettings.autoCleanupDays > 0 ? `Tự động xóa sau ${trashSettings.autoCleanupDays} ngày` : 'Không tự động xóa';
+  const autoOn = trashSettings.enabled && trashSettings.autoCleanupDays > 0;
+  const autoLabel = autoOn ? `Tự động xóa sau ${trashSettings.autoCleanupDays} ngày` : 'Không tự động xóa';
+
+  const allSelected = filteredItems.length > 0 && filteredItems.every((i) => selectedKeys.has(keyOf(i)));
+  const toggleKey = (k: string) => setSelectedKeys((prev) => { const n = new Set(prev); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const toggleAll = () => setSelectedKeys(allSelected ? new Set() : new Set(filteredItems.map(keyOf)));
+  const selectedItems = trashedItems.filter((i) => selectedKeys.has(keyOf(i)));
+  const restoreOne = (item: TrashItem) => {
+    switch (item.type) {
+      case 'note': restoreNote(item.data.id); break;
+      case 'task': restoreTask(item.data.id); break;
+      case 'goal': restoreGoal(item.data.id); break;
+      case 'habit': restoreHabit(item.data.id); break;
+    }
+  };
+  const deleteOne = (item: TrashItem) => {
+    switch (item.type) {
+      case 'note': permanentDeleteNote(item.data.id); break;
+      case 'task': permanentDeleteTask(item.data.id); break;
+      case 'goal': permanentDeleteGoal(item.data.id); break;
+      case 'habit': permanentDeleteHabit(item.data.id); break;
+    }
+  };
+  const bulkRestore = () => { selectedItems.forEach(restoreOne); toast.success(`Đã khôi phục ${selectedItems.length} mục`); setSelectedKeys(new Set()); };
+  const bulkDelete = () => { selectedItems.forEach(deleteOne); toast.success(`Đã xóa vĩnh viễn ${selectedItems.length} mục`); setSelectedKeys(new Set()); setBulkDeleteOpen(false); };
+
+  const CLEANUP_DAYS = [7, 14, 30, 60, 90];
+  const checkbox = (on: boolean, onToggle: () => void, label: string) => (
+    <button type="button" role="checkbox" aria-checked={on} aria-label={label} onClick={onToggle}
+      className={cn('h-[18px] w-[18px] rounded-md border-2 grid place-items-center shrink-0 transition-colors', on ? 'bg-primary border-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/60')}>
+      {on && <Check className="h-3 w-3" strokeWidth={3} />}
+    </button>
+  );
+  const remainingPill = (item: TrashItem) => {
+    const d = getDaysRemaining(item.data.deletedAt!);
+    if (d === null || !trashSettings.enabled) return <span className="text-[12px] text-muted-foreground">—</span>;
+    return <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap', d <= 3 ? 'bg-[#FFE4EA] text-[#E0445E]' : d <= 7 ? 'bg-[#FFF4DB] text-[#B7791F]' : 'bg-secondary text-foreground/70')}>{d === 0 ? 'Sắp xóa' : `${d} ngày`}</span>;
+  };
+
+  const policies = [
+    { ok: true, title: 'Khôi phục bất cứ lúc nào', desc: 'Mục đã xóa giữ nguyên dữ liệu cho đến khi bạn xóa vĩnh viễn.' },
+    { ok: autoOn, title: autoOn ? `Tự dọn sau ${trashSettings.autoCleanupDays} ngày` : 'Tự động dọn đang tắt', desc: autoOn ? 'Mục quá hạn sẽ bị xóa vĩnh viễn khi mở Thùng rác.' : 'Mục ở lại thùng rác cho đến khi bạn tự xóa.' },
+    { ok: true, title: 'Xóa vĩnh viễn là không thể hoàn tác', desc: 'Dữ liệu bị gỡ khỏi máy và tài khoản đồng bộ.' },
+  ];
 
   const side = (
     <div className="space-y-4">
       <Surface className="p-4">
-        <SectionTitle title="Tự động dọn dẹp" action={<button className="text-[12px] font-semibold text-primary" onClick={() => setSettingsOpen(true)}>Cài đặt</button>} />
+        <SectionTitle title="Tự động dọn dẹp" action={<button className="text-[12px] font-semibold text-primary" onClick={() => setSettingsOpen(true)}>Chi tiết</button>} />
         <div className="flex items-center justify-between gap-3">
           <div><p className="text-[13.5px] font-semibold">Tự động xóa vĩnh viễn</p><p className="text-[11.5px] text-muted-foreground">{autoLabel}</p></div>
-          <Switch checked={trashSettings.enabled} onCheckedChange={(checked) => setTrashSettings({ enabled: checked })} />
+          <Switch checked={trashSettings.enabled} onCheckedChange={(checked) => setTrashSettings({ enabled: checked, ...(checked && trashSettings.autoCleanupDays === 0 ? { autoCleanupDays: 30 } : {}) })} aria-label="Tự động xóa vĩnh viễn" />
         </div>
         {trashSettings.enabled && (
-          <Select value={String(trashSettings.autoCleanupDays)} onValueChange={(value) => setTrashSettings({ autoCleanupDays: parseInt(value) })}>
-            <SelectTrigger className="mt-3 h-10 rounded-full"><SelectValue /></SelectTrigger>
-            <SelectContent>{AUTO_CLEANUP_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-          </Select>
+          <>
+            <p className="text-[12px] font-semibold text-muted-foreground mt-3 mb-1.5">Xóa sau (ngày)</p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {CLEANUP_DAYS.map((d) => (
+                <button key={d} onClick={() => setTrashSettings({ autoCleanupDays: d })} className={cn('h-9 rounded-xl text-[12.5px] font-semibold border transition-colors', trashSettings.autoCleanupDays === d ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border/70 hover:bg-secondary')}>{d}</button>
+              ))}
+            </div>
+          </>
         )}
+      </Surface>
+      <Surface className="p-4">
+        <SectionTitle title="Thao tác nhanh" />
+        <div className="space-y-2">
+          <Button variant="outline" className="w-full justify-start rounded-full" disabled={selectedItems.length === 0} onClick={bulkRestore}><RotateCcw className="h-4 w-4 mr-2" />Khôi phục mục đã chọn{selectedItems.length ? ` (${selectedItems.length})` : ''}</Button>
+          <Button variant="outline" className="w-full justify-start rounded-full text-destructive hover:text-destructive" disabled={selectedItems.length === 0} onClick={() => setBulkDeleteOpen(true)}><Trash2 className="h-4 w-4 mr-2" />Xóa vĩnh viễn mục đã chọn</Button>
+          <Button variant="destructive" className="w-full justify-start rounded-full" disabled={trashedItems.length === 0 || isEmptying} onClick={() => setEmptyOpen(true)}><Trash className="h-4 w-4 mr-2" />{isEmptying ? 'Đang xóa...' : 'Dọn sạch thùng rác'}</Button>
+        </div>
+      </Surface>
+      <Surface className="p-4">
+        <SectionTitle title="Tổng quan dữ liệu đã xóa" hint={`${counts.all} mục`} />
+        {counts.all === 0 ? <p className="text-[12.5px] text-muted-foreground">Chưa có dữ liệu.</p> : (
+          <div className="space-y-2.5">
+            {(['note', 'task', 'goal', 'habit'] as const).map((t) => {
+              const pct = counts.all ? Math.round((counts[t] / counts.all) * 100) : 0;
+              return (
+                <div key={t}>
+                  <div className="flex items-center gap-2 text-[12.5px] mb-1">
+                    <LifeIcon name={TYPE_META[t].icon} size={16} variant="duotone" />
+                    <span className="flex-1 font-semibold">{getItemTypeName(t)}</span>
+                    <span className="text-muted-foreground font-semibold">{counts[t]} · {pct}%</span>
+                  </div>
+                  <ProgressBar value={pct} color={TYPE_COLOR[t]} height={6} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Surface>
+      <Surface className="p-4">
+        <SectionTitle title="Chính sách & quyền riêng tư" />
+        <div className="space-y-2.5">
+          {policies.map((p) => (
+            <div key={p.title} className="flex items-start gap-2.5">
+              <span className={cn('mt-0.5 h-5 w-5 rounded-full grid place-items-center shrink-0', p.ok ? 'bg-[#E3F8EE] text-[#1F9D63]' : 'bg-secondary text-muted-foreground')}>{p.ok ? <Check className="h-3 w-3" strokeWidth={3} /> : <Clock className="h-3 w-3" />}</span>
+              <div><p className="text-[13px] font-semibold leading-tight">{p.title}</p><p className="text-[11.5px] text-muted-foreground">{p.desc}</p></div>
+            </div>
+          ))}
+        </div>
+        <Link to="/settings?tab=data" className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold text-primary"><ShieldCheck className="h-3.5 w-3.5" />Xuất / nhập dữ liệu trong Cài đặt</Link>
       </Surface>
       <MascotCard mascot="mochi" pose="rest" title="Đừng lo" quote="Mục đã xóa vẫn ở đây — bạn có thể khôi phục bất cứ lúc nào." />
     </div>
@@ -243,13 +336,14 @@ export default function TrashPage() {
           {trashedItems.length > 0 && <Button variant="destructive" className="h-10 rounded-full px-4" disabled={isEmptying} onClick={() => setEmptyOpen(true)}><Trash className="h-4 w-4 mr-1.5" />{isEmptying ? 'Đang xóa...' : 'Dọn sạch'}</Button>}
         </>} />
       <div className="overflow-x-auto no-scrollbar -mx-1 px-1 mb-5">
-        <SegmentedTabs items={[{ id: 'all', label: 'Tất cả', count: counts.all }, { id: 'note', label: 'Ghi chú', count: counts.note }, { id: 'task', label: 'Công việc', count: counts.task }, { id: 'goal', label: 'Mục tiêu', count: counts.goal }, { id: 'habit', label: 'Thói quen', count: counts.habit }]} value={filterType} onChange={setFilterType} />
+        <SegmentedTabs items={[{ id: 'all', label: 'Tất cả', count: counts.all }, { id: 'note', label: 'Ghi chú', count: counts.note }, { id: 'task', label: 'Công việc', count: counts.task }, { id: 'goal', label: 'Mục tiêu', count: counts.goal }, { id: 'habit', label: 'Thói quen', count: counts.habit }]} value={filterType} onChange={(v) => { setFilterType(v); setSelectedKeys(new Set()); }} />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
         <div className="space-y-4 min-w-0">
           <HeroBanner mascot="mochi" pose="rest" title={trashedItems.length ? 'Dọn dẹp cho nhẹ nhàng' : 'Thùng rác đang trống ✨'} subtitle={trashedItems.length ? `Khôi phục mục cần giữ, xóa vĩnh viễn mục không cần nữa.${soon ? ` ${soon} mục sắp bị tự động xóa.` : ''}` : 'Không có mục nào trong thùng rác.'} />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <StatTile icon="module/trash" tint="rose" value={counts.all} label="Tổng mục" hint={soon ? `${soon} sắp tự xóa` : 'mọi loại'} onClick={() => setFilterType('all')} active={filterType === 'all'} />
             {(['note', 'task', 'goal', 'habit'] as const).map((t) => (
               <StatTile key={t} icon={TYPE_META[t].icon} tint={TYPE_META[t].tint} value={counts[t]} label={getItemTypeName(t)} hint="đã xóa" onClick={() => setFilterType(filterType === t ? 'all' : t)} active={filterType === t} />
             ))}
@@ -257,34 +351,69 @@ export default function TrashPage() {
 
           <Surface className="p-3 sm:p-4">
             <div className="px-1"><SectionTitle title="Mục đã xóa" hint={`${filteredItems.length} mục`} /></div>
+            {selectedKeys.size > 0 && (
+              <div className="flex items-center gap-2 flex-wrap rounded-2xl bg-primary/10 px-3 py-2 mb-3">
+                <span className="text-[13px] font-semibold text-primary mr-auto">Đã chọn {selectedKeys.size}</span>
+                <Button size="sm" variant="outline" className="h-8 rounded-full bg-card" onClick={bulkRestore}><RotateCcw className="h-3.5 w-3.5 mr-1" />Khôi phục</Button>
+                <Button size="sm" variant="outline" className="h-8 rounded-full bg-card text-destructive hover:text-destructive" onClick={() => setBulkDeleteOpen(true)}><Trash2 className="h-3.5 w-3.5 mr-1" />Xóa vĩnh viễn</Button>
+                <IconButton label="Bỏ chọn" onClick={() => setSelectedKeys(new Set())}><X className="h-4 w-4" /></IconButton>
+              </div>
+            )}
             {trashedItems.length === 0 ? (
               <EmptyState mascot="mochi" pose="rest" title="Thùng rác trống" description="Không có mục nào trong thùng rác." />
             ) : filteredItems.length === 0 ? (
               <EmptyState mascot="mochi" compact title={`Không có ${getItemTypeName(filterType as TrashItem['type']).toLowerCase()} nào trong thùng rác`} />
-            ) : (
+            ) : isMobile ? (
               <div className="divide-y divide-border/50">
                 {filteredItems.map((item) => {
-                  const daysRemaining = getDaysRemaining(item.data.deletedAt!);
-                  const area = getItemArea(item);
                   const m = TYPE_META[item.type];
+                  const k = keyOf(item);
                   return (
-                    <div key={`${item.type}-${item.data.id}`} className="flex items-start gap-3 px-1 py-3">
+                    <div key={k} className={cn('flex items-start gap-3 px-1 py-3', selectedKeys.has(k) && 'bg-primary/5')}>
+                      <div className="pt-2.5">{checkbox(selectedKeys.has(k), () => toggleKey(k), `Chọn ${getItemTitle(item)}`)}</div>
                       <span className={cn('h-10 w-10 rounded-[13px] grid place-items-center shrink-0', TINTS[m.tint].bg)}><LifeIcon name={m.icon} size={20} variant="duotone" /></span>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-[14px] font-semibold truncate max-w-full">{getItemTitle(item)}</p>
-                          {area && <AreaChip area={area.id} label={area.name} />}
-                        </div>
-                        <p className="text-[12px] text-muted-foreground line-clamp-1 mt-0.5">{getItemDescription(item)}</p>
+                        <p className="text-[14px] font-semibold truncate">{getItemTitle(item)}</p>
                         <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground flex-wrap">
                           <span className="font-semibold">{getItemTypeName(item.type)}</span>
-                          <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />Đã xóa {format(new Date(item.data.deletedAt!), 'dd/MM/yyyy HH:mm', { locale: vi })}</span>
-                          {daysRemaining !== null && <span className={cn('rounded-full px-2 py-0.5 font-semibold', daysRemaining <= 3 ? 'bg-[#FFE4EA] text-[#E0445E]' : 'bg-secondary')}>{daysRemaining === 0 ? 'Sắp xóa' : `Còn ${daysRemaining} ngày`}</span>}
+                          <span>{format(new Date(item.data.deletedAt!), 'dd/MM HH:mm', { locale: vi })}</span>
+                          {remainingPill(item)}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="outline" size="sm" className="rounded-full h-8" onClick={() => handleRestore(item)}><RotateCcw className="h-3.5 w-3.5 sm:mr-1" /><span className="hidden sm:inline">Khôi phục</span></Button>
+                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label="Khôi phục" onClick={() => handleRestore(item)}><RotateCcw className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-destructive" aria-label="Xóa vĩnh viễn" onClick={() => { setItemToDelete(item); setDeleteDialogOpen(true); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-border/60 overflow-hidden">
+                <div className="grid grid-cols-[18px_minmax(0,1fr)_110px_128px_84px_190px] items-center gap-3 px-3 h-10 bg-secondary/50 text-[11.5px] font-semibold text-muted-foreground">
+                  {checkbox(allSelected, toggleAll, 'Chọn tất cả')}
+                  <span>Tiêu đề</span><span>Loại</span><span>Thời gian xóa</span><span>Còn lại</span><span className="text-right">Thao tác</span>
+                </div>
+                {filteredItems.map((item) => {
+                  const area = getItemArea(item);
+                  const m = TYPE_META[item.type];
+                  const k = keyOf(item);
+                  return (
+                    <div key={k} className={cn('grid grid-cols-[18px_minmax(0,1fr)_110px_128px_84px_190px] items-center gap-3 px-3 py-2.5 border-t border-border/50 hover:bg-secondary/40', selectedKeys.has(k) && 'bg-primary/10')}>
+                      {checkbox(selectedKeys.has(k), () => toggleKey(k), `Chọn ${getItemTitle(item)}`)}
+                      <div className="min-w-0 flex items-center gap-2.5">
+                        <span className={cn('h-9 w-9 rounded-xl grid place-items-center shrink-0', TINTS[m.tint].bg)}><LifeIcon name={m.icon} size={18} variant="duotone" /></span>
+                        <div className="min-w-0">
+                          <p className="text-[13.5px] font-semibold truncate">{getItemTitle(item)}</p>
+                          <p className="text-[12px] text-muted-foreground truncate">{area ? `${area.icon} ${area.name} · ` : ''}{getItemDescription(item)}</p>
+                        </div>
+                      </div>
+                      <span><span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', TINTS[m.tint].bg)} style={{ color: TINTS[m.tint].fg }}>{getItemTypeName(item.type)}</span></span>
+                      <span className="text-[12px] text-muted-foreground">{format(new Date(item.data.deletedAt!), 'dd/MM/yyyy', { locale: vi })}<br /><span className="text-[11px]">{format(new Date(item.data.deletedAt!), 'HH:mm')}</span></span>
+                      <span>{remainingPill(item)}</span>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button variant="outline" size="sm" className="rounded-full h-8" onClick={() => handleRestore(item)}><RotateCcw className="h-3.5 w-3.5 mr-1" />Khôi phục</Button>
+                        <Button variant="ghost" size="sm" className="h-8 rounded-full text-destructive hover:text-destructive px-2.5" onClick={() => { setItemToDelete(item); setDeleteDialogOpen(true); }}><Trash2 className="h-3.5 w-3.5 mr-1" />Xóa</Button>
                       </div>
                     </div>
                   );
@@ -296,6 +425,19 @@ export default function TrashPage() {
         </div>
         {!isMobile && <aside className="hidden xl:block sticky top-4">{side}</aside>}
       </div>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" />Xóa vĩnh viễn {selectedItems.length} mục?</AlertDialogTitle>
+            <AlertDialogDescription>Các mục đã chọn sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={bulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Xóa vĩnh viễn</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AdaptiveModal open={settingsOpen} onOpenChange={setSettingsOpen} title="Cài đặt Thùng rác" description="Quản lý tự động dọn dẹp thùng rác">
         <div className="space-y-4 py-3">

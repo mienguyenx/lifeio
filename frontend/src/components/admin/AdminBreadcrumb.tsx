@@ -35,6 +35,7 @@ const ROUTE_LABELS: Record<string, string> = {
   'email-logs': 'Email Logs',
   data: 'Data Management',
   backup: 'Google Drive Backup',
+  classic: 'Bản cũ',
 };
 
 export function AdminBreadcrumb() {

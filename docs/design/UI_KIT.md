@@ -64,3 +64,9 @@ Thứ tự khối: **Header → (Hero) → SegmentedTabs → Stat tiles → Filt
 - Lựa chọn dạng thẻ (`OptionCard` trong Cá nhân hóa): border + `ring-4 ring-primary/10` khi chọn — cùng ngôn ngữ với `ChoiceGrid`.
 - Danh sách cài đặt: hàng `title + desc` bên trái, `Switch`/control bên phải, phân cách `divide-y divide-border/50`.
 - 404 nằm trong app shell (không full-screen) để người dùng vẫn thấy điều hướng.
+
+## Bổ sung Module 20–22 & 34–35 (Admin + Ghi chú, Thùng rác)
+- Admin dùng chung khung app — xem `modules/ADMIN.md`. Bảng dữ liệu: `GridHead/GridRow` (`rounded-2xl border`, header `bg-secondary/50 h-10 text-[11.5px]`), chọn dòng → panel chi tiết ở cột phải (≥1280px) hoặc `AdaptiveModal`.
+- Chọn nhiều: checkbox bo `rounded-md` 18px; thanh thao tác hàng loạt `rounded-2xl bg-primary/10` với nút `outline` nền card.
+- Chip thời gian/ngày (7/30/90, 7/14/30/60/90): `h-8/h-9 rounded-full|xl`, chọn = `bg-primary text-primary-foreground`.
+- `Pill` tông mềm: green / amber / red / blue / violet / gray — dùng cho vai trò, trạng thái, gói.
