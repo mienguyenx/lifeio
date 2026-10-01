@@ -31,8 +31,7 @@ import { AIDailyBriefing } from '@/components/today/AIDailyBriefing';
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { RecommendationsCard } from '@/components/today/RecommendationsCard';
 import { usePreferencesSync } from '@/hooks/sync/usePreferencesSync';
-import { Lio } from '@/components/brand/Lio';
-import { Icon3D } from '@/components/brand/Icon3D';
+import { Mascot } from '@/components/brand/Mascot';
 // Motivational quotes
 const QUOTES = [
   { text: "Hành trình ngàn dặm bắt đầu từ một bước chân", author: "Lão Tử" },
@@ -188,99 +187,82 @@ export default function TodayPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-3 md:space-y-4">
-      {/* Summary Hero — V2: nền tím 3D + Lio */}
-      <section className="hero-violet relative overflow-hidden rounded-2xl text-white">
-        <div className="relative z-10 flex items-center gap-4 md:gap-6 p-4 md:p-6 pr-[116px] md:pr-44">
+      {/* Summary Hero — Visual Spec §6: lavender hero + Lumi + tiến độ + 1 CTA chính */}
+      <section className="hero-lavender relative overflow-hidden rounded-3xl md:rounded-hero">
+        <div className="relative z-10 flex items-center gap-4 md:gap-6 p-4 md:p-6 pr-[124px] md:pr-52">
           <ProgressRing
-            size={96}
-            strokeWidth={8}
+            size={92}
+            strokeWidth={9}
             progress={dayProgress}
-            color="hsl(170 85% 60%)"
-            bgColor="hsl(0 0% 100% / 0.2)"
+            color="hsl(var(--primary))"
+            bgColor="hsl(var(--primary) / 0.12)"
             className="shrink-0 hidden sm:inline-flex"
           >
             <div className="text-center">
-              <span className="text-2xl font-bold tabular-nums">{dayProgress}</span>
-              <span className="text-[10px] text-white/75 block -mt-1">%</span>
+              <span className="text-2xl font-bold tabular-nums text-foreground">{dayProgress}</span>
+              <span className="text-caption text-muted-foreground block -mt-1">%</span>
             </div>
           </ProgressRing>
 
-          <div className="flex-1 min-w-0 space-y-2.5">
+          <div className="flex-1 min-w-0 space-y-3">
             <div>
-              <p className="text-xs text-white/75 first-letter:uppercase">
+              <p className="text-small text-muted-foreground first-letter:uppercase">
                 {format(today, 'EEEE, dd MMMM yyyy', { locale: vi })}
               </p>
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight truncate text-white">
+              <h1 className="text-xl md:text-page-title font-bold tracking-tight line-clamp-2 text-foreground">
                 {greeting}, {user.name}!
               </h1>
             </div>
 
             {/* Mini Stats Row */}
-            <div className="flex gap-1.5 flex-wrap text-xs font-medium">
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 backdrop-blur-sm">
-                <Target className="w-3.5 h-3.5" /> {completedHabitsToday.length}/{todayHabits.length} thói quen
+            <div className="flex gap-1.5 flex-wrap text-small font-semibold">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-card/80 px-3 py-1 shadow-soft">
+                <span className="w-1.5 h-1.5 rounded-full bg-mint" /> {completedHabitsToday.length}/{todayHabits.length} thói quen
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 backdrop-blur-sm">
-                <CheckCircle2 className="w-3.5 h-3.5" /> {completedTasksToday.length} việc xong
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-card/80 px-3 py-1 shadow-soft">
+                <span className="w-1.5 h-1.5 rounded-full bg-peach" /> {Math.max(todayTasks.length - completedTasksToday.length, 0)} việc còn lại
               </span>
               {overdueTasks.length > 0 && (
-                <span className="inline-flex items-center rounded-full bg-white text-destructive px-2.5 py-1 font-semibold">
+                <span className="inline-flex items-center rounded-full bg-destructive/10 text-destructive px-3 py-1">
                   {overdueTasks.length} quá hạn
                 </span>
               )}
-              {todayPomodoros.length > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 backdrop-blur-sm">
-                  🍅 {todayPomodoros.length}
-                </span>
-              )}
               {isPomodoroRunning && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 animate-pulse">
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-3 py-1">
                   <Clock className="w-3.5 h-3.5" /> Đang tập trung
                 </span>
               )}
             </div>
 
-            {/* Quote */}
-            <p className="text-xs text-white/80 italic line-clamp-1">
-              <Sparkles className="w-3 h-3 inline mr-1" />
-              "{todayQuote.text}" — {todayQuote.author}
-            </p>
-          </div>
-
-          {/* Pomodoro Button */}
-          <div className="hidden lg:block shrink-0">
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button onClick={() => startPomodoro()} size="sm" className="h-10 px-4 bg-white text-primary-ink hover:bg-white/90 shadow-raised font-semibold">
-                    <Play className="w-4 h-4 mr-1" /> Tập trung
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p className="text-xs">Bắt đầu Pomodoro 25 phút</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button onClick={() => startPomodoro(topPriorityTask?.id)} size="sm" className="h-10 px-4 hidden sm:inline-flex">
+                <Play className="w-4 h-4" /> Bắt đầu tập trung
+              </Button>
+              <p className="hidden sm:block text-small text-muted-foreground italic line-clamp-1 min-w-0 flex-1">
+                "{todayQuote.text}" — {todayQuote.author}
+              </p>
+            </div>
           </div>
         </div>
 
-        <Lio
-          pose={dayProgress >= 80 ? 'celebrate' : 'wave'}
-          size={150}
+        <Mascot
+          name="lumi"
+          pose={dayProgress >= 80 ? 'happy' : 'default'}
+          size={160}
           float
-          className="absolute -bottom-2 right-0 md:right-6 w-[100px] h-[100px] md:w-[150px] md:h-[150px]"
+          className="absolute bottom-0 right-2 md:right-8 w-[100px] h-[118px] md:w-[160px] md:h-[180px] object-bottom"
         />
       </section>
 
       {/* Getting Started for New Users */}
       {isNewUser && (
-        <Card className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border-primary/30 animate-fade-in">
+        <Card className="bg-gradient-to-r from-primary/10 via-mint/10 to-primary/10 border-primary/30 animate-fade-in">
           <CardContent className="p-5">
             <div className="flex items-start gap-4">
-              <Lio pose="think" size={72} className="shrink-0 -mt-1" />
+              <Mascot name="lumi" pose="happy" size={72} className="shrink-0 -mt-1" />
               <div className="flex-1 space-y-3">
                 <div>
-                  <h3 className="font-semibold text-lg">Chào bạn, mình là Lio!</h3>
+                  <h3 className="font-semibold text-lg">Chào bạn, mình là Lumi!</h3>
                   <p className="text-sm text-muted-foreground">
                     Cùng bắt đầu bằng một thói quen hoặc công việc đầu tiên nhé — chỉ mất 1 phút.
                   </p>
@@ -347,7 +329,7 @@ export default function TodayPage() {
           <Card className="border-primary/15">
             <CardContent className="px-3 py-3 space-y-2">
               <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-accent shrink-0" />
+                <Star className="w-4 h-4 text-mint shrink-0" />
                 {todayIntention ? (
                   <div className="flex-1 flex items-center gap-2">
                     <p className={cn("flex-1 text-sm font-medium", todayIntention.completed && "line-through text-muted-foreground")}>
@@ -379,22 +361,22 @@ export default function TodayPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions — V2: ô 3D */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {([
-              { label: 'Công việc', icon: 'tasks', onClick: () => setShowTaskModal(true), cls: '' },
-              { label: 'Thói quen', icon: 'flame', onClick: () => setShowHabitModal(true), cls: '' },
-              { label: 'Nhật ký', icon: 'journal', onClick: () => setShowJournalModal(true), cls: '' },
-              { label: 'Tập trung', icon: 'pomodoro', onClick: () => startPomodoro(), cls: 'hidden sm:flex' },
-            ] as const).map((a) => (
+          {/* Quick Actions — icon lucide trong icon container màu module */}
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: 'Công việc', Icon: ListTodo, tone: 'tone-tasks', onClick: () => setShowTaskModal(true) },
+              { label: 'Thói quen', Icon: Target, tone: 'tone-habits', onClick: () => setShowHabitModal(true) },
+              { label: 'Nhật ký', Icon: PenLine, tone: 'tone-journal', onClick: () => setShowJournalModal(true) },
+              { label: 'Tập trung', Icon: Play, tone: 'tone-home', onClick: () => startPomodoro() },
+            ].map(({ label, Icon, tone, onClick }) => (
               <button
-                key={a.label}
+                key={label}
                 type="button"
-                onClick={a.onClick}
-                className={cn('tile-3d flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 h-[72px] sm:h-14 px-2 text-xs sm:text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', a.cls)}
+                onClick={onClick}
+                className="group flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 min-h-[72px] sm:min-h-14 px-2 rounded-lg border border-border bg-card shadow-soft text-small sm:text-[13px] font-semibold transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-card active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <Icon3D name={a.icon} size={28} />
-                <span className="truncate">{a.label}</span>
+                <span className={cn('icon-tile w-9 h-9', tone)}><Icon className="w-[18px] h-[18px]" strokeWidth={2} /></span>
+                <span className="truncate">{label}</span>
               </button>
             ))}
           </div>
@@ -406,7 +388,7 @@ export default function TodayPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Icon3D name="flame" size={22} /> Thói quen
+                    <span className="icon-tile tone-habits w-7 h-7"><Target className="w-4 h-4" /></span> Thói quen
                   </CardTitle>
                   <Link to="/habits" className="text-xs font-medium text-muted-foreground hover:text-primary-ink">Tất cả <ChevronRight className="w-3 h-3 inline" /></Link>
                 </div>
@@ -486,7 +468,7 @@ export default function TodayPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Icon3D name="tasks" size={22} /> Công việc
+                    <span className="icon-tile tone-tasks w-7 h-7"><CheckCircle2 className="w-4 h-4" /></span> Công việc
                     {overdueTasks.length > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{overdueTasks.length} quá hạn</Badge>}
                   </CardTitle>
                   <Link to="/tasks" className="text-xs font-medium text-muted-foreground hover:text-primary-ink">Tất cả <ChevronRight className="w-3 h-3 inline" /></Link>

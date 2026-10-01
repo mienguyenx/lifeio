@@ -4,6 +4,7 @@ import { format, subDays, differenceInDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
+import { EmptyState } from '@/components/brand/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
@@ -669,20 +670,12 @@ export default function JournalPage() {
               />
 
               {filteredEntries.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="p-12 text-center text-muted-foreground">
-                    <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="font-medium text-lg">
-                      {journalEntries.length === 0 ? 'Chưa có journal nào' : 'Không tìm thấy kết quả'}
-                    </p>
-                    <p className="text-sm mt-1">
-                      {journalEntries.length === 0 
-                        ? 'Bắt đầu viết nhật ký để theo dõi tâm trạng!'
-                        : 'Thử thay đổi bộ lọc để tìm entries khác'
-                      }
-                    </p>
-                  </CardContent>
-                </Card>
+                <EmptyState
+                  mascot="ori"
+                  pose={journalEntries.length === 0 ? 'learn' : 'default'}
+                  title={journalEntries.length === 0 ? 'Chưa có trang nhật ký nào' : 'Không tìm thấy kết quả'}
+                  description={journalEntries.length === 0 ? 'Viết vài dòng về hôm nay — Ori sẽ giúp bạn nhìn ra điều đáng nhớ.' : 'Thử thay đổi bộ lọc để tìm trang khác.'}
+                />
               ) : (
                 <div className={cn(
                   "grid gap-4",

@@ -25,6 +25,29 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          light: "hsl(var(--primary-light))",
+        },
+        lavender: "hsl(var(--lavender))",
+        mint: "hsl(var(--mint))",
+        peach: "hsl(var(--peach))",
+        pink: "hsl(var(--pink))",
+        sky: "hsl(var(--sky))",
+        yellow: "hsl(var(--yellow))",
+        module: {
+          home: "hsl(var(--module-home))",
+          tasks: "hsl(var(--module-tasks))",
+          calendar: "hsl(var(--module-calendar))",
+          habits: "hsl(var(--module-habits))",
+          goals: "hsl(var(--module-goals))",
+          journal: "hsl(var(--module-journal))",
+          ai: "hsl(var(--module-ai))",
+          insights: "hsl(var(--module-insights))",
+          areas: "hsl(var(--module-areas))",
+          health: "hsl(var(--module-health))",
+          finance: "hsl(var(--module-finance))",
+          learning: "hsl(var(--module-learning))",
+          relationships: "hsl(var(--module-relationships))",
+          settings: "hsl(var(--module-settings))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -78,15 +101,30 @@ export default {
       },
       boxShadow: {
         card: "var(--shadow-card)",
-        raised: "var(--shadow-raised)",
-        primary: "var(--shadow-primary)",
+        hero: "var(--shadow-hero)",
+        fab: "var(--shadow-fab)",
+        soft: "var(--shadow-soft)",
       },
+      // Type scale (Visual Spec §Typography)
+      fontSize: {
+        display: ["2.25rem", { lineHeight: "1.1", fontWeight: "700" }],
+        "page-title": ["1.75rem", { lineHeight: "1.2", fontWeight: "700" }],
+        section: ["1.25rem", { lineHeight: "1.3", fontWeight: "700" }],
+        "card-title": ["0.9375rem", { lineHeight: "1.4", fontWeight: "600" }],
+        body: ["0.875rem", { lineHeight: "1.5" }],
+        small: ["0.75rem", { lineHeight: "1.4" }],
+        caption: ["0.6875rem", { lineHeight: "1.4", fontWeight: "500" }],
+      },
+      // Radius (Visual Spec §Radius) — --radius = 20px
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 4px)",
-        sm: "calc(var(--radius) - 8px)",
-        xl: "calc(var(--radius) + 4px)",
-        "2xl": "calc(var(--radius) + 8px)",
+        sm: "calc(var(--radius) - 12px)",  // 8px checkbox, menu item (giữ tương thích shadcn)
+        icon: "calc(var(--radius) - 6px)", // 14px icon container
+        md: "calc(var(--radius) - 4px)",   // 16px button / input
+        lg: "var(--radius)",               // 20px small card
+        xl: "calc(var(--radius) + 4px)",   // 24px large card
+        "2xl": "calc(var(--radius) + 8px)", // 28px large card / app shell
+        "3xl": "calc(var(--radius) + 12px)", // 32px app shell
+        hero: "calc(var(--radius) + 16px)", // 36px hero card
       },
       keyframes: {
         "accordion-down": {
@@ -117,7 +155,7 @@ export default {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.1)" },
         },
-        "lio-float": {
+        "mascot-float": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-6px)" },
         },
@@ -130,7 +168,7 @@ export default {
         "fade-in": "fade-in 0.2s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "streak-fire": "streak-fire 0.5s ease-in-out",
-        "lio-float": "lio-float 3.2s ease-in-out infinite",
+        "mascot-float": "mascot-float 3.2s ease-in-out infinite",
       },
     },
   },

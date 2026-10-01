@@ -45,7 +45,7 @@ const MENU_GROUPS = {
     items: [
       { path: '/life-wheel', icon: PieChart, label: 'Bánh xe', badgeKey: null },
       { path: '/area-dashboard', icon: BarChart3, label: '10 lĩnh vực', badgeKey: null },
-      { path: '/ai-chat', icon: Bot, label: 'Lio AI', badgeKey: null },
+      { path: '/ai-chat', icon: Bot, label: 'AI Coach', badgeKey: null },
     ],
   },
   overview: {

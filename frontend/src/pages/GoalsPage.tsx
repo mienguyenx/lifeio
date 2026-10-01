@@ -4,6 +4,7 @@ import { format, parseISO, differenceInDays, isPast, addDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
+import { EmptyState } from '@/components/brand/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -773,17 +774,11 @@ export default function GoalsPage() {
           !isMobile && isSidebarOpen && "lg:mr-0"
         )}>
           {filteredAndSortedGoals.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="p-12 text-center text-muted-foreground">
-                <Target className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="font-medium text-lg">
-                  {goals.length === 0 ? 'Chưa có goal nào' : 'Không có goal nào phù hợp'}
-                </p>
-                <p className="text-sm mt-1">
-                  {goals.length === 0 ? 'Bắt đầu đặt mục tiêu để theo dõi tiến độ!' : 'Thử điều chỉnh bộ lọc'}
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              mascot="lumi"
+              title={goals.length === 0 ? 'Chưa có mục tiêu nào' : 'Không có mục tiêu phù hợp'}
+              description={goals.length === 0 ? 'Đặt một mục tiêu đầu tiên — Lumi sẽ nhắc bạn từng bước nhỏ.' : 'Thử điều chỉnh bộ lọc nhé.'}
+            />
           ) : (
             <div className={cn(
               "grid gap-4",

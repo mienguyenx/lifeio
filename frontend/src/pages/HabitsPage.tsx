@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { Plus, Flame, CheckCircle2, MoreVertical, Trash2, Target, Calendar, Eye, Archive, Minus, History, Lightbulb, ChevronDown, TrendingUp, Award, BarChart3, PanelRightClose, PanelRight, Brain, Trophy, Flag } from 'lucide-react';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
+import { EmptyState } from '@/components/brand/EmptyState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
@@ -848,17 +849,12 @@ export default function HabitsPage() {
 
             {/* Habits Grid */}
             {filteredAndSortedHabits.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="p-12 text-center text-muted-foreground">
-                  <Target className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="font-medium text-lg">
-                    {habits.length === 0 ? 'Chưa có habit nào' : 'Không có habit nào phù hợp'}
-                  </p>
-                  <p className="text-sm mt-1">
-                    {habits.length === 0 ? 'Bắt đầu xây dựng thói quen tốt ngay!' : 'Thử điều chỉnh bộ lọc'}
-                  </p>
-                </CardContent>
-              </Card>
+              <EmptyState
+                mascot="taro"
+                pose={habits.length === 0 ? 'default' : 'relax'}
+                title={habits.length === 0 ? 'Chưa có thói quen nào' : 'Không có thói quen phù hợp'}
+                description={habits.length === 0 ? 'Bắt đầu từ một thói quen thật nhỏ — Taro sẽ cùng bạn đi chậm mà chắc.' : 'Thử điều chỉnh bộ lọc nhé.'}
+              />
             ) : groupByArea ? (
               // Grouped by Area View
               <div className="space-y-4">
@@ -1293,17 +1289,12 @@ export default function HabitsPage() {
       </div>
 
       {filteredAndSortedHabits.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="p-8 text-center text-muted-foreground">
-            <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="font-medium">
-              {habits.length === 0 ? 'Chưa có habit nào' : 'Không có habit nào phù hợp'}
-            </p>
-            <p className="text-sm mt-1">
-              {habits.length === 0 ? 'Bắt đầu xây dựng thói quen tốt ngay!' : 'Thử điều chỉnh bộ lọc'}
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+                mascot="taro"
+                pose={habits.length === 0 ? 'default' : 'relax'}
+                title={habits.length === 0 ? 'Chưa có thói quen nào' : 'Không có thói quen phù hợp'}
+                description={habits.length === 0 ? 'Bắt đầu từ một thói quen thật nhỏ — Taro sẽ cùng bạn đi chậm mà chắc.' : 'Thử điều chỉnh bộ lọc nhé.'}
+              />
       ) : (
         <div className="space-y-3">
           {filteredAndSortedHabits.map((habit) => {

@@ -431,7 +431,7 @@ export default function WeeklyReviewPage() {
                       <Wand2 className="w-4 h-4 mr-2" /> Auto-draft
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-gradient-to-r from-accent/90 to-accent text-accent-foreground border-0 shadow-lg">
+                  <TooltipContent className="bg-gradient-to-r from-mint/90 to-mint text-accent-foreground border-0 shadow-lg">
                     <p className="font-medium">Tạo nháp tự động</p>
                     <p className="text-xs opacity-90">Tổng hợp từ tasks, habits, journal, pomodoro tuần này</p>
                   </TooltipContent>

@@ -7,6 +7,7 @@ import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { getTodayDateString, getTodayStart } from '@/utils/dateUtils';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { EmptyState } from '@/components/brand/EmptyState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -1347,7 +1348,7 @@ export default function TasksPage() {
 
             <TabsContent value="todo" className="mt-4 space-y-2">
               {todoTasks.length === 0 ? (
-                <Card className="border-dashed"><CardContent className="p-6 text-center text-muted-foreground"><Clock className="w-10 h-10 mx-auto mb-2 opacity-50" /><p>Không có task nào</p></CardContent></Card>
+                <EmptyState compact mascot="mochi" title="Không có công việc nào" description="Thêm một việc nhỏ để bắt đầu — Mochi sẵn sàng tập trung cùng bạn." />
               ) : todoTasks.map((task) => renderMobileTask(task))}
             </TabsContent>
 
@@ -1365,7 +1366,7 @@ export default function TasksPage() {
 
             <TabsContent value="done" className="mt-4 space-y-2">
               {doneTasks.length === 0 ? (
-                <Card className="border-dashed"><CardContent className="p-6 text-center text-muted-foreground"><p>Chưa hoàn thành task nào</p></CardContent></Card>
+                <EmptyState compact mascot="mochi" pose="rest" title="Chưa hoàn thành việc nào" description="Xong việc đầu tiên là có màn ăn mừng đó!" />
               ) : doneTasks.map((task) => renderMobileTask(task))}
             </TabsContent>
           </Tabs>

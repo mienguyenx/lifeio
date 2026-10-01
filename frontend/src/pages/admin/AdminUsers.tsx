@@ -821,7 +821,7 @@ function UserDetailContent({ profile, role, onRoleChange }: UserDetailContentPro
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-accent/10">
-                      <Activity className="h-5 w-5 text-accent" />
+                      <Activity className="h-5 w-5 text-mint" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{userStats.habitsCount}</p>
