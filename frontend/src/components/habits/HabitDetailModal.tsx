@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { HabitProgressBar } from './HabitVisuals';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { LIFE_AREAS, type Habit, type LifeArea } from '@/types/lifeos';
@@ -212,12 +213,12 @@ export function HabitDetailModal({ habit: initialHabit, open, onOpenChange }: Ha
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[28px] p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <div 
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-              style={{ backgroundColor: `hsl(var(--area-${habit.area}) / 0.2)` }}
+              className="w-14 h-14 rounded-[18px] flex items-center justify-center text-3xl shrink-0"
+              style={{ backgroundColor: `hsl(var(--area-${habit.area}) / 0.14)` }}
             >
               {habit.icon || area?.icon}
             </div>
@@ -230,9 +231,9 @@ export function HabitDetailModal({ habit: initialHabit, open, onOpenChange }: Ha
                 />
               ) : (
                 <>
-                  <span>{habit.name}</span>
+                  <span className="text-[20px] font-bold">{habit.name}</span>
                   {habit.streak > 0 && (
-                    <Badge variant="secondary" className="ml-2 text-streak">
+                    <Badge variant="secondary" className="ml-2 rounded-full bg-[#FFF1E8] text-[#F2752B] dark:bg-[#FF9B63]/15">
                       <Flame className="w-3 h-3 mr-1" /> {habit.streak} ngày
                     </Badge>
                   )}
@@ -264,11 +265,11 @@ export function HabitDetailModal({ habit: initialHabit, open, onOpenChange }: Ha
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="mt-4">
-          <TabsList className="w-full">
-            <TabsTrigger value="overview" className="flex-1">Tổng quan</TabsTrigger>
-            <TabsTrigger value="calendar" className="flex-1">Lịch</TabsTrigger>
-            <TabsTrigger value="stats" className="flex-1">Thống kê</TabsTrigger>
-            {isEditing && <TabsTrigger value="settings" className="flex-1">Cài đặt</TabsTrigger>}
+          <TabsList className="w-full h-11 rounded-full p-1">
+            <TabsTrigger value="overview" className="flex-1 rounded-full">Tổng quan</TabsTrigger>
+            <TabsTrigger value="calendar" className="flex-1 rounded-full">Lịch</TabsTrigger>
+            <TabsTrigger value="stats" className="flex-1 rounded-full">Thống kê</TabsTrigger>
+            {isEditing && <TabsTrigger value="settings" className="flex-1 rounded-full">Cài đặt</TabsTrigger>}
           </TabsList>
 
           {/* Overview Tab */}
@@ -289,7 +290,7 @@ export function HabitDetailModal({ habit: initialHabit, open, onOpenChange }: Ha
                       size="icon"
                       onClick={handleDecrement}
                       disabled={todayCount === 0}
-                      className="transition-transform active:scale-90"
+                      className="rounded-full transition-transform active:scale-90"
                     >
                       <Minus className="w-4 h-4" />
                     </Button>
@@ -306,7 +307,7 @@ export function HabitDetailModal({ habit: initialHabit, open, onOpenChange }: Ha
                       variant={isCompletedToday ? 'secondary' : 'default'}
                       size="icon"
                       onClick={handleIncrement}
-                      className="transition-transform active:scale-90"
+                      className="rounded-full transition-transform active:scale-90"
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
@@ -314,7 +315,7 @@ export function HabitDetailModal({ habit: initialHabit, open, onOpenChange }: Ha
                 </div>
                 
                 {/* Progress bar */}
-                <Progress value={(todayCount / target) * 100} className="h-2 mb-3" />
+                <HabitProgressBar habit={habit} count={todayCount} target={target} className="h-2 mb-3" />
                 
                 {/* Note input */}
                 <div className="flex gap-2">

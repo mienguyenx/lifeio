@@ -32,6 +32,7 @@ import { HabitCardCompact } from '@/components/habits/HabitCardCompact';
 import { HabitCardStandard } from '@/components/habits/HabitCardStandard';
 import { HabitViewModeSelector } from '@/components/habits/HabitViewModeSelector';
 import { HabitAreaGroup } from '@/components/habits/HabitAreaGroup';
+import { HabitsOverview, HabitIconTile, HabitCheckButton, HabitProgressBar, HabitDots, StreakPill } from '@/components/habits/HabitVisuals';
 import { useHabitViewPreferences } from '@/hooks/useHabitViewPreferences';
 import { ModuleHelpButton } from '@/components/ui/ModuleHelpButton';
 import { toast } from 'sonner';
@@ -313,8 +314,8 @@ export default function HabitsPage() {
     <TooltipProvider delayDuration={200}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button size="sm" className="rounded-full" onClick={() => setIsDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Thêm
+          <Button size="sm" className="rounded-full h-10 px-5" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" /> {isMobile ? 'Thêm' : 'Thêm thói quen'}
           </Button>
         </TooltipTrigger>
         <TooltipContent className="bg-gradient-to-r from-primary/90 to-primary text-primary-foreground border-0 shadow-lg">
@@ -326,7 +327,7 @@ export default function HabitsPage() {
   );
 
   const AddHabitDialog = (
-    <AdaptiveModal open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setShowTemplates('form'); }} title="Thêm Habit mới">
+    <AdaptiveModal open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setShowTemplates('form'); }} title="Thêm thói quen mới">
         <div className="space-y-4 mt-4">
           {/* Template view / Form view switcher */}
           {showTemplates === 'templates' ? (
@@ -419,14 +420,17 @@ export default function HabitsPage() {
           </div>
           <div>
             <Label>Tần suất</Label>
-            <Select value={newHabit.frequency} onValueChange={(v) => setNewHabit({ ...newHabit, frequency: v as 'daily' | 'weekly' | 'custom' })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Hàng ngày</SelectItem>
-                <SelectItem value="weekly">Hàng tuần</SelectItem>
-                <SelectItem value="custom">Tùy chỉnh</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-3 gap-2 mt-1.5">
+              {([['daily', 'Hàng ngày'], ['weekly', 'Hàng tuần'], ['custom', 'Tùy chỉnh']] as const).map(([v, l]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setNewHabit({ ...newHabit, frequency: v })}
+                  className={cn('h-10 rounded-full text-[13px] font-semibold border transition-all',
+                    newHabit.frequency === v ? 'bg-primary text-primary-foreground border-primary shadow-soft' : 'border-border text-muted-foreground hover:bg-secondary')}
+                >{l}</button>
+              ))}
+            </div>
           </div>
 
           {newHabit.frequency === 'weekly' && (
@@ -460,12 +464,17 @@ export default function HabitsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Mục tiêu/ngày</Label>
-              <Input
-                type="number"
-                min={1}
-                value={newHabit.targetPerDay}
-                onChange={(e) => setNewHabit({ ...newHabit, targetPerDay: parseInt(e.target.value) || 1 })}
-              />
+              <div className="flex items-center gap-2 mt-1.5">
+                <Button type="button" variant="secondary" size="icon" className="rounded-full h-11 w-11 shrink-0" onClick={() => setNewHabit({ ...newHabit, targetPerDay: Math.max(1, newHabit.targetPerDay - 1) })}><Minus className="w-4 h-4" /></Button>
+                <Input
+                  type="number"
+                  min={1}
+                  className="text-center font-semibold"
+                  value={newHabit.targetPerDay}
+                  onChange={(e) => setNewHabit({ ...newHabit, targetPerDay: parseInt(e.target.value) || 1 })}
+                />
+                <Button type="button" variant="secondary" size="icon" className="rounded-full h-11 w-11 shrink-0" onClick={() => setNewHabit({ ...newHabit, targetPerDay: newHabit.targetPerDay + 1 })}><Plus className="w-4 h-4" /></Button>
+              </div>
             </div>
             <div>
               <Label>Đơn vị</Label>
@@ -515,7 +524,7 @@ export default function HabitsPage() {
             </p>
           </div>
 
-          <Button className="w-full" onClick={handleAddHabit}>Thêm Habit</Button>
+          <Button className="w-full h-12 rounded-full text-[15px]" onClick={handleAddHabit}>Tạo thói quen</Button>
             </div>
           )}
         </div>
@@ -535,166 +544,80 @@ export default function HabitsPage() {
       return completion?.count || (habit.completedDates.includes(date) ? 1 : 0);
     };
     
+    const openDetail = () => { setSelectedHabit(habit); setIsDetailModalOpen(true); };
+    const linkedGoal = habit.goalId ? goals.find(g => g.id === habit.goalId) : undefined;
     return (
-    <>
-      <Card 
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={openDetail}
+        onKeyDown={(e) => e.key === 'Enter' && openDetail()}
         className={cn(
-          'overflow-hidden transition-all cursor-pointer hover:shadow-md',
-          isCompletedToday && 'ring-2 ring-success/50'
+          'group rounded-[22px] bg-card border border-border/70 shadow-soft p-4 cursor-pointer transition-all hover:shadow-card hover:-translate-y-0.5',
+          isCompletedToday && 'border-[#22B07D]/30'
         )}
-        onClick={() => {
-          // Nếu target > 1, luôn mở modal
-          // Nếu target <= 1, toggle completion
-          if (target > 1) {
-            setSelectedHabit(habit);
-            setIsDetailModalOpen(true);
-          } else {
-            // Toggle cho habit có target <= 1
-            if (isCompletedToday) {
-              decrementHabitCompletion(habit.id, todayStr);
-            } else {
-              handleIncrementHabit(habit.id, todayStr);
-            }
-          }
-        }}
       >
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            {/* Hiển thị trạng thái: target > 1 hiện số đếm, target <= 1 hiện toggle button */}
-            {target > 1 ? (
-              <div 
-                className="flex flex-col items-center gap-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Bấm vào vùng này cũng mở modal
-                  setSelectedHabit(habit);
-                  setIsDetailModalOpen(true);
-                }}
-              >
-                <div
-                  className={cn(
-                    'w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0 transition-all cursor-pointer',
-                    isCompletedToday ? 'bg-success text-success-foreground' : 'bg-secondary'
-                  )}
-                  style={{ backgroundColor: isCompletedToday ? undefined : `hsl(var(--area-${habit.area}) / 0.2)` }}
-                  title="Bấm để mở chi tiết và điều chỉnh"
-                >
-                  {isCompletedToday ? <CheckCircle2 className="w-6 h-6" /> : `${todayCount}/${target}`}
-                </div>
-              </div>
-            ) : (
-              <button
-                className={cn(
-                  'w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0 transition-all touch-manipulation',
-                  isCompletedToday ? 'bg-success text-success-foreground' : 'bg-secondary'
-                )}
-                style={{ backgroundColor: isCompletedToday ? undefined : `hsl(var(--area-${habit.area}) / 0.2)` }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isCompletedToday) {
-                    decrementHabitCompletion(habit.id, todayStr);
-                  } else {
-                    handleIncrementHabit(habit.id, todayStr);
-                  }
-                }}
-              >
-                {isCompletedToday ? <CheckCircle2 className="w-6 h-6" /> : (habit.icon || area?.icon)}
-              </button>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold truncate">{habit.name}</h3>
-                {habit.streak > 0 && (
-                  <div className="flex items-center gap-1 text-streak bg-streak/10 px-2 py-0.5 rounded-full">
-                    <Flame className="w-3 h-3" />
-                    <span className="text-xs font-bold">{habit.streak}</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-muted-foreground">{area?.name}</p>
-                {habit.goalId && (() => {
-                  const linkedGoal = goals.find(g => g.id === habit.goalId);
-                  if (linkedGoal) {
-                    return (
-                      <Badge variant="outline" className="text-xs gap-1">
-                        <Target className="w-3 h-3" />
-                        {linkedGoal.title.length > 15 ? linkedGoal.title.slice(0, 15) + '...' : linkedGoal.title}
-                      </Badge>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
-              
-              {/* Target Progress (if has target > 1) */}
-              {target > 1 && (
-                <div className="mt-2">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Hôm nay</span>
-                    <span>{todayCount}/{target} {habit.targetUnit || 'lần'}</span>
-                  </div>
-                  <Progress value={(todayCount / target) * 100} className="h-1.5" />
-                </div>
+        <div className="flex items-center gap-3">
+          <HabitIconTile habit={habit} done={isCompletedToday} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h3 className={cn('text-[14.5px] font-semibold truncate', isCompletedToday && 'text-muted-foreground')}>{habit.name}</h3>
+              <StreakPill streak={habit.streak} />
+            </div>
+            <div className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground min-w-0">
+              <span className="truncate">{target > 1 ? `${todayCount}/${target} ${habit.targetUnit || 'lần'}` : isCompletedToday ? 'Đã hoàn thành' : 'Chưa thực hiện'} · {area?.name}</span>
+              {linkedGoal && (
+                <Badge variant="outline" className="text-[10.5px] gap-1 rounded-full px-1.5 py-0 shrink-0">
+                  <Target className="w-3 h-3" />
+                  {linkedGoal.title.length > 15 ? linkedGoal.title.slice(0, 15) + '...' : linkedGoal.title}
+                </Badge>
               )}
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="icon" className="shrink-0"><MoreVertical className="w-4 h-4" /></Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={(e) => { 
-                  e.stopPropagation(); 
-                  setSelectedHabit(habit);
-                  setIsDetailModalOpen(true);
-                }}>
-                  <Eye className="w-4 h-4 mr-2" /> Xem chi tiết
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="text-destructive focus:text-destructive" 
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setHabitToDelete(habit);
-                    setDeleteDialogOpen(true);
-                  }}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" /> Xóa
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
           </div>
+          <HabitCheckButton
+            done={isCompletedToday}
+            count={todayCount}
+            target={target}
+            onClick={() => {
+              if (target > 1) {
+                if (isCompletedToday) openDetail(); else handleIncrementHabit(habit.id, todayStr);
+              } else if (isCompletedToday) {
+                decrementHabitCompletion(habit.id, todayStr);
+              } else {
+                handleIncrementHabit(habit.id, todayStr);
+              }
+            }}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <button className="h-8 w-8 -mr-1 grid place-items-center rounded-full text-muted-foreground hover:bg-secondary" aria-label="Thao tác"><MoreVertical className="w-4 h-4" /></button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-2xl">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDetail(); }}>
+                <Eye className="w-4 h-4 mr-2" /> Xem chi tiết
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={(e) => { e.preventDefault(); setHabitToDelete(habit); setDeleteDialogOpen(true); }}
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> Xóa
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-          {/* 30-day Heatmap with completion intensity */}
-          <div className="mt-4">
-            <div className="flex gap-1 flex-wrap">
-              {last30Days.map((date) => {
-                const count = getCompletionCount(date);
-                const isComplete = count >= target;
-                const isPartial = count > 0 && count < target;
-                return (
-                  <div
-                    key={date}
-                    className={cn(
-                      'w-3 h-3 rounded-sm transition-colors',
-                      isComplete ? 'bg-success' : isPartial ? 'bg-success/40' : 'bg-secondary'
-                    )}
-                    title={`${date}: ${count}/${target}`}
-                  />
-                );
-              })}
-            </div>
-            <div className="flex justify-between items-center mt-2">
-              <p className="text-xs text-muted-foreground">
-                30 ngày gần nhất • {habit.completedDates.filter(d => last30Days.includes(d)).length}/30 ngày
-              </p>
-              <span className="text-xs font-medium text-muted-foreground">{completionRate}%</span>
-            </div>
+        <HabitProgressBar habit={habit} count={todayCount} target={target} className="mt-3" />
+
+        {/* 30-day heatmap */}
+        <div className="mt-3">
+          <HabitDots habit={habit} dates={last30Days} todayStr={todayStr} size="sm" />
+          <div className="flex justify-between items-center mt-2 text-[11.5px] text-muted-foreground">
+            <span>30 ngày gần nhất · {habit.completedDates.filter(d => last30Days.includes(d)).length}/30 ngày</span>
+            <span className="font-semibold">{completionRate}%</span>
           </div>
-        </CardContent>
-      </Card>
-    </>
+        </div>
+      </div>
     );
   };
 
@@ -715,12 +638,12 @@ export default function HabitsPage() {
     }).slice(0, 3);
 
     return (
-      <div className="p-6 space-y-6">
+      <div className="px-6 lg:px-8 py-6 max-w-[1440px] mx-auto space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Habits</h1>
-            <p className="text-muted-foreground">Xây dựng thói quen, thay đổi cuộc sống</p>
+            <h1 className="text-[28px] font-bold leading-tight">Thói quen</h1>
+            <p className="text-[14px] text-muted-foreground">Thói quen nhỏ, thay đổi lớn ✨</p>
           </div>
           <div className="flex items-center gap-3">
             <HabitViewModeSelector
@@ -746,7 +669,7 @@ export default function HabitsPage() {
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={() => setShowHistoryManager(true)}>
+                  <Button variant="secondary" size="sm" className="rounded-full h-10 px-4" onClick={() => setShowHistoryManager(true)}>
                     <History className="w-4 h-4 mr-1" /> Lịch sử
                   </Button>
                 </TooltipTrigger>
@@ -781,64 +704,14 @@ export default function HabitsPage() {
         {/* History Manager Modal */}
         <HabitHistoryManager open={showHistoryManager} onOpenChange={setShowHistoryManager} />
 
+        {/* Add Habit Dialog (desktop — trước đây chưa được render) */}
+        {AddHabitDialog}
+
         <div className="flex gap-6">
           {/* Main Content */}
           <div className="flex-1 space-y-6 min-w-0">
-            {/* Stats Row */}
-            <div className="grid grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Target className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">{totalHabits}</p>
-                      <p className="text-xs text-muted-foreground">Tổng habits</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5 text-success" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">{completedToday}/{totalHabits}</p>
-                      <p className="text-xs text-muted-foreground">Hôm nay</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-streak/10 flex items-center justify-center">
-                      <Flame className="w-5 h-5 text-streak" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">{totalStreak}</p>
-                      <p className="text-xs text-muted-foreground">Tổng streaks</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-info" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">{avgCompletion}%</p>
-                      <p className="text-xs text-muted-foreground">30 ngày qua</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Overview */}
+            <HabitsOverview completedToday={completedToday} totalHabits={totalHabits} totalStreak={totalStreak} avgCompletion={avgCompletion} />
 
             {/* Filter info */}
             {activeFiltersCount > 0 && (
@@ -887,7 +760,7 @@ export default function HabitsPage() {
                         ))}
                       </div>
                     ) : viewMode === 'standard' ? (
-                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                         {areaHabits.map((habit) => (
                           <HabitCardStandard
                             key={habit.id}
@@ -915,7 +788,7 @@ export default function HabitsPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                         {areaHabits.map((habit) => (
                           <HabitCard 
                             key={habit.id} 
@@ -960,7 +833,7 @@ export default function HabitsPage() {
               </div>
             ) : viewMode === 'standard' ? (
               // Standard View (no grouping)
-              <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 {filteredAndSortedHabits.map((habit) => (
                   <HabitCardStandard
                     key={habit.id}
@@ -989,7 +862,7 @@ export default function HabitsPage() {
               </div>
             ) : (
               // Detailed View (original with full heatmap)
-              <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 {filteredAndSortedHabits.map((habit) => (
                   <HabitCard 
                     key={habit.id} 
@@ -1228,9 +1101,15 @@ export default function HabitsPage() {
 
   // Mobile Layout with Swipe Gestures
   return (
-    <div className="p-4 space-y-6 max-w-lg mx-auto">
-      <div className="flex items-center justify-between pt-2">
-        <h1 className="text-2xl font-bold">Habits</h1>
+    <div className="p-4 pb-28 space-y-5 max-w-lg mx-auto">
+      <div className="pt-2 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[26px] font-bold leading-tight">Thói quen</h1>
+            <p className="text-[13px] text-muted-foreground">Thói quen nhỏ, thay đổi lớn</p>
+          </div>
+          {AddHabitButton}
+        </div>
         <div className="flex items-center gap-2">
           <HabitFilters
             filterArea={filterArea}
@@ -1249,44 +1128,18 @@ export default function HabitsPage() {
           <Button variant="outline" size="icon" onClick={() => setShowHistoryManager(true)}>
             <History className="w-4 h-4" />
           </Button>
-          {AddHabitButton}
         </div>
       </div>
 
       {/* History Manager Modal (Mobile) */}
       <HabitHistoryManager open={showHistoryManager} onOpenChange={setShowHistoryManager} />
 
-      <p className="text-xs text-muted-foreground -mt-4">
+      <p className="text-[12px] text-muted-foreground -mt-2">
         💡 Vuốt phải để hoàn thành, vuốt trái để xóa, nhấn để xem chi tiết
       </p>
 
-      {/* Quick Stats Mobile */}
-      <div className="grid grid-cols-4 gap-2">
-        <Card>
-          <CardContent className="p-2 text-center">
-            <p className="text-lg font-bold">{totalHabits}</p>
-            <p className="text-[10px] text-muted-foreground">Tổng</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-2 text-center">
-            <p className="text-lg font-bold text-success">{completedToday}</p>
-            <p className="text-[10px] text-muted-foreground">Hôm nay</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-2 text-center">
-            <p className="text-lg font-bold text-streak">{totalStreak}</p>
-            <p className="text-[10px] text-muted-foreground">Streaks</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-2 text-center">
-            <p className="text-lg font-bold">{avgCompletion}%</p>
-            <p className="text-[10px] text-muted-foreground">30 ngày</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Overview (Mobile) */}
+      <HabitsOverview compact completedToday={completedToday} totalHabits={totalHabits} totalStreak={totalStreak} avgCompletion={avgCompletion} />
 
       {filteredAndSortedHabits.length === 0 ? (
         <EmptyState
@@ -1315,51 +1168,38 @@ export default function HabitsPage() {
                 leftLabel="Xóa"
                 disabled={false}
               >
-                <Card 
-                  className={cn('overflow-hidden', isCompletedToday && 'ring-2 ring-success/50')}
-                  onClick={() => {
-          setSelectedHabit(habit);
-          setIsDetailModalOpen(true);
-        }}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className={cn('rounded-[22px] bg-card border border-border/70 shadow-soft p-3.5 active:scale-[0.99] transition-transform', isCompletedToday && 'border-[#22B07D]/30')}
+                  onClick={() => { setSelectedHabit(habit); setIsDetailModalOpen(true); }}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={cn(
-                          'w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0',
-                          isCompletedToday ? 'bg-success text-success-foreground' : 'bg-secondary'
-                        )}
-                        style={{ backgroundColor: isCompletedToday ? undefined : `hsl(var(--area-${habit.area}) / 0.2)` }}
-                      >
-                        {isCompletedToday ? <CheckCircle2 className="w-6 h-6" /> : target > 1 ? `${todayCount}/${target}` : (habit.icon || area?.icon)}
+                  <div className="flex items-center gap-3">
+                    <HabitIconTile habit={habit} done={isCompletedToday} size={46} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className={cn('text-[14.5px] font-semibold truncate', isCompletedToday && 'text-muted-foreground')}>{habit.name}</h3>
+                        <StreakPill streak={habit.streak} />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold truncate">{habit.name}</h3>
-                          {habit.streak > 0 && (
-                            <div className="flex items-center gap-1 text-streak bg-streak/10 px-2 py-0.5 rounded-full">
-                              <Flame className="w-3 h-3" />
-                              <span className="text-xs font-bold">{habit.streak}</span>
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">{area?.name}</p>
-                        {/* Mini heatmap */}
-                        <div className="flex gap-0.5 mt-2">
-                          {last30Days.slice(-14).map((date) => (
-                            <div
-                              key={date}
-                              className={cn(
-                                'w-2 h-2 rounded-sm',
-                                habit.completedDates.includes(date) ? 'bg-success' : 'bg-secondary'
-                              )}
-                            />
-                          ))}
-                        </div>
-                      </div>
+                      <p className="text-[12.5px] text-muted-foreground truncate">
+                        {target > 1 ? `${todayCount}/${target} ${habit.targetUnit || 'lần'}` : isCompletedToday ? 'Đã hoàn thành' : 'Chưa thực hiện'} · {area?.name}
+                      </p>
+                      <HabitProgressBar habit={habit} count={todayCount} target={target} className="mt-2" />
                     </div>
-                  </CardContent>
-                </Card>
+                    <HabitCheckButton
+                      done={isCompletedToday}
+                      count={todayCount}
+                      target={target}
+                      onClick={() => {
+                        if (isCompletedToday) {
+                          if (target > 1) { setSelectedHabit(habit); setIsDetailModalOpen(true); }
+                          else decrementHabitCompletion(habit.id, todayStr);
+                        } else handleIncrementHabit(habit.id, todayStr);
+                      }}
+                    />
+                  </div>
+                  <div className="mt-2.5 pl-[58px]"><HabitDots habit={habit} dates={last30Days.slice(-14)} todayStr={todayStr} size="sm" /></div>
+                </div>
               </SwipeableCard>
             );
           })}

@@ -26,11 +26,11 @@ export function HabitAreaGroup({ area, habits, todayStr, children }: HabitAreaGr
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger className="w-full">
-        <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-accent/50 transition-colors">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{areaInfo?.icon}</span>
-            <span className="font-semibold">{areaInfo?.name}</span>
-            <Badge variant="secondary" className="ml-1">
+        <div className="flex items-center justify-between py-2 px-3 rounded-2xl hover:bg-secondary/70 transition-colors">
+          <div className="flex items-center gap-2.5">
+            <span className="h-8 w-8 rounded-[12px] grid place-items-center text-base" style={{ backgroundColor: `hsl(var(--area-${area}) / 0.14)` }}>{areaInfo?.icon}</span>
+            <span className="text-[15px] font-bold">{areaInfo?.name}</span>
+            <Badge variant="secondary" className="ml-1 rounded-full">
               {completedToday}/{habits.length}
             </Badge>
           </div>
