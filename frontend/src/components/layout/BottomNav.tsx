@@ -95,7 +95,7 @@ export function BottomNav() {
           <NavTab
             path="/"
             icon={Home}
-            label="Today"
+            label="Hôm nay"
             isActive={location.pathname === '/'}
           />
 
@@ -103,7 +103,7 @@ export function BottomNav() {
           <NavTab
             path="/habits"
             icon={Target}
-            label="Habits"
+            label="Thói quen"
             isActive={location.pathname === '/habits'}
             badge={badges.habits.total}
           />
@@ -126,7 +126,7 @@ export function BottomNav() {
           <NavTab
             path="/tasks"
             icon={CheckSquare}
-            label="Tasks"
+            label="Công việc"
             isActive={location.pathname === '/tasks'}
             badge={badges.tasks.total}
             badgeUrgent={badges.tasks.overdue > 0 || badges.tasks.high > 0}
@@ -155,9 +155,7 @@ export function BottomNav() {
                 'text-[10px] font-medium transition-colors duration-200',
                 isMoreActive ? 'text-primary' : 'text-muted-foreground',
               )}
-            >
-              More
-            </span>
+            >Thêm</span>
             {isMoreActive && (
               <div
                 className="absolute -bottom-0.5 w-5 h-[3px] rounded-full bg-primary transition-all"

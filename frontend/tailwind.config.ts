@@ -74,6 +74,12 @@ export default {
         warning: "hsl(var(--warning))",
         info: "hsl(var(--info))",
         streak: "hsl(var(--streak))",
+        "primary-ink": "hsl(var(--primary-ink))",
+      },
+      boxShadow: {
+        card: "var(--shadow-card)",
+        raised: "var(--shadow-raised)",
+        primary: "var(--shadow-primary)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -111,6 +117,10 @@ export default {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.1)" },
         },
+        "lio-float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -120,6 +130,7 @@ export default {
         "fade-in": "fade-in 0.2s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "streak-fire": "streak-fire 0.5s ease-in-out",
+        "lio-float": "lio-float 3.2s ease-in-out infinite",
       },
     },
   },

@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LifeOS 2.0 - Bold & Colorful Design System */
+/* LifeOS 2.1 - Bold & Colorful Design System + Lio 3D depth */
 
 @layer base {
   :root {
@@ -22,7 +22,7 @@
     --secondary-foreground: 220 30% 20%;
 
     --muted: 220 15% 92%;
-    --muted-foreground: 220 10% 50%;
+    --muted-foreground: 220 13% 42%;
 
     --accent: 170 80% 45%;
     --accent-foreground: 0 0% 100%;
@@ -76,6 +76,15 @@
     --warning-soft: 45 95% 95%;
     --danger-soft: 0 55% 95%;
     --info-soft: 200 90% 95%;
+
+    /* V2 — chữ màu thương hiệu đủ tương phản (AA) */
+    --primary-ink: 252 75% 53%;
+
+    /* V2 — bóng đổ nhiều lớp (chiều sâu 3D) */
+    --shadow-color: 230 40% 20%;
+    --shadow-card: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 4px 12px -2px hsl(var(--shadow-color) / 0.08);
+    --shadow-raised: 0 2px 4px hsl(var(--shadow-color) / 0.06), 0 12px 28px -6px hsl(var(--shadow-color) / 0.16);
+    --shadow-primary: 0 6px 16px -4px hsl(var(--primary) / 0.5);
   }
 
   .dark {
@@ -146,6 +155,12 @@
     --warning-soft: 45 60% 15%;
     --danger-soft: 0 40% 15%;
     --info-soft: 200 60% 15%;
+
+    --primary-ink: 250 95% 75%;
+    --shadow-color: 230 50% 2%;
+    --shadow-card: 0 1px 2px hsl(var(--shadow-color) / 0.4), 0 4px 12px -2px hsl(var(--shadow-color) / 0.35);
+    --shadow-raised: 0 2px 4px hsl(var(--shadow-color) / 0.4), 0 12px 28px -6px hsl(var(--shadow-color) / 0.55);
+    --shadow-primary: 0 6px 16px -4px hsl(var(--primary) / 0.45);
   }
 }
 
@@ -226,6 +241,35 @@
     transform: translateZ(0);
     will-change: transform;
   }
+
+  /* ===== V2: chiều sâu 3D ===== */
+  /* Nút 3D: gradient + viền sáng trên + gờ dưới */
+  .btn-3d {
+    background-image: linear-gradient(180deg, hsl(var(--primary) / 0.92), hsl(var(--primary)) 55%, hsl(252 80% 52%));
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.28), inset 0 -2px 0 hsl(252 80% 40% / 0.45), var(--shadow-primary);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .btn-3d:hover { filter: brightness(1.05); }
+  .btn-3d:active { transform: translateY(1px); box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.2), inset 0 -1px 0 hsl(252 80% 40% / 0.4), 0 2px 6px -2px hsl(var(--primary) / 0.5); }
+
+  /* Ô chọn nhanh 3D (Task / Habit / Journal / Focus) */
+  .tile-3d {
+    @apply bg-card border border-border/70 rounded-xl;
+    box-shadow: inset 0 -2px 0 hsl(var(--border)), var(--shadow-card);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .tile-3d:hover { transform: translateY(-1px); box-shadow: inset 0 -2px 0 hsl(var(--border)), var(--shadow-raised); }
+  .tile-3d:active { transform: translateY(1px); }
+
+  /* Hero tím kiểu V2 */
+  .hero-violet {
+    background:
+      radial-gradient(120% 140% at 100% 0%, hsl(170 80% 55% / 0.35), transparent 45%),
+      linear-gradient(135deg, hsl(252 90% 64%), hsl(258 80% 52%));
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.2), 0 18px 40px -16px hsl(252 80% 45% / 0.6);
+  }
+
+  .text-primary-ink { color: hsl(var(--primary-ink)); }
 
   /* Overscroll containment */
   .overscroll-contain {

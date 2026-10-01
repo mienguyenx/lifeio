@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, LayoutDashboard, Target, CheckSquare, Compass, BookOpen, Calendar, CalendarDays, CalendarRange, Map, Award, PieChart, Heart, Wallet, GraduationCap, Users, ChevronDown, Settings2, Brain, Scale, BarChart3, Trophy } from 'lucide-react';
+import { Home, LayoutDashboard, Target, CheckSquare, Compass, BookOpen, Calendar, CalendarDays, CalendarRange, Map, Award, PieChart, Heart, Wallet, GraduationCap, Users, ChevronDown, Settings2, Brain, Scale, BarChart3, Trophy, StickyNote, Bot, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { useNotificationBadges, GoalsBadge, TasksBadge, HabitsBadge } from '@/hooks/useNotificationBadges';
@@ -12,48 +12,62 @@ import { useBranding } from '@/hooks/useBranding';
 import { notificationService } from '@/services/notificationService';
 import { useTheme } from 'next-themes';
 
-// Menu groups configuration
+// Menu groups configuration — V2: 14 mục chính, toàn bộ tiếng Việt.
+// Các trang ít dùng được gom vào nhóm "Thêm" (thu gọn) để không mất lối vào.
 const MENU_GROUPS = {
   daily: {
     label: 'Hàng ngày',
     items: [
-      { path: '/journey', icon: Trophy, label: 'Hành trình', badgeKey: null },
-      { path: '/', icon: Home, label: 'Today', badgeKey: null },
-      { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', badgeKey: null },
-      { path: '/calendar', icon: CalendarRange, label: 'Calendar', badgeKey: null },
-      { path: '/personalization', icon: Settings2, label: 'Cá nhân hóa', badgeKey: null },
-      { path: '/area-dashboard', icon: BarChart3, label: 'Area Dashboard', badgeKey: null },
+      { path: '/', icon: Home, label: 'Hôm nay', badgeKey: null },
+      { path: '/calendar', icon: CalendarRange, label: 'Lịch', badgeKey: null },
+      { path: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan', badgeKey: null },
     ],
   },
   productivity: {
     label: 'Năng suất',
     items: [
-      { path: '/tasks', icon: CheckSquare, label: 'Tasks', badgeKey: 'tasks' as const },
-      { path: '/habits', icon: Target, label: 'Habits', badgeKey: 'habits' as const },
-      { path: '/goals', icon: Compass, label: 'Goals', badgeKey: 'goals' as const },
-      { path: '/decisions', icon: Scale, label: 'Decision Log', badgeKey: null },
+      { path: '/tasks', icon: CheckSquare, label: 'Công việc', badgeKey: 'tasks' as const },
+      { path: '/habits', icon: Target, label: 'Thói quen', badgeKey: 'habits' as const },
+      { path: '/goals', icon: Compass, label: 'Mục tiêu', badgeKey: 'goals' as const },
+      { path: '/journey', icon: Trophy, label: 'Hành trình', badgeKey: null },
     ],
   },
   reflection: {
     label: 'Phản chiếu',
     items: [
-      { path: '/journal', icon: BookOpen, label: 'Journal', badgeKey: null },
-      { path: '/weekly-review', icon: Calendar, label: 'Weekly Review', badgeKey: null },
-      { path: '/monthly-review', icon: CalendarDays, label: 'Monthly Review', badgeKey: null },
-      { path: '/yearly-planning', icon: Map, label: 'Yearly Planning', badgeKey: null },
-      { path: '/yearly-review', icon: Award, label: 'Yearly Review', badgeKey: null },
-      { path: '/ai-memory', icon: Brain, label: 'AI Memory', badgeKey: null },
+      { path: '/journal', icon: BookOpen, label: 'Nhật ký', badgeKey: null },
+      { path: '/weekly-review', icon: Calendar, label: 'Review tuần', badgeKey: null },
+      { path: '/notes', icon: StickyNote, label: 'Ghi chú', badgeKey: null },
+    ],
+  },
+  insight: {
+    label: 'Cuộc sống',
+    items: [
+      { path: '/life-wheel', icon: PieChart, label: 'Bánh xe', badgeKey: null },
+      { path: '/area-dashboard', icon: BarChart3, label: '10 lĩnh vực', badgeKey: null },
+      { path: '/ai-chat', icon: Bot, label: 'Lio AI', badgeKey: null },
     ],
   },
   overview: {
-    label: 'Tổng quan',
+    label: 'Thêm',
     collapsible: true,
     items: [
-      { path: '/life-wheel', icon: PieChart, label: 'Life Wheel', badgeKey: null },
+      { path: '/monthly-review', icon: CalendarDays, label: 'Review tháng', badgeKey: null },
+      { path: '/yearly-planning', icon: Map, label: 'Kế hoạch năm', badgeKey: null },
+      { path: '/yearly-review', icon: Award, label: 'Review năm', badgeKey: null },
+      { path: '/decisions', icon: Scale, label: 'Nhật ký quyết định', badgeKey: null },
+      { path: '/ai-memory', icon: Brain, label: 'Bộ nhớ AI', badgeKey: null },
       { path: '/health', icon: Heart, label: 'Sức khỏe', badgeKey: null },
       { path: '/finance', icon: Wallet, label: 'Tài chính', badgeKey: null },
       { path: '/learning', icon: GraduationCap, label: 'Học tập', badgeKey: null },
       { path: '/relationships', icon: Users, label: 'Quan hệ', badgeKey: null },
+      { path: '/personalization', icon: Settings2, label: 'Cá nhân hóa', badgeKey: null },
+    ],
+  },
+  footer: {
+    label: '',
+    items: [
+      { path: '/settings', icon: Settings, label: 'Cài đặt', badgeKey: null },
     ],
   },
 };
@@ -262,7 +276,7 @@ function MenuItem({ path, icon: Icon, label, badgeKey, isCollapsed, badges }: Me
       to={path} 
       className={cn(
         'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative',
-        isActive ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-secondary'
+        isActive ? 'bg-primary/10 text-primary-ink font-semibold shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.12)]' : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
       )}
     >
       {isActive && (
@@ -416,6 +430,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Insight Group */}
+        <SidebarGroup>
+          {!isCollapsed && <SidebarGroupLabel>{MENU_GROUPS.insight.label}</SidebarGroupLabel>}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {MENU_GROUPS.insight.items.map((item) => (
+                <MenuItem key={item.path} path={item.path} icon={item.icon} label={item.label} badgeKey={item.badgeKey} isCollapsed={isCollapsed} badges={badges} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {/* Overview Group - Collapsible */}
         <SidebarGroup>
           {!isCollapsed ? (
@@ -466,6 +492,11 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
+        <SidebarMenu>
+          {MENU_GROUPS.footer.items.map((item) => (
+            <MenuItem key={item.path} path={item.path} icon={item.icon} label={item.label} badgeKey={item.badgeKey} isCollapsed={isCollapsed} badges={badges} />
+          ))}
+        </SidebarMenu>
         <div className="flex justify-center">
           <DatabaseIndicator />
         </div>
