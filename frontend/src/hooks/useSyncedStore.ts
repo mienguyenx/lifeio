@@ -949,6 +949,9 @@ export function useSyncedStore() {
     toggleNoteFavorite,
     archiveNote,
     unarchiveNote,
+
+    // Dọn sạch thùng rác (local + Supabase) — trước đây khai báo nhưng quên export
+    emptyTrash,
     
     // Synced life wheel actions
     addLifeWheelScore,

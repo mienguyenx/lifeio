@@ -57,3 +57,10 @@ Thứ tự khối: **Header → (Hero) → SegmentedTabs → Stat tiles → Filt
 - `navigationConfig.ts` là nguồn duy nhất cho menu/command palette/quick add — thêm trang mới chỉ cần khai báo một chỗ.
 - Biểu đồ recharts trong flex-col đứng riêng: truyền `height` số cho `ResponsiveContainer` (tránh cao 0).
 - Lớp phủ toàn màn hình (onboarding) dùng `z-[60]` để nằm trên BottomNav `z-50`.
+
+## Bổ sung Module 19–29 (Hôm nay → 404)
+- Hoàn tất chuyển toàn bộ trang người dùng sang LIO kit — xem `modules/ACCOUNT_AND_UTILITIES.md`.
+- Mẫu “thẻ hồ sơ”: gradient giống `HeroBanner`, avatar 96px tròn + nút camera, thanh hoàn thành hồ sơ.
+- Lựa chọn dạng thẻ (`OptionCard` trong Cá nhân hóa): border + `ring-4 ring-primary/10` khi chọn — cùng ngôn ngữ với `ChoiceGrid`.
+- Danh sách cài đặt: hàng `title + desc` bên trái, `Switch`/control bên phải, phân cách `divide-y divide-border/50`.
+- 404 nằm trong app shell (không full-screen) để người dùng vẫn thấy điều hướng.

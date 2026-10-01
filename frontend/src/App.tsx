@@ -18,7 +18,8 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import AuthPage from "./features/auth/AuthPage";
 import AuthPageLegacy from "./pages/AuthPage";
-import TodayPage from "./pages/TodayPage";
+import LegacyTodayPage from "./pages/TodayPage";
+import TodayPage from "./features/today/TodayPage";
 import InsightsPage from "./features/insights/InsightsPage";
 import DashboardPageLegacy from "./pages/DashboardPageLegacy";
 import HabitsPage from "./features/habits/HabitsPage";
@@ -35,10 +36,14 @@ import WeeklyReviewPage from "./features/reviews/WeeklyReviewPage";
 import WeeklyReviewPageLegacy from "./pages/WeeklyReviewPageLegacy";
 import AICoachPage from "./features/ai-coach/AICoachPage";
 import AIChatPageLegacy from "./pages/AIChatPageLegacy";
-import NotesPage from "./pages/NotesPage";
-import TrashPage from "./pages/TrashPage";
-import MePage from "./pages/MePage";
-import SettingsPage from "./pages/SettingsPage";
+import LegacyNotesPage from "./pages/NotesPage";
+import NotesPage from "./features/notes/NotesPage";
+import LegacyTrashPage from "./pages/TrashPage";
+import TrashPage from "./features/trash/TrashPage";
+import LegacyMePage from "./pages/MePage";
+import MePage from "./features/me/MePage";
+import LegacySettingsPage from "./pages/SettingsPage";
+import SettingsPage from "./features/settings/SettingsPage";
 import HealthPage from "./features/health/HealthPage";
 import HealthPageLegacy from "./pages/HealthPageLegacy";
 import FinancePage from "./features/finance/FinancePage";
@@ -55,12 +60,17 @@ import YearlyReviewPage from "./features/reviews/YearlyReviewPage";
 import YearlyReviewPageLegacy from "./pages/YearlyReviewPageLegacy";
 import CalendarPage from "./features/calendar/CalendarPage";
 import CalendarPageLegacy from "./pages/CalendarPageLegacy";
-import PersonalizationPage from "./pages/PersonalizationPage";
-import AIMemoryPage from "./pages/AIMemoryPage";
-import DecisionLogPage from "./pages/DecisionLogPage";
-import AreaDashboardPage from "./pages/AreaDashboardPage";
-import GettingStartedPage from "./pages/GettingStartedPage";
-import NotFound from "./pages/NotFound";
+import LegacyPersonalizationPage from "./pages/PersonalizationPage";
+import PersonalizationPage from "./features/personalization/PersonalizationPage";
+import LegacyAIMemoryPage from "./pages/AIMemoryPage";
+import AIMemoryPage from "./features/ai-memory/AIMemoryPage";
+import LegacyDecisionLogPage from "./pages/DecisionLogPage";
+import DecisionLogPage from "./features/decisions/DecisionLogPage";
+import LegacyAreaDashboardPage from "./pages/AreaDashboardPage";
+import AreaDashboardPage from "./features/area-dashboard/AreaDashboardPage";
+import LegacyGettingStartedPage from "./pages/GettingStartedPage";
+import GettingStartedPage from "./features/journey/JourneyPage";
+import NotFound from "./features/not-found/NotFoundPage";
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -92,6 +102,7 @@ function MainApp() {
     <AppLayout>
       <Routes>
         <Route path="/" element={<TodayPage />} />
+        <Route path="/today/classic" element={<LegacyTodayPage />} />
         <Route path="/dashboard" element={<InsightsPage />} />
         <Route path="/dashboard/classic" element={<DashboardPageLegacy />} />
         <Route path="/habits" element={<HabitsPage />} />
@@ -115,6 +126,7 @@ function MainApp() {
         <Route path="/ai-chat" element={<AICoachPage />} />
         <Route path="/ai-chat/classic" element={<AIChatPageLegacy />} />
         <Route path="/notes" element={<NotesPage />} />
+        <Route path="/notes/classic" element={<LegacyNotesPage />} />
         <Route path="/health" element={<HealthPage />} />
         <Route path="/health/classic" element={<HealthPageLegacy />} />
         <Route path="/finance" element={<FinancePage />} />
@@ -126,13 +138,22 @@ function MainApp() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/calendar/classic" element={<CalendarPageLegacy />} />
         <Route path="/trash" element={<TrashPage />} />
+        <Route path="/trash/classic" element={<LegacyTrashPage />} />
         <Route path="/me" element={<MePage />} />
+        <Route path="/me/classic" element={<LegacyMePage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/classic" element={<LegacySettingsPage />} />
         <Route path="/personalization" element={<PersonalizationPage />} />
+        <Route path="/personalization/classic" element={<LegacyPersonalizationPage />} />
         <Route path="/ai-memory" element={<AIMemoryPage />} />
+        <Route path="/ai-memory/classic" element={<LegacyAIMemoryPage />} />
         <Route path="/decisions" element={<DecisionLogPage />} />
+        <Route path="/decisions/classic" element={<LegacyDecisionLogPage />} />
         <Route path="/area-dashboard" element={<AreaDashboardPage />} />
+        <Route path="/area-dashboard/classic" element={<LegacyAreaDashboardPage />} />
         <Route path="/journey" element={<GettingStartedPage />} />
+        <Route path="/journey/classic" element={<LegacyGettingStartedPage />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
   );
