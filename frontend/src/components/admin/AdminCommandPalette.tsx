@@ -47,7 +47,7 @@ const NAV_ITEMS = [
 const QUICK_ACTIONS = [
   { title: 'Back to App', action: 'navigate', href: '/', icon: ArrowLeft },
   { title: 'Go to Settings → General', action: 'navigate', href: '/admin/settings', icon: Settings },
-  { title: 'Go to Settings → Telegram', action: 'navigate', href: '/admin/settings', icon: MessageSquare },
+  { title: 'Go to Settings → Telegram', action: 'navigate', href: '/admin/settings/classic#telegram', icon: MessageSquare },
 ];
 
 interface AdminCommandPaletteProps {

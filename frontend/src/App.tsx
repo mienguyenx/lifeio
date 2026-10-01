@@ -86,6 +86,8 @@ import AdminTemplatesLibrary from "./features/admin/templates/AdminTemplatesPage
 import AdminAnalyticsPage from "./features/admin/analytics/AdminAnalyticsPage";
 import AdminLocalizationPage from "./features/admin/localization/AdminLocalizationPage";
 import AdminAPIKeysPage from "./features/admin/apikeys/AdminAPIKeysPage";
+import AdminSystemSettingsPage from "./features/admin/system/AdminSystemSettingsPage";
+import AdminSystemLogsPage from "./features/admin/logs/AdminSystemLogsPage";
 import AdminFeatures from "./pages/admin/AdminFeatures";
 import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
 import AdminThemes from "./pages/admin/AdminThemes";
@@ -208,9 +210,11 @@ function AdminApp() {
         <Route path="api-keys/classic" element={<AdminAPIKeys />} />
         <Route path="analytics" element={<AdminAnalyticsPage />} />
         <Route path="analytics/classic" element={<AdminAnalytics />} />
-        <Route path="logs" element={<AdminLogs />} />
+        <Route path="logs" element={<AdminSystemLogsPage />} />
+        <Route path="logs/classic" element={<AdminLogs />} />
         <Route path="flags" element={<AdminFlags />} />
-        <Route path="settings" element={<AdminSettings />} />
+        <Route path="settings" element={<AdminSystemSettingsPage />} />
+        <Route path="settings/classic" element={<AdminSettings />} />
         <Route path="email-templates" element={<AdminEmailTemplates />} />
         <Route path="email-logs" element={<AdminEmailLogs />} />
         <Route path="data" element={<AdminDataManagement />} />
