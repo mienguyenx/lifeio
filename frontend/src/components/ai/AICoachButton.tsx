@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { LIFE_AREAS, type LifeArea } from '@/types/lifeos';
-import aiRobotImage from '@/assets/ai-robot.png';
+import { mascotSrc } from '@/components/brand/Mascot';
+const aiRobotImage = mascotSrc.ori;
 import { toast } from 'sonner';
 import { functionUrl, getAccessToken } from '@/integrations/api/httpClient';
 
@@ -526,7 +527,7 @@ export function AICoachButton() {
         hideCloseButton
       >
         {/* Custom Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-primary/5 to-accent/5">
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-primary/5 to-mint/5">
           <div className="flex items-center gap-3">
             <div className="relative">
               <img src={aiRobotImage} alt="AI Coach" className="w-8 h-8 rounded-full ring-2 ring-primary/20" />

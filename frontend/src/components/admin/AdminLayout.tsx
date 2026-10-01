@@ -26,8 +26,12 @@ import {
   Cloud,
   ChevronDown,
   Shield,
-  Globe
+  Globe,
+  ArrowLeft
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { useBranding } from '@/hooks/useBranding';
+import { Mascot } from '@/components/brand/Mascot';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -106,6 +110,12 @@ const adminNavItems = [
   },
 ];
 
+// Trang con (vd. /admin/users/classic) vẫn sáng mục cha; /admin chỉ sáng khi đúng trang chủ
+function isAdminActive(pathname: string, href: string) {
+  if (href === '/admin') return pathname === '/admin' || pathname === '/admin/';
+  return pathname === href || pathname.startsWith(href + '/');
+}
+
 function NavItem({ item, isActive, collapsed, onClick }: {
   item: { title: string; href: string; icon: React.ElementType };
   isActive: boolean;
@@ -117,14 +127,14 @@ function NavItem({ item, isActive, collapsed, onClick }: {
       to={item.href}
       onClick={onClick}
       className={cn(
-        'flex items-center gap-3 rounded-lg text-sm transition-all duration-150',
-        collapsed ? 'justify-center p-2' : 'px-3 py-2',
+        'flex items-center gap-3 rounded-[14px] text-[13.5px] transition-colors duration-150',
+        collapsed ? 'justify-center h-10 w-10 mx-auto' : 'px-3 h-10',
         isActive
-          ? 'bg-primary text-primary-foreground shadow-sm'
-          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+          ? 'bg-primary/10 text-primary font-semibold'
+          : 'text-foreground/80 hover:bg-secondary'
       )}
     >
-      <item.icon className="w-4 h-4 shrink-0" />
+      <item.icon className={cn('w-[18px] h-[18px] shrink-0', isActive ? 'text-primary' : 'text-foreground/60')} />
       {!collapsed && <span className="truncate">{item.title}</span>}
     </Link>
   );
@@ -149,7 +159,7 @@ function NavGroup({ group, collapsed, location, onItemClick }: {
   location: { pathname: string };
   onItemClick?: () => void;
 }) {
-  const hasActive = group.items.some(i => i.href === location.pathname);
+  const hasActive = group.items.some(i => isAdminActive(location.pathname, i.href));
   const [open, setOpen] = useState(group.defaultOpen || hasActive);
 
   if (collapsed) {
@@ -159,7 +169,7 @@ function NavGroup({ group, collapsed, location, onItemClick }: {
           <NavItem
             key={item.href}
             item={item}
-            isActive={location.pathname === item.href}
+            isActive={isAdminActive(location.pathname, item.href)}
             collapsed
             onClick={onItemClick}
           />
@@ -170,7 +180,7 @@ function NavGroup({ group, collapsed, location, onItemClick }: {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors rounded-md">
+      <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-1.5 text-[11.5px] font-semibold text-muted-foreground/80 hover:text-foreground transition-colors rounded-md">
         {group.group}
         <ChevronDown className={cn('w-3 h-3 transition-transform duration-200', open && 'rotate-180')} />
       </CollapsibleTrigger>
@@ -179,7 +189,7 @@ function NavGroup({ group, collapsed, location, onItemClick }: {
           <NavItem
             key={item.href}
             item={item}
-            isActive={location.pathname === item.href}
+            isActive={isAdminActive(location.pathname, item.href)}
             collapsed={false}
             onClick={onItemClick}
           />
@@ -201,7 +211,7 @@ export default function AdminLayout() {
   const toggleCollapse = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev;
-      try { localStorage.setItem('admin-sidebar-collapsed', String(next)); } catch {}
+      try { localStorage.setItem('admin-sidebar-collapsed', String(next)); } catch { /* localStorage có thể bị chặn */ }
       return next;
     });
   }, []);
@@ -222,23 +232,33 @@ export default function AdminLayout() {
     return () => window.removeEventListener('keydown', handler);
   }, [isMobile, toggleCollapse]);
 
-  const sidebarWidth = collapsed ? 'w-16' : 'w-60';
+  const sidebarWidth = collapsed ? 'w-[68px]' : 'w-[260px]';
+  const branding = useBranding();
+  const { resolvedTheme } = useTheme();
+  const logoUrl = resolvedTheme === 'dark' && branding.logo_dark_url ? branding.logo_dark_url : branding.logo_url;
 
   const SidebarInner = ({ onItemClick }: { onItemClick?: () => void }) => (
     <div className="flex flex-col h-full">
-      {/* Sidebar header */}
-      <div className={cn('flex items-center border-b h-14 shrink-0', collapsed ? 'justify-center px-2' : 'px-4 gap-2')}>
-        <div className={cn('flex items-center gap-2', collapsed && 'justify-center')}>
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <Shield className="w-4 h-4 text-primary-foreground" />
+      {/* Sidebar header — cùng kiểu logo với app shell */}
+      <div className={cn('flex items-center h-16 shrink-0', collapsed ? 'justify-center px-2' : 'px-4 gap-2.5')}>
+        {logoUrl ? (
+          <img src={logoUrl} alt={branding.app_name} className="w-8 h-8 rounded-lg object-contain shrink-0" />
+        ) : (
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+            <span className="text-primary-foreground font-bold text-sm">{branding.app_name.charAt(0)}</span>
           </div>
-          {!collapsed && <span className="font-bold text-base whitespace-nowrap">Admin Panel</span>}
-        </div>
+        )}
+        {!collapsed && (
+          <div className="min-w-0 flex items-center gap-2">
+            <span className="font-bold text-lg truncate">{branding.app_name}</span>
+            <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold bg-primary/10 text-primary inline-flex items-center gap-1"><Shield className="w-3 h-3" />Admin</span>
+          </div>
+        )}
       </div>
 
       {/* Nav */}
       <ScrollArea className="flex-1">
-        <nav className={cn('space-y-2 py-3', collapsed ? 'px-2' : 'px-3')}>
+        <nav className={cn('space-y-3 py-2', collapsed ? 'px-2' : 'px-3')}>
           {adminNavItems.map((group) => (
             <NavGroup
               key={group.group}
@@ -251,22 +271,28 @@ export default function AdminLayout() {
         </nav>
       </ScrollArea>
 
-      {/* Sidebar footer */}
-      <div className={cn('border-t p-3 space-y-2 shrink-0', collapsed && 'flex flex-col items-center')}>
-        <DatabaseIndicator />
+      {/* Sidebar footer — thẻ mascot như app shell */}
+      <div className={cn('p-3 space-y-2 shrink-0', collapsed && 'flex flex-col items-center')}>
         {!collapsed && (
-          <p className="text-[10px] text-muted-foreground text-center">LifeOS Admin v1.0</p>
+          <div className="rounded-[20px] bg-gradient-to-br from-primary/10 to-[#FFE9D6]/60 dark:to-primary/5 p-3 flex items-center gap-2.5">
+            <Mascot name="lumi" pose="happy" size={44} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[12.5px] font-bold leading-tight">Chế độ quản trị</p>
+              <Link to="/" className="text-[11.5px] font-semibold text-primary inline-flex items-center gap-1 mt-0.5"><ArrowLeft className="w-3 h-3" />Quay lại ứng dụng</Link>
+            </div>
+          </div>
         )}
+        <DatabaseIndicator />
       </div>
     </div>
   );
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-dvh bg-background">
       {/* Desktop Sidebar */}
       {!isMobile && (
         <aside className={cn(
-          'border-r bg-card flex flex-col shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden',
+          'border-r border-border bg-card flex flex-col shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden',
           sidebarWidth
         )}>
           <SidebarInner />
@@ -276,7 +302,7 @@ export default function AdminLayout() {
       {/* Mobile Sidebar - Sheet */}
       {isMobile && (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="left" className="w-60 p-0">
+          <SheetContent side="left" className="w-[280px] p-0 bg-card">
             <SidebarInner onItemClick={() => setSidebarOpen(false)} />
           </SheetContent>
         </Sheet>

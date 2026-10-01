@@ -13,7 +13,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdminBreadcrumb } from './AdminBreadcrumb';
 import { useAuth } from '@/hooks/useAuth';
-import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface AdminTopBarProps {
   collapsed: boolean;
@@ -27,11 +27,11 @@ export function AdminTopBar({ collapsed, onToggleCollapse, onOpenSearch }: Admin
   const initials = email.charAt(0).toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-card/95 backdrop-blur-sm px-4">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/60 bg-background/80 backdrop-blur px-4">
       {/* Sidebar toggle */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onToggleCollapse}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full shrink-0" onClick={onToggleCollapse} aria-label={collapsed ? 'Mở sidebar' : 'Thu gọn sidebar'}>
             {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
         </TooltipTrigger>
@@ -40,9 +40,14 @@ export function AdminTopBar({ collapsed, onToggleCollapse, onOpenSearch }: Admin
         </TooltipContent>
       </Tooltip>
 
-      {/* Breadcrumb */}
-      <div className="flex-1 min-w-0">
-        <AdminBreadcrumb />
+      {/* Breadcrumb + ô tìm kiếm dạng pill như app shell */}
+      <div className="flex-1 min-w-0 flex items-center gap-4">
+        <div className="min-w-0 hidden md:block"><AdminBreadcrumb /></div>
+        <button type="button" onClick={onOpenSearch} className="hidden sm:flex items-center gap-2 h-9 w-full max-w-[340px] rounded-full border border-border/70 bg-card px-3.5 text-[13px] text-muted-foreground hover:border-primary/40 transition-colors">
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="flex-1 text-left truncate">Tìm trang quản trị...</span>
+          <kbd className="text-[10.5px] font-semibold bg-secondary rounded-md px-1.5 py-0.5">Ctrl K</kbd>
+        </button>
       </div>
 
       {/* Right actions */}
@@ -50,7 +55,7 @@ export function AdminTopBar({ collapsed, onToggleCollapse, onOpenSearch }: Admin
         {/* Search trigger */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onOpenSearch}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={onOpenSearch} aria-label="Tìm kiếm">
               <Search className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -59,11 +64,13 @@ export function AdminTopBar({ collapsed, onToggleCollapse, onOpenSearch }: Admin
           </TooltipContent>
         </Tooltip>
 
+        <ThemeToggle />
+
         {/* Back to App */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-              <Link to="/">
+              <Link to="/" aria-label="Quay lại App">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
@@ -74,12 +81,16 @@ export function AdminTopBar({ collapsed, onToggleCollapse, onOpenSearch }: Admin
         {/* Admin avatar */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+            <Button variant="ghost" size="sm" className="h-10 gap-2 pl-1.5 pr-3 rounded-full">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
+              <span className="hidden sm:flex flex-col items-start leading-tight">
+                <span className="text-[13px] font-semibold max-w-[140px] truncate">{email.split('@')[0] || 'Admin'}</span>
+                <span className="text-[10.5px] text-muted-foreground">Quản trị viên</span>
+              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

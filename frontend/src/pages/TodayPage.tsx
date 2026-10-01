@@ -31,6 +31,8 @@ import { AIDailyBriefing } from '@/components/today/AIDailyBriefing';
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { RecommendationsCard } from '@/components/today/RecommendationsCard';
 import { usePreferencesSync } from '@/hooks/sync/usePreferencesSync';
+import { Mascot } from '@/components/brand/Mascot';
+import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
 // Motivational quotes
 const QUOTES = [
   { text: "Hành trình ngàn dặm bắt đầu từ một bước chân", author: "Lão Tử" },
@@ -186,98 +188,84 @@ export default function TodayPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-3 md:space-y-4">
-      {/* Summary Hero Card */}
-      <Card className="bg-gradient-to-br from-primary/5 via-background to-accent/5 border-primary/20 overflow-hidden">
-        <CardContent className="p-4 md:p-5">
-          <div className="flex items-center gap-4 md:gap-6">
-            {/* Progress Ring */}
-            <ProgressRing
-              size={100}
-              strokeWidth={8}
-              progress={dayProgress}
-              color={dayProgress >= 80 ? 'hsl(var(--success))' : dayProgress >= 50 ? 'hsl(var(--primary))' : 'hsl(var(--warning))'}
-              className="shrink-0"
-            >
-              <div className="text-center">
-                <span className="text-2xl font-bold">{dayProgress}</span>
-                <span className="text-[10px] text-muted-foreground block -mt-1">%</span>
-              </div>
-            </ProgressRing>
+      {/* Summary Hero — Visual Spec §6: lavender hero + Lumi + tiến độ + 1 CTA chính */}
+      <section className="hero-lavender relative overflow-hidden rounded-3xl md:rounded-hero">
+        <div className="relative z-10 flex items-center gap-4 md:gap-6 p-4 md:p-6 pr-[124px] md:pr-52">
+          <ProgressRing
+            size={92}
+            strokeWidth={9}
+            progress={dayProgress}
+            color="hsl(var(--primary))"
+            bgColor="hsl(var(--primary) / 0.12)"
+            className="shrink-0 hidden sm:inline-flex"
+          >
+            <div className="text-center">
+              <span className="text-2xl font-bold tabular-nums text-foreground">{dayProgress}</span>
+              <span className="text-caption text-muted-foreground block -mt-1">%</span>
+            </div>
+          </ProgressRing>
 
-            <div className="flex-1 min-w-0 space-y-2">
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {format(today, 'EEEE, dd MMMM yyyy', { locale: vi })}
-                </p>
-                <h1 className="text-lg md:text-xl font-bold truncate">
-                  {greeting}, {user.name}!
-                </h1>
-              </div>
+          <div className="flex-1 min-w-0 space-y-3">
+            <div>
+              <p className="text-small text-muted-foreground first-letter:uppercase">
+                {format(today, 'EEEE, dd MMMM yyyy', { locale: vi })}
+              </p>
+              <h1 className="text-xl md:text-page-title font-bold tracking-tight line-clamp-2 text-foreground">
+                {greeting}, {user.name}!
+              </h1>
+            </div>
 
-              {/* Mini Stats Row */}
-              <div className="flex gap-2 flex-wrap">
-                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-area-health/10 border-area-health/30">
-                  <Target className="w-3 h-3 mr-1 text-area-health" />
-                  {completedHabitsToday.length}/{todayHabits.length}
-                </Badge>
-                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-area-career/10 border-area-career/30">
-                  <CheckCircle2 className="w-3 h-3 mr-1 text-area-career" />
-                  {completedTasksToday.length} done
-                </Badge>
-                {overdueTasks.length > 0 && (
-                  <Badge variant="destructive" className="text-xs px-2 py-0.5">
-                    {overdueTasks.length} quá hạn
-                  </Badge>
-                )}
-                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-pomodoro-work/10 border-pomodoro-work/30">
-                  🍅 {todayPomodoros.length}
-                </Badge>
-                {isPomodoroRunning && (
-                  <Badge variant="secondary" className="animate-pulse text-xs px-2 py-0.5">
-                    <Clock className="w-3 h-3 mr-1" /> Focus
-                  </Badge>
-                )}
-              </div>
+            {/* Mini Stats Row */}
+            <div className="flex gap-1.5 flex-wrap text-small font-semibold">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-card/80 px-3 py-1 shadow-soft">
+                <span className="w-1.5 h-1.5 rounded-full bg-mint" /> {completedHabitsToday.length}/{todayHabits.length} thói quen
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-card/80 px-3 py-1 shadow-soft">
+                <span className="w-1.5 h-1.5 rounded-full bg-peach" /> {Math.max(todayTasks.length - completedTasksToday.length, 0)} việc còn lại
+              </span>
+              {overdueTasks.length > 0 && (
+                <span className="inline-flex items-center rounded-full bg-destructive/10 text-destructive px-3 py-1">
+                  {overdueTasks.length} quá hạn
+                </span>
+              )}
+              {isPomodoroRunning && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-3 py-1">
+                  <Clock className="w-3.5 h-3.5" /> Đang tập trung
+                </span>
+              )}
+            </div>
 
-              {/* Quote */}
-              <p className="text-xs text-muted-foreground italic line-clamp-1">
-                <Sparkles className="w-3 h-3 inline mr-1 text-primary" />
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button onClick={() => startPomodoro(topPriorityTask?.id)} size="sm" className="h-10 px-4 hidden sm:inline-flex">
+                <Play className="w-4 h-4" /> Bắt đầu tập trung
+              </Button>
+              <p className="hidden sm:block text-small text-muted-foreground italic line-clamp-1 min-w-0 flex-1">
                 "{todayQuote.text}" — {todayQuote.author}
               </p>
             </div>
-
-            {/* Pomodoro Button */}
-            <div className="hidden sm:block shrink-0">
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={() => startPomodoro()} size="sm" className="h-9 bg-gradient-to-r from-pomodoro-work to-pomodoro-work/80 hover:from-pomodoro-work/90 hover:to-pomodoro-work/70 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
-                      <Play className="w-4 h-4 mr-1" /> Focus
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p className="text-xs">Bắt đầu Pomodoro 25 phút</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <Mascot
+          name="lumi"
+          pose={dayProgress >= 80 ? 'happy' : 'default'}
+          size={160}
+          float
+          className="absolute bottom-0 right-2 md:right-8 w-[100px] h-[118px] md:w-[160px] md:h-[180px] object-bottom"
+        />
+      </section>
 
       {/* Getting Started for New Users */}
       {isNewUser && (
-        <Card className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border-primary/30 animate-fade-in">
+        <Card className="bg-gradient-to-r from-primary/10 via-mint/10 to-primary/10 border-primary/30 animate-fade-in">
           <CardContent className="p-5">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                <Lightbulb className="w-6 h-6 text-primary" />
-              </div>
+              <Mascot name="lumi" pose="happy" size={72} className="shrink-0 -mt-1" />
               <div className="flex-1 space-y-3">
                 <div>
-                  <h3 className="font-semibold text-lg">Chào mừng đến với LifeOS!</h3>
+                  <h3 className="font-semibold text-lg">Chào bạn, mình là Lumi!</h3>
                   <p className="text-sm text-muted-foreground">
-                    Bắt đầu bằng cách thêm một habit hoặc task đầu tiên. Chỉ cần 1 phút!
+                    Cùng bắt đầu bằng một thói quen hoặc công việc đầu tiên nhé — chỉ mất 1 phút.
                   </p>
                 </div>
                 
@@ -342,7 +330,7 @@ export default function TodayPage() {
           <Card className="border-primary/15">
             <CardContent className="px-3 py-3 space-y-2">
               <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-accent shrink-0" />
+                <Star className="w-4 h-4 text-mint shrink-0" />
                 {todayIntention ? (
                   <div className="flex-1 flex items-center gap-2">
                     <p className={cn("flex-1 text-sm font-medium", todayIntention.completed && "line-through text-muted-foreground")}>
@@ -374,40 +362,24 @@ export default function TodayPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            <Button 
-              size="sm" 
-              onClick={() => setShowTaskModal(true)} 
-              className="h-11 bg-gradient-to-r from-area-career to-area-career/80 hover:from-area-career/90 hover:to-area-career/70 text-white shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <ListTodo className="w-4 h-4 mr-1.5" />
-              Task
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => setShowHabitModal(true)} 
-              className="h-11 bg-gradient-to-r from-area-health to-area-health/80 hover:from-area-health/90 hover:to-area-health/70 text-white shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <Heart className="w-4 h-4 mr-1.5" />
-              Habit
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => setShowJournalModal(true)} 
-              className="h-11 bg-gradient-to-r from-area-personal to-area-personal/80 hover:from-area-personal/90 hover:to-area-personal/70 text-white shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <PenLine className="w-4 h-4 mr-1.5" />
-              Journal
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => startPomodoro()} 
-              className="h-11 sm:flex hidden bg-gradient-to-r from-pomodoro-work to-pomodoro-work/80 hover:from-pomodoro-work/90 hover:to-pomodoro-work/70 text-white shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <Play className="w-4 h-4 mr-1.5" />
-              Focus
-            </Button>
+          {/* Quick Actions — icon lucide trong icon container màu module */}
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: 'Công việc', icon: 'module/tasks', onClick: () => setShowTaskModal(true) },
+              { label: 'Thói quen', icon: 'module/habits', onClick: () => setShowHabitModal(true) },
+              { label: 'Nhật ký', icon: 'module/journal', onClick: () => setShowJournalModal(true) },
+              { label: 'Tập trung', icon: 'module/focus', onClick: () => startPomodoro() },
+            ].map(({ label, icon, onClick }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={onClick}
+                className="group flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 min-h-[72px] sm:min-h-14 px-2 rounded-lg border border-border bg-card shadow-soft text-small sm:text-[13px] font-semibold transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-card active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <LifeIcon name={icon as LifeIconName} size={28} />
+                <span className="truncate">{label}</span>
+              </button>
+            ))}
           </div>
 
           {/* Habits & Tasks */}
@@ -417,9 +389,9 @@ export default function TodayPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Target className="w-4 h-4 text-area-health" /> Habits
+                    <LifeIcon name="module/habits" size={22} /> Thói quen
                   </CardTitle>
-                  <Link to="/habits" className="text-xs text-muted-foreground hover:text-primary">Tất cả <ChevronRight className="w-3 h-3 inline" /></Link>
+                  <Link to="/habits" className="text-xs font-medium text-muted-foreground hover:text-primary-ink">Tất cả <ChevronRight className="w-3 h-3 inline" /></Link>
                 </div>
                 {todayHabits.length > 0 && (
                   <div className="flex items-center gap-2 mt-1">
@@ -497,10 +469,10 @@ export default function TodayPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-area-career" /> Tasks
+                    <LifeIcon name="module/tasks" size={22} /> Công việc
                     {overdueTasks.length > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{overdueTasks.length} quá hạn</Badge>}
                   </CardTitle>
-                  <Link to="/tasks" className="text-xs text-muted-foreground hover:text-primary">Tất cả <ChevronRight className="w-3 h-3 inline" /></Link>
+                  <Link to="/tasks" className="text-xs font-medium text-muted-foreground hover:text-primary-ink">Tất cả <ChevronRight className="w-3 h-3 inline" /></Link>
                 </div>
               </CardHeader>
               <CardContent className="space-y-1 flex-1 overflow-y-auto py-2">
@@ -546,7 +518,7 @@ export default function TodayPage() {
             <CardHeader className="py-1.5 px-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2"><Calendar className="w-4 h-4" /> Tuần này</CardTitle>
-                <Link to="/weekly-review" className="text-xs text-muted-foreground hover:text-primary">Review <ChevronRight className="w-3 h-3 inline" /></Link>
+                <Link to="/weekly-review" className="text-xs font-medium text-muted-foreground hover:text-primary-ink">Review <ChevronRight className="w-3 h-3 inline" /></Link>
               </div>
             </CardHeader>
             <CardContent className="space-y-1.5 py-1.5 px-3">
@@ -588,7 +560,7 @@ export default function TodayPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm">Life Areas</CardTitle>
-                <Link to="/life-wheel" className="text-xs text-muted-foreground hover:text-primary">Wheel <ChevronRight className="w-3 h-3 inline" /></Link>
+                <Link to="/life-wheel" className="text-xs font-medium text-muted-foreground hover:text-primary-ink">Bánh xe <ChevronRight className="w-3 h-3 inline" /></Link>
               </div>
             </CardHeader>
             <CardContent>

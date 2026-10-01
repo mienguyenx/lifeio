@@ -79,7 +79,7 @@ export function TodayFocusCard() {
   if (!hasContent) return null;
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-mint/5">
       <CardContent className="p-3 md:p-4 space-y-2.5">
         {/* Header */}
         <div className="flex items-center gap-2">
@@ -97,8 +97,8 @@ export function TodayFocusCard() {
 
         {/* Focused Goal */}
         {focusData.focusedGoal && (
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-accent/10 border border-accent/20">
-            <Target className="w-3.5 h-3.5 text-accent shrink-0" />
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-accent/10 border border-mint/20">
+            <Target className="w-3.5 h-3.5 text-mint shrink-0" />
             <span className="text-xs font-medium truncate">{focusData.focusedGoal.title}</span>
             <span className="text-[10px] text-muted-foreground ml-auto shrink-0">{focusData.focusedGoal.progress}%</span>
           </div>

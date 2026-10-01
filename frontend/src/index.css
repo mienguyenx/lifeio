@@ -2,150 +2,165 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LifeOS 2.0 - Bold & Colorful Design System */
+/* ============================================================
+   LifeOS Visual Specification v1.0 — "Calm productivity + friendly growth"
+   Nguồn chuẩn: docs/design/VISUAL_SPEC.md. Đừng thêm màu ngoài file này.
+   ============================================================ */
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 220 30% 10%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 220 30% 10%;
-
+    /* Core */
+    --background: 228 56% 98%;          /* #F8F9FD */
+    --foreground: 222 36% 15%;          /* #182033 Text Primary */
+    --card: 0 0% 100%;                  /* #FFFFFF */
+    --card-foreground: 222 36% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 10%;
+    --popover-foreground: 222 36% 15%;
 
-    --primary: 250 95% 60%;
+    --primary: 246 85% 66%;             /* #6D5DF2 Primary Violet */
     --primary-foreground: 0 0% 100%;
+    --primary-light: 243 86% 74%;       /* #8B85F6 */
+    --lavender: 247 100% 97%;           /* #F0EEFF Lavender Surface */
 
-    --secondary: 220 15% 92%;
-    --secondary-foreground: 220 30% 20%;
+    --secondary: 0 0% 100%;             /* Secondary button = white + border */
+    --secondary-foreground: 222 36% 15%;
+    --muted: 230 33% 96%;
+    --muted-foreground: 222 10% 54%;    /* #7D8495 Text Secondary */
 
-    --muted: 220 15% 92%;
-    --muted-foreground: 220 10% 50%;
+    /* shadcn "accent" = soft action (nền lavender, chữ violet) */
+    --accent: 247 100% 97%;
+    --accent-foreground: 246 85% 66%;
 
-    --accent: 170 80% 45%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 55% 50%;
+    --destructive: 355 100% 71%;        /* #FF6B78 Danger */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 88%;
-    --input: 220 20% 88%;
-    --ring: 250 95% 60%;
+    --border: 231 19% 93%;              /* #E9EAF0 */
+    --input: 231 19% 93%;
+    --ring: 246 85% 66%;
 
-    --radius: 1rem;
+    /* Radius gốc = Small card (20px). Xem bảng radius trong tailwind.config */
+    --radius: 1.25rem;
 
-    /* 10 Life Area Colors - Bold & Vibrant */
-    --area-health: 0 85% 60%;
-    --area-relationships: 330 85% 60%;
-    --area-career: 250 85% 60%;
-    --area-finance: 45 95% 55%;
-    --area-personal: 280 75% 60%;
-    --area-fun: 20 95% 60%;
-    --area-environment: 170 80% 45%;
-    --area-spirituality: 200 90% 55%;
-    --area-learning: 145 70% 45%;
-    --area-contribution: 350 85% 55%;
+    /* Status */
+    --success: 150 65% 43%;             /* #27B56F */
+    --warning: 36 100% 64%;             /* #FFB548 */
+    --info: 215 90% 66%;                /* #5B9CF6 */
 
-    /* Pomodoro Colors */
-    --pomodoro-work: 220 20% 55%;
-    --pomodoro-break: 145 70% 45%;
-    --pomodoro-long-break: 200 90% 55%;
+    /* Pastel accents */
+    --mint: 162 58% 58%;                /* #57D3AE */
+    --peach: 25 100% 74%;               /* #FFB27A */
+    --pink: 335 84% 80%;                /* #F7A3C6 */
+    --sky: 215 82% 83%;                 /* #AFCDF7 Soft Blue */
+    --yellow: 42 100% 62%;              /* #FFC63D */
 
-    /* Status Colors */
-    --success: 145 50% 40%;
-    --warning: 45 95% 55%;
-    --info: 200 90% 55%;
+    /* Màu module (icon container, chấm chỉ báo — KHÔNG dùng làm nền lớn) */
+    --module-home: 246 85% 66%;
+    --module-tasks: 22 100% 69%;          /* #FF9B63 */
+    --module-calendar: 215 90% 66%;
+    --module-habits: 162 58% 58%;
+    --module-goals: 335 84% 80%;
+    --module-journal: 255 92% 76%;
+    --module-ai: 243 86% 74%;
+    --module-insights: 42 100% 62%;
+    --module-areas: 168 54% 54%;
+    --module-health: 355 100% 71%;
+    --module-finance: 217 91% 60%;
+    --module-learning: 253 100% 74%;      /* #987BFF */
+    --module-focus: 30 100% 63%;          /* #FF9F43 */
+    --module-reviews: 250 88% 75%;        /* #9A86F7 */
+    --module-notes: 243 86% 74%;          /* #8B85F6 */
+    --module-relationships: 329 86% 70%;
+    --module-settings: 215 16% 47%;
 
-    /* Streak Color */
-    --streak: 25 100% 55%;
+    /* 10 Life Area — khớp ICON_SPEC; chỉ dùng làm accent nhỏ (chấm, viền trái, icon) */
+    --area-health: 355 100% 71%;          /* #FF6B78 */
+    --area-relationships: 329 86% 70%;    /* #F472B6 */
+    --area-career: 215 90% 66%;           /* #5B9CF6 */
+    --area-finance: 162 58% 58%;          /* #57D3AE */
+    --area-personal: 243 86% 74%;         /* #8B85F6 */
+    --area-fun: 42 100% 62%;              /* #FFC63D */
+    --area-environment: 168 54% 54%;      /* #4CC9B0 */
+    --area-spirituality: 255 92% 76%;     /* #A78BFA */
+    --area-learning: 253 100% 74%;        /* #987BFF */
+    --area-contribution: 335 84% 80%;     /* #F7A3C6 */
 
-    /* Surface Elevation Tokens */
+    /* Pomodoro */
+    --pomodoro-work: 25 100% 66%;
+    --pomodoro-break: 162 58% 50%;
+    --pomodoro-long-break: 215 90% 66%;
+
+    --streak: 25 100% 64%;
+
+    /* Surfaces */
     --surface-1: 0 0% 100%;
-    --surface-2: 220 20% 98%;
-    --surface-3: 220 15% 96%;
+    --surface-2: 228 56% 98%;
+    --surface-3: 247 100% 97%;
 
-    /* Interactive States */
-    --interactive: 250 95% 60%;
-    --interactive-hover: 250 95% 55%;
-    --interactive-muted: 250 40% 92%;
+    --interactive: 246 85% 66%;
+    --interactive-hover: 246 75% 60%;
+    --interactive-muted: 247 100% 97%;
 
-    /* Soft Status Colors */
-    --success-soft: 145 50% 95%;
-    --warning-soft: 45 95% 95%;
-    --danger-soft: 0 55% 95%;
-    --info-soft: 200 90% 95%;
+    --success-soft: 150 60% 95%;
+    --warning-soft: 36 100% 95%;
+    --danger-soft: 355 100% 96%;
+    --info-soft: 215 90% 96%;
+
+    /* Chữ violet trên nền trắng/lavender khi cần nhấn mạnh */
+    --primary-ink: 246 70% 56%;
+
+    /* Shadows — mềm, ám tím, không đen kiểu Material */
+    --shadow-card: 0 14px 40px rgba(63, 51, 124, 0.07);
+    --shadow-hero: 0 22px 60px rgba(91, 77, 185, 0.18);
+    --shadow-fab: 0 12px 30px rgba(109, 93, 242, 0.25);
+    --shadow-soft: 0 4px 14px rgba(63, 51, 124, 0.06);
   }
 
   .dark {
-    --background: 220 25% 8%;
-    --foreground: 220 15% 95%;
+    --background: 232 30% 8%;
+    --foreground: 230 30% 96%;
+    --card: 232 25% 12%;
+    --card-foreground: 230 30% 96%;
+    --popover: 232 25% 12%;
+    --popover-foreground: 230 30% 96%;
 
-    --card: 220 25% 12%;
-    --card-foreground: 220 15% 95%;
-
-    --popover: 220 25% 12%;
-    --popover-foreground: 220 15% 95%;
-
-    --primary: 250 90% 65%;
+    --primary: 246 85% 70%;
     --primary-foreground: 0 0% 100%;
+    --primary-light: 243 86% 78%;
+    --lavender: 248 30% 18%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 220 15% 90%;
+    --secondary: 232 25% 14%;
+    --secondary-foreground: 230 30% 96%;
+    --muted: 232 22% 17%;
+    --muted-foreground: 225 12% 66%;
 
-    --muted: 220 20% 18%;
-    --muted-foreground: 220 10% 60%;
+    --accent: 248 30% 20%;
+    --accent-foreground: 246 90% 82%;
 
-    --accent: 170 75% 50%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 50% 45%;
+    --destructive: 355 85% 62%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 20%;
-    --input: 220 20% 20%;
-    --ring: 250 90% 65%;
+    --border: 232 20% 20%;
+    --input: 232 20% 20%;
+    --ring: 246 85% 70%;
 
-    /* Life Area Colors - Slightly muted for dark mode */
-    --area-health: 0 80% 55%;
-    --area-relationships: 330 80% 55%;
-    --area-career: 250 80% 60%;
-    --area-finance: 45 90% 50%;
-    --area-personal: 280 70% 55%;
-    --area-fun: 20 90% 55%;
-    --area-environment: 170 75% 45%;
-    --area-spirituality: 200 85% 55%;
-    --area-learning: 145 65% 45%;
-    --area-contribution: 350 80% 50%;
+    --surface-1: 232 25% 12%;
+    --surface-2: 232 25% 15%;
+    --surface-3: 248 30% 18%;
+    --interactive: 246 85% 70%;
+    --interactive-hover: 246 85% 75%;
+    --interactive-muted: 248 30% 20%;
 
-    /* Pomodoro Colors */
-    --pomodoro-work: 220 25% 50%;
-    --pomodoro-break: 145 65% 45%;
-    --pomodoro-long-break: 200 85% 55%;
+    --success-soft: 150 40% 15%;
+    --warning-soft: 36 60% 15%;
+    --danger-soft: 355 40% 16%;
+    --info-soft: 215 50% 16%;
 
-    /* Status Colors */
-    --success: 145 45% 38%;
-    --warning: 45 90% 50%;
-    --info: 200 85% 55%;
+    --primary-ink: 246 90% 80%;
 
-    --streak: 25 95% 55%;
-
-    /* Surface Elevation Tokens - Dark */
-    --surface-1: 220 25% 12%;
-    --surface-2: 220 25% 15%;
-    --surface-3: 220 25% 18%;
-
-    /* Interactive States - Dark */
-    --interactive: 250 90% 65%;
-    --interactive-hover: 250 90% 70%;
-    --interactive-muted: 250 40% 20%;
-
-    /* Soft Status Colors - Dark */
-    --success-soft: 145 40% 15%;
-    --warning-soft: 45 60% 15%;
-    --danger-soft: 0 40% 15%;
-    --info-soft: 200 60% 15%;
+    --shadow-card: 0 14px 40px rgba(0, 0, 0, 0.35);
+    --shadow-hero: 0 22px 60px rgba(0, 0, 0, 0.45);
+    --shadow-fab: 0 12px 30px rgba(109, 93, 242, 0.35);
+    --shadow-soft: 0 4px 14px rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -227,8 +242,52 @@
     will-change: transform;
   }
 
+  /* ===== Visual Spec v1.0 utilities ===== */
+  /* Hero lavender gradient (Today, onboarding) */
+  .hero-lavender {
+    background:
+      radial-gradient(90% 120% at 100% 0%, hsl(var(--pink) / 0.35), transparent 55%),
+      radial-gradient(70% 90% at 0% 100%, hsl(var(--sky) / 0.35), transparent 60%),
+      linear-gradient(135deg, hsl(var(--lavender)), hsl(0 0% 100%));
+    box-shadow: var(--shadow-hero);
+  }
+  .dark .hero-lavender {
+    background: linear-gradient(135deg, hsl(248 35% 22%), hsl(var(--card)));
+  }
+
+  /* Icon container theo màu module: đặt --tone bằng style hoặc class tone-* */
+  .icon-tile {
+    @apply inline-flex items-center justify-center shrink-0 rounded-icon;
+    background: hsl(var(--tone, var(--primary)) / 0.14);
+    color: color-mix(in srgb, hsl(var(--tone, var(--primary))) 72%, hsl(var(--foreground)));
+  }
+  .tone-home { --tone: var(--module-home); }
+  .tone-tasks { --tone: var(--module-tasks); }
+  .tone-calendar { --tone: var(--module-calendar); }
+  .tone-habits { --tone: var(--module-habits); }
+  .tone-goals { --tone: var(--module-goals); }
+  .tone-journal { --tone: var(--module-journal); }
+  .tone-ai { --tone: var(--module-ai); }
+  .tone-insights { --tone: var(--module-insights); }
+  .tone-health { --tone: var(--module-health); }
+  .tone-settings { --tone: var(--module-settings); }
+
+  .text-primary-ink { color: hsl(var(--primary-ink)); }
+
+  /* LifeOS Icon states (ICON_SPEC §States) — xử lý bằng CSS, không cần file riêng */
+  .lifeos-icon { transition: filter 0.15s ease, opacity 0.15s ease, transform 0.15s ease; }
+  a:hover > .lifeos-icon, button:hover > .lifeos-icon, a:hover .lifeos-icon, button:hover .lifeos-icon { filter: brightness(1.04) saturate(1.05); }
+  .lifeos-icon[data-state='disabled'] { opacity: 0.4; filter: grayscale(0.6); }
+  /* Dark mode: tăng sáng ~15%, giữ nguyên hue */
+  .dark .lifeos-icon { filter: brightness(1.15); }
+
   /* Overscroll containment */
   .overscroll-contain {
     overscroll-behavior: contain;
   }
+}
+
+@layer utilities {
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
 }

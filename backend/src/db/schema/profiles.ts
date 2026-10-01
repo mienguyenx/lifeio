@@ -1,4 +1,4 @@
-import { boolean, date, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, date, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { appRole } from './enums';
 import { users } from './auth';
 
@@ -38,6 +38,9 @@ export const userSettings = pgTable('user_settings', {
   pomodoroSessionsBeforeLongBreak: integer('pomodoro_sessions_before_long_break').default(4),
   trashAutoCleanupDays: integer('trash_auto_cleanup_days').default(30),
   trashEnabled: boolean('trash_enabled').default(true),
+  // Trạng thái hướng dẫn ban đầu + tùy chọn cá nhân, đồng bộ giữa các thiết bị (usePreferencesSync)
+  onboardingCompleted: boolean('onboarding_completed').default(false),
+  preferences: jsonb('preferences').default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });

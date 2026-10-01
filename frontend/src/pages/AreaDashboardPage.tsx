@@ -187,7 +187,7 @@ export default function AreaDashboardPage() {
               {/* Goals */}
               <div className="p-3 rounded-lg bg-secondary/30">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Target className="w-3.5 h-3.5 text-accent" />
+                  <Target className="w-3.5 h-3.5 text-mint" />
                   <span className="text-xs font-medium">Goals</span>
                 </div>
                 <p className="text-lg font-bold">{selected.goalCount}</p>

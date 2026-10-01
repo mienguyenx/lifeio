@@ -216,10 +216,10 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5">
+    <div className="min-h-screen flex justify-center bg-gradient-to-br from-primary/5 via-background to-mint/5">
       <div className="w-full max-w-[1280px] flex">
         {/* Left side - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 bg-gradient-to-br from-primary/10 to-accent/10 rounded-l-2xl my-8 ml-8">
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 bg-gradient-to-br from-primary/10 to-mint/10 rounded-l-2xl my-8 ml-8">
           <div className="max-w-md text-center space-y-8">
             <div className="flex items-center justify-center gap-3 mb-8">
               <div className="p-3 rounded-2xl bg-primary/20">
@@ -238,7 +238,7 @@ export default function AuthPage() {
                 <span className="text-foreground">Theo dõi mục tiêu và milestones</span>
               </div>
               <div className="flex items-center gap-3 p-4 rounded-xl bg-card/50 backdrop-blur">
-                <CheckCircle2 className="h-6 w-6 text-accent" />
+                <CheckCircle2 className="h-6 w-6 text-mint" />
                 <span className="text-foreground">Xây dựng thói quen tích cực</span>
               </div>
               <div className="flex items-center gap-3 p-4 rounded-xl bg-card/50 backdrop-blur">

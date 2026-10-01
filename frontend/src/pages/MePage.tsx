@@ -84,7 +84,7 @@ export default function MePage() {
     <div className={cn("p-4 md:p-6 space-y-6", !isMobile && "max-w-2xl mx-auto")}>
       {/* Profile Header with Avatar */}
       <Card className="overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-primary/20 via-primary/10 to-accent/20" />
+        <div className="h-24 bg-gradient-to-r from-primary/20 via-primary/10 to-mint/20" />
         <CardContent className="relative pt-0 pb-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-12">
             {/* Avatar */}

@@ -173,7 +173,7 @@ export function AIDailyBriefing() {
             {/* Insight */}
             {briefing.insight && (
               <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-accent/8">
-                <TrendingUp className="w-3 h-3 text-accent shrink-0" />
+                <TrendingUp className="w-3 h-3 text-mint shrink-0" />
                 <span className="text-[11px] text-muted-foreground">{briefing.insight}</span>
               </div>
             )}

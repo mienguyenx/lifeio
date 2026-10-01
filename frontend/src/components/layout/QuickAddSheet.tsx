@@ -1,7 +1,11 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, ListTodo, Target, BookOpen, StickyNote, Timer } from 'lucide-react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { X } from 'lucide-react';
+import { toast } from 'sonner';
+import { LifeIcon } from '@/components/icons/LifeIcon';
+import { TINTS } from '@/components/lio';
+import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { QUICK_ACTIONS, type QuickAction } from './navigationConfig';
 import { cn } from '@/lib/utils';
 
 interface QuickAddSheetProps {
@@ -9,21 +13,13 @@ interface QuickAddSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const quickActions = [
-  { id: 'task', icon: ListTodo, label: 'Task', color: 'bg-blue-500', path: '/tasks', param: 'add' },
-  { id: 'habit', icon: Target, label: 'Habit', color: 'bg-emerald-500', path: '/habits', param: 'add' },
-  { id: 'journal', icon: BookOpen, label: 'Journal', color: 'bg-amber-500', path: '/journal', param: 'add' },
-  { id: 'note', icon: StickyNote, label: 'Note', color: 'bg-purple-500', path: '/notes', param: 'add' },
-  { id: 'pomodoro', icon: Timer, label: 'Focus', color: 'bg-rose-500', path: '/', param: 'pomodoro' },
-];
-
-const overlayVariants = {
+const overlayVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
   exit: { opacity: 0, transition: { duration: 0.15 } },
 };
 
-const sheetVariants = {
+const sheetVariants: Variants = {
   hidden: { y: '100%' },
   visible: {
     y: 0,
@@ -35,7 +31,7 @@ const sheetVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, scale: 0.8, y: 20 },
   visible: (i: number) => ({
     opacity: 1,
@@ -53,11 +49,12 @@ const itemVariants = {
 export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
   const navigate = useNavigate();
 
-  const handleAction = (action: typeof quickActions[0]) => {
+  const startPomodoro = usePomodoroStore((s) => s.start);
+  // Sửa lỗi: trước đây điều hướng `?action=add` nhưng các trang chỉ lắng nghe `?add` → form không mở.
+  const handleAction = (action: QuickAction) => {
     onOpenChange(false);
-    setTimeout(() => {
-      navigate(`${action.path}?action=${action.param}`);
-    }, 200);
+    if (action.pomodoro) { startPomodoro(); toast.success('Đã bắt đầu phiên Pomodoro'); return; }
+    setTimeout(() => { if (action.path) navigate(action.path); }, 200);
   };
 
   return (
@@ -89,7 +86,7 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 pb-3">
-              <h3 className="text-lg font-semibold">Thêm nhanh</h3>
+              <div><h3 className="text-[18px] font-extrabold">Thêm nhanh</h3><p className="text-[12px] text-muted-foreground">Chọn loại nội dung bạn muốn tạo</p></div>
               <button
                 onClick={() => onOpenChange(false)}
                 className="p-2 rounded-full hover:bg-muted tap-transparent active:scale-95 transition-transform"
@@ -99,30 +96,25 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
             </div>
 
             {/* Actions Grid */}
-            <div className="px-5 pb-8 grid grid-cols-5 gap-3">
-              {quickActions.map((action, i) => {
-                const Icon = action.icon;
-                return (
-                  <motion.button
-                    key={action.id}
-                    custom={i}
-                    variants={itemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    onClick={() => handleAction(action)}
-                    className="flex flex-col items-center gap-2 tap-transparent active:scale-90 transition-transform"
-                  >
-                    <div className={cn(
-                      'w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg',
-                      action.color,
-                    )}>
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-xs font-medium text-muted-foreground">{action.label}</span>
-                  </motion.button>
-                );
-              })}
+            <div className="px-5 pb-6 grid grid-cols-3 gap-2.5">
+              {QUICK_ACTIONS.map((action, i) => (
+                <motion.button
+                  key={action.id}
+                  custom={i}
+                  variants={itemVariants}
+                  initial="hidden"
+                  animate="visible"
+                  onClick={() => handleAction(action)}
+                  className="flex flex-col items-center gap-2 rounded-[20px] border border-border/60 bg-card shadow-soft py-3.5 tap-transparent active:scale-95 transition-transform"
+                >
+                  <span className={cn('w-12 h-12 rounded-[16px] grid place-items-center', TINTS[action.tint].bg)}>
+                    <LifeIcon name={action.icon} size={26} variant="duotone" />
+                  </span>
+                  <span className="text-[12.5px] font-semibold">{action.label}</span>
+                </motion.button>
+              ))}
             </div>
+            <div className="px-5 pb-6"><button onClick={() => onOpenChange(false)} className="w-full h-11 rounded-full bg-secondary text-[13.5px] font-semibold">Hủy</button></div>
           </motion.div>
         </>
       )}

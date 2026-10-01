@@ -18,10 +18,10 @@ export function RecommendationsCard() {
   if (recommendations.length === 0) return null;
 
   return (
-    <Card className="border-accent/20">
+    <Card className="border-mint/20">
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center gap-2">
-          <Lightbulb className="w-4 h-4 text-accent" />
+          <Lightbulb className="w-4 h-4 text-mint" />
           <span className="text-sm font-semibold">Gợi ý cho bạn</span>
           <span className="text-[10px] text-muted-foreground ml-auto">{recommendations.length} items</span>
         </div>

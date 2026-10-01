@@ -372,7 +372,7 @@ export function VisionValuesManager() {
 
           {/* Life Purpose Tab */}
           <TabsContent value="purpose" className="space-y-4">
-            <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl">
+            <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-mint/10 rounded-xl">
               {editingPurpose ? (
                 <div className="space-y-4">
                   <Textarea
@@ -671,7 +671,7 @@ export function VisionValuesManager() {
                 <p className="text-sm text-muted-foreground text-center py-8">Chưa có tầm nhìn nào. Hãy thêm tầm nhìn để định hướng cuộc sống.</p>
               ) : (
                 visions.map(vision => (
-                  <div key={vision.id} className="p-4 bg-gradient-to-r from-primary/5 to-accent/5 rounded-xl border group">
+                  <div key={vision.id} className="p-4 bg-gradient-to-r from-primary/5 to-mint/5 rounded-xl border group">
                     <div className="flex items-start justify-between mb-2">
                       <Badge variant="outline">
                         {vision.timeframe === '1-year' ? '1 năm' : 

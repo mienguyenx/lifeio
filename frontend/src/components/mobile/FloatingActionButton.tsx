@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
-import aiRobotImage from '@/assets/ai-robot.png';
+import { mascotSrc } from '@/components/brand/Mascot';
+const aiRobotImage = mascotSrc.ori;
 import { Send, Loader2, Lightbulb, X, FileText, History, Save, Download, Trash2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';

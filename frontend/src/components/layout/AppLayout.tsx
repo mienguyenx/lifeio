@@ -21,24 +21,16 @@ import { Keyboard, StickyNote, Trash2, User, LogOut, Settings, Shield } from 'lu
 import { cn } from '@/lib/utils';
 import { useKeyboardShortcuts, SHORTCUTS } from '@/hooks/useKeyboardShortcuts';
 import { toast } from 'sonner';
+import { CommandPalette } from './CommandPalette';
+import { ALL_NAV_ITEMS } from './navigationConfig';
 
 interface AppLayoutProps {
   children: ReactNode;
 }
 
-// Shortcut config for dialog
-const SHORTCUT_ITEMS = [
-  { path: '/', label: 'Today', key: '1' },
-  { path: '/dashboard', label: 'Dashboard', key: '2' },
-  { path: '/habits', label: 'Habits', key: '3' },
-  { path: '/tasks', label: 'Tasks', key: '4' },
-  { path: '/goals', label: 'Goals', key: '5' },
-  { path: '/journal', label: 'Journal', key: '6' },
-  { path: '/health', label: 'Sức khỏe', key: '7' },
-  { path: '/finance', label: 'Tài chính', key: '8' },
-  { path: '/learning', label: 'Học tập', key: '9' },
-  { path: '/me', label: 'Profile', key: '0' },
-];
+// Sửa lỗi: hộp thoại phím tắt trước đây ghi sai (Alt+7/8/9 = Sức khỏe/Tài chính/Học tập) so với SHORTCUTS thật.
+// Nay đọc trực tiếp từ SHORTCUTS, nhãn tiếng Việt lấy từ navigationConfig.
+const SHORTCUT_ITEMS = SHORTCUTS.map((s) => ({ ...s, label: ALL_NAV_ITEMS.find((i) => i.path === s.path)?.label ?? s.label }));
 
 export function AppLayout({ children }: AppLayoutProps) {
   const isMobile = useIsMobile();
@@ -88,8 +80,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar />
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           {/* Header with Sidebar Toggle and Utility Icons */}
-          <header className="h-12 flex items-center justify-between border-b border-border px-4 shrink-0">
-            <SidebarTrigger className="h-8 w-8" />
+          <header className="h-14 flex items-center justify-between gap-4 border-b border-border/60 bg-background/80 backdrop-blur px-4 shrink-0">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <SidebarTrigger className="h-9 w-9 rounded-full" />
+              <CommandPalette />
+            </div>
             
             {/* Right side utilities */}
             <div className="flex items-center gap-1">
@@ -107,7 +102,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     </Link>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Notes</TooltipContent>
+                <TooltipContent>Ghi chú</TooltipContent>
               </Tooltip>
 
               {/* Trash */}
@@ -143,10 +138,14 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <Keyboard className="w-5 h-5" />
-                      Keyboard Shortcuts
+                      Phím tắt
                     </DialogTitle>
                   </DialogHeader>
                   <div className="grid gap-2 mt-4">
+                    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/50">
+                      <span>Tìm trang / Thêm nhanh</span>
+                      <kbd className="h-6 items-center gap-1 rounded border bg-muted px-2 font-mono text-xs font-medium">Ctrl + K</kbd>
+                    </div>
                     {SHORTCUT_ITEMS.map((item) => (
                       <div key={item.path} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/50">
                         <span>{item.label}</span>
@@ -174,13 +173,13 @@ export function AppLayout({ children }: AppLayoutProps) {
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 gap-2 px-2">
-                    <Avatar className="h-6 w-6">
+                  <Button variant="ghost" size="sm" className="h-10 gap-2 pl-1.5 pr-3 rounded-full">
+                    <Avatar className="h-7 w-7">
                       <AvatarFallback className="text-xs bg-primary/10 text-primary">
                         {userInitials}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm hidden sm:inline-block max-w-[100px] truncate">
+                    <span className="text-[13px] font-semibold hidden sm:inline-block max-w-[120px] truncate">
                       {displayName}
                     </span>
                   </Button>
@@ -194,7 +193,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <DropdownMenuItem asChild>
                     <Link to="/me" className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
-                      Profile
+                      Hồ sơ
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
