@@ -39,7 +39,8 @@ import RelationshipsPage from "./pages/RelationshipsPage";
 import MonthlyReviewPage from "./pages/MonthlyReviewPage";
 import YearlyPlanningPage from "./pages/YearlyPlanningPage";
 import YearlyReviewPage from "./pages/YearlyReviewPage";
-import CalendarPage from "./pages/CalendarPage";
+import CalendarPage from "./features/calendar/CalendarPage";
+import CalendarPageLegacy from "./pages/CalendarPageLegacy";
 import PersonalizationPage from "./pages/PersonalizationPage";
 import AIMemoryPage from "./pages/AIMemoryPage";
 import DecisionLogPage from "./pages/DecisionLogPage";
@@ -96,6 +97,7 @@ function MainApp() {
         <Route path="/learning" element={<LearningPage />} />
         <Route path="/relationships" element={<RelationshipsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/calendar/classic" element={<CalendarPageLegacy />} />
         <Route path="/trash" element={<TrashPage />} />
         <Route path="/me" element={<MePage />} />
         <Route path="/settings" element={<SettingsPage />} />

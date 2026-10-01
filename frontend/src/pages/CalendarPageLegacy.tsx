@@ -35,7 +35,7 @@ const EVENT_COLORS: Record<EventType, { dot: string; bg: string; text: string }>
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-export default function CalendarPage() {
+export default function CalendarPageLegacy() {
   const tasks = useLifeOSStore((s) => s.tasks);
   const habits = useLifeOSStore((s) => s.habits);
   const journalEntries = useLifeOSStore((s) => s.journalEntries);
