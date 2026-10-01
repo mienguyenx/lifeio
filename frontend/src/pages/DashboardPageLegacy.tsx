@@ -17,7 +17,7 @@ import { LifeWheelMiniChart } from '@/components/lifewheel/LifeWheelMiniChart';
 import MonthlyReviewReminder from '@/components/monthlyreview/MonthlyReviewReminder';
 import YearlyReviewReminder from '@/components/yearlyreview/YearlyReviewReminder';
 
-export default function DashboardPage() {
+export default function DashboardPageLegacy() {
   const lifeWheelScores = useLifeOSStore((s) => s.lifeWheelScores);
   
   const [showAiCoach, setShowAiCoach] = useState(false);

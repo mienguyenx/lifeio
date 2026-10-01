@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownAZ, ArrowUpAZ, Flame, History, LayoutList, Plus, Search, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, Flame, History, LayoutList, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Fab, IconButton, Page, PageHeader, SearchToggle, SegmentedTabs } from '@/components/lio';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { SwipeableCard } from '@/components/mobile/SwipeableCard';
@@ -73,7 +73,6 @@ export default function HabitsPage() {
   const [sortBy, setSortBy] = useState<SortBy>('created');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [search, setSearch] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
@@ -253,53 +252,23 @@ export default function HabitsPage() {
   );
 
   return (
-    <div className={cn('mx-auto w-full max-w-[1280px]', isMobile ? 'px-4 pt-3 pb-28' : 'px-6 py-6')}>
-      {/* Header */}
-      <header className="flex items-start justify-between gap-3 mb-5">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className={cn('font-extrabold tracking-tight', isMobile ? 'text-[24px]' : 'text-[28px]')}>Thói quen</h1>
-            <ModuleHelpButton module="habits" />
-          </div>
-          <p className="text-[13.5px] text-muted-foreground">Thói quen nhỏ, thay đổi lớn ✨</p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {showSearch || (!isMobile && search) ? (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm thói quen..." className="h-10 w-[180px] sm:w-[240px] rounded-full pl-9 pr-8" />
-              <button className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => { setSearch(''); setShowSearch(false); }}><X className="h-4 w-4" /></button>
-            </div>
-          ) : (
-            <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={() => setShowSearch(true)} title="Tìm kiếm"><Search className="h-4 w-4" /></Button>
-          )}
-          <Button variant="outline" size={isMobile ? 'icon' : 'default'} className={cn('h-10 rounded-full', isMobile && 'w-10')} onClick={() => setHistoryOpen(true)} title="Lịch sử">
-            <History className="h-4 w-4" />{!isMobile && <span className="ml-1.5">Lịch sử</span>}
-          </Button>
+    <Page>
+      <PageHeader
+        title={<span className="inline-flex items-center gap-2">Thói quen <ModuleHelpButton module="habits" /></span>}
+        subtitle="Thói quen nhỏ, thay đổi lớn ✨"
+        actions={<>
+          <SearchToggle value={search} onChange={setSearch} placeholder="Tìm thói quen..." />
+          <IconButton label="Lịch sử" onClick={() => setHistoryOpen(true)}><History className="h-4 w-4" /></IconButton>
           {!isMobile && <Button className="h-10 rounded-full px-5 shadow-soft" onClick={openCreate}><Plus className="h-4 w-4 mr-1.5" />Thêm thói quen</Button>}
-        </div>
-      </header>
-
-      {/* Tabs */}
-      <div className={cn('inline-flex p-1 rounded-full bg-secondary/70 mb-5', isMobile && 'w-full')}>
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={cn(
-            'h-9 px-5 rounded-full text-[13.5px] font-semibold transition-all',
-            isMobile && 'flex-1 px-2',
-            tab === t.id ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground',
-          )}>{t.label}</button>
-        ))}
-      </div>
+        </>}
+      />
+      <SegmentedTabs items={TABS} value={tab} onChange={setTab} full={isMobile} className="mb-5" />
 
       {tab === 'today' && todayTab}
       {tab === 'insights' && insightsTab}
       {tab === 'challenges' && <HabitChallenges habits={active} onStart={api.startChallenge} onOpen={(h) => setDetailId(h.id)} />}
 
-      {isMobile && (
-        <button onClick={openCreate} aria-label="Thêm thói quen" className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform">
-          <Plus className="h-6 w-6" />
-        </button>
-      )}
+      {isMobile && <Fab onClick={openCreate} label="Thêm thói quen" />}
 
       <HabitCreateModal
         open={formOpen}
@@ -331,6 +300,6 @@ export default function HabitsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Page>
   );
 }

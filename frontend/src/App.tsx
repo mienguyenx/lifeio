@@ -18,16 +18,20 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 import TodayPage from "./pages/TodayPage";
-import DashboardPage from "./pages/DashboardPage";
+import InsightsPage from "./features/insights/InsightsPage";
+import DashboardPageLegacy from "./pages/DashboardPageLegacy";
 import HabitsPage from "./features/habits/HabitsPage";
 import HabitsPageLegacy from "./pages/HabitsPageLegacy";
 import TasksPage from "./features/tasks/TasksPage";
 import TasksPageLegacy from "./pages/TasksPageLegacy";
-import GoalsPage from "./pages/GoalsPage";
-import JournalPage from "./pages/JournalPage";
+import GoalsPage from "./features/goals/GoalsPage";
+import GoalsPageLegacy from "./pages/GoalsPageLegacy";
+import JournalPage from "./features/journal/JournalPage";
+import JournalPageLegacy from "./pages/JournalPageLegacy";
 import LifeWheelPage from "./pages/LifeWheelPage";
 import WeeklyReviewPage from "./pages/WeeklyReviewPage";
-import AIChatPage from "./pages/AIChatPage";
+import AICoachPage from "./features/ai-coach/AICoachPage";
+import AIChatPageLegacy from "./pages/AIChatPageLegacy";
 import NotesPage from "./pages/NotesPage";
 import TrashPage from "./pages/TrashPage";
 import MePage from "./pages/MePage";
@@ -78,19 +82,23 @@ function MainApp() {
     <AppLayout>
       <Routes>
         <Route path="/" element={<TodayPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<InsightsPage />} />
+        <Route path="/dashboard/classic" element={<DashboardPageLegacy />} />
         <Route path="/habits" element={<HabitsPage />} />
         <Route path="/habits/classic" element={<HabitsPageLegacy />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/tasks/classic" element={<TasksPageLegacy />} />
         <Route path="/goals" element={<GoalsPage />} />
+        <Route path="/goals/classic" element={<GoalsPageLegacy />} />
         <Route path="/journal" element={<JournalPage />} />
+        <Route path="/journal/classic" element={<JournalPageLegacy />} />
         <Route path="/life-wheel" element={<LifeWheelPage />} />
         <Route path="/weekly-review" element={<WeeklyReviewPage />} />
         <Route path="/monthly-review" element={<MonthlyReviewPage />} />
         <Route path="/yearly-planning" element={<YearlyPlanningPage />} />
         <Route path="/yearly-review" element={<YearlyReviewPage />} />
-        <Route path="/ai-chat" element={<AIChatPage />} />
+        <Route path="/ai-chat" element={<AICoachPage />} />
+        <Route path="/ai-chat/classic" element={<AIChatPageLegacy />} />
         <Route path="/notes" element={<NotesPage />} />
         <Route path="/health" element={<HealthPage />} />
         <Route path="/finance" element={<FinancePage />} />

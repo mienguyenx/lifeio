@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Timer } from 'lucide-react';
-import { Mascot } from '@/components/brand/Mascot';
+import { MascotCard } from '@/components/lio';
 import type { CalendarItem } from '../types/calendar.types';
 import { EventRow } from './EventChip';
 
@@ -59,10 +59,5 @@ export function FocusCard({ minutes, sessions, donePct }: { minutes: number; ses
 }
 
 export function QuoteCard() {
-  return (
-    <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-lavender to-[#FFEFF4] dark:from-primary/15 dark:to-[#F2557A]/10 p-4 pr-24 min-h-[104px]">
-      <p className="text-[13px] italic font-medium text-primary leading-snug">“Một ngày được lên kế hoạch tốt là một ngày gần hơn tới phiên bản tốt nhất của bạn!”</p>
-      <Mascot name="mochi" size={92} className="absolute -right-1 -bottom-2" />
-    </div>
-  );
+  return <MascotCard mascot="mochi" size={92} quote="“Một ngày được lên kế hoạch tốt là một ngày gần hơn tới phiên bản tốt nhất của bạn!”" />;
 }

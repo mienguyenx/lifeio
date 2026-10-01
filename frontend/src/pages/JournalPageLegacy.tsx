@@ -44,7 +44,7 @@ const ENERGY_OPTIONS = [
   { value: 5, icon: '🚀', label: 'Tràn đầy' },
 ];
 
-export default function JournalPage() {
+export default function JournalPageLegacy() {
   const journalEntries = useLifeOSStore((s) => s.journalEntries);
   const journalTags = useLifeOSStore((s) => s.journalTags);
   const addJournalTag = useLifeOSStore((s) => s.addJournalTag);

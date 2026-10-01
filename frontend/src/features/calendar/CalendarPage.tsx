@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { addDays, addMonths, addWeeks, format, max as maxDate, min as minDate } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Fab, Page, PageHeader, SearchToggle, SegmentedTabs } from '@/components/lio';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,6 @@ export default function CalendarPage() {
   const [anchor, setAnchor] = useState(() => fromKey(todayKey()));
   const [types, setTypes] = useState<CalendarItemType[]>(ALL_TYPES);
   const [search, setSearch] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
   const [addInit, setAddInit] = useState<Partial<EventDraft> | null>(null);
   const [detail, setDetail] = useState<CalendarItem | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -121,23 +121,7 @@ export default function CalendarPage() {
   );
 
   const viewSwitch = (
-    <div className={cn('inline-flex p-1 rounded-full bg-secondary/70', isMobile && 'w-full')}>
-      {VIEWS.map((v) => (
-        <button key={v.id} onClick={() => setView(v.id)} className={cn('h-8 px-4 rounded-full text-[13px] font-semibold transition-all', isMobile && 'flex-1 px-1', effView === v.id ? 'bg-card text-primary shadow-soft' : 'text-muted-foreground hover:text-foreground')}>
-          {isMobile ? v.short : v.label}
-        </button>
-      ))}
-    </div>
-  );
-
-  const searchBox = showSearch || search ? (
-    <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm trong lịch..." className="h-10 w-[170px] sm:w-[220px] rounded-full bg-card border border-border pl-9 pr-8 text-[13px] focus:outline-none focus:border-primary/40" />
-      <button className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => { setSearch(''); setShowSearch(false); }}><X className="h-4 w-4" /></button>
-    </div>
-  ) : (
-    <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={() => setShowSearch(true)} title="Tìm kiếm"><Search className="h-4 w-4" /></Button>
+    <SegmentedTabs size="sm" full={isMobile} value={effView} onChange={setView} items={VIEWS.map((v) => ({ id: v.id, label: isMobile ? v.short : v.label }))} />
   );
 
   /** Dải tuần cho mobile (chế độ Ngày/Tuần). */
@@ -157,19 +141,12 @@ export default function CalendarPage() {
   );
 
   return (
-    <div className={cn('mx-auto w-full max-w-[1400px]', isMobile ? 'px-4 pt-3 pb-28' : 'px-6 py-6')}>
-      <header className="flex items-start justify-between gap-3 mb-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className={cn('font-extrabold tracking-tight', isMobile ? 'text-[24px]' : 'text-[28px]')}>Lịch</h1>
-          </div>
-          <p className={cn('text-muted-foreground', isMobile ? 'text-[12.5px]' : 'text-[13.5px]')}>Lên kế hoạch hôm nay, ngày mai tươi sáng hơn ✨</p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {searchBox}
+    <Page>
+      <PageHeader className="mb-4" title="Lịch" subtitle="Lên kế hoạch hôm nay, ngày mai tươi sáng hơn ✨"
+        actions={<>
+          <SearchToggle value={search} onChange={setSearch} placeholder="Tìm trong lịch..." />
           {!isMobile && <Button className="h-10 rounded-full px-5 shadow-soft" onClick={() => add(sel)}><Plus className="h-4 w-4 mr-1.5" />Thêm sự kiện</Button>}
-        </div>
-      </header>
+        </>} />
 
       {/* Toolbar */}
       <div className={cn('flex items-center gap-2 mb-3', isMobile && 'flex-wrap')}>
@@ -205,9 +182,7 @@ export default function CalendarPage() {
               )}
             </section>
           )}
-          <button onClick={() => add(sel)} aria-label="Thêm sự kiện" className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg grid place-items-center active:scale-95 transition-transform">
-            <Plus className="h-6 w-6" />
-          </button>
+          <Fab onClick={() => add(sel)} label="Thêm sự kiện" />
         </div>
       ) : (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
@@ -234,6 +209,6 @@ export default function CalendarPage() {
         onEdit={() => navigate('/habits')}
         onDelete={(h) => { if (window.confirm(`Chuyển “${h.name}” vào thùng rác?`)) { habitApi.deleteHabit(h.id); setHabitSel(null); toast.success('Đã chuyển vào thùng rác'); } }}
       />
-    </div>
+    </Page>
   );
 }

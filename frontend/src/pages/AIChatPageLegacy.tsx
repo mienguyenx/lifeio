@@ -27,7 +27,7 @@ const QUICK_PROMPTS = [
 
 const AI_COACH_URL = functionUrl('ai-coach');
 
-export default function AIChatPage() {
+export default function AIChatPageLegacy() {
   const chatMessages = useLifeOSStore((s) => s.chatMessages);
   const addChatMessage = useLifeOSStore((s) => s.addChatMessage);
   const clearChatHistory = useLifeOSStore((s) => s.clearChatHistory);

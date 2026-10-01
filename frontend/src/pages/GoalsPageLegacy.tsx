@@ -36,7 +36,7 @@ import { GoalPerformanceComparison } from '@/components/goals/GoalPerformanceCom
 import { toast } from 'sonner';
 import { useAdminTemplates, useUpdateTemplate } from '@/hooks/useAdminData';
 
-export default function GoalsPage() {
+export default function GoalsPageLegacy() {
   const goals = useLifeOSStore((s) => s.goals);
   
   // Use synced store for CRUD operations that need to sync to Supabase

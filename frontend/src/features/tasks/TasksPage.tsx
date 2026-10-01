@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { Fab, Page, PageHeader, SearchToggle } from '@/components/lio';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import type { BoardColumnId, Task, TaskDraft, TaskPriority, TaskTab, TaskView } 
 import { useTasks } from './hooks/useTasks';
 import { todayKey } from './utils/task.utils';
 import { TaskStats } from './components/TaskStats';
-import { TaskFilterPopover, TaskSearch, TaskTabs, ViewSwitcher } from './components/TaskFilter';
+import { TaskFilterPopover, TaskTabs, ViewSwitcher } from './components/TaskFilter';
 import { TaskList } from './components/TaskList';
 import { TaskBoard } from './components/TaskBoard';
 import { TaskCalendar } from './components/TaskCalendar';
@@ -37,7 +38,6 @@ export default function TasksPage() {
   const setView = (v: TaskView) => { setViewState(v); try { localStorage.setItem(VIEW_KEY, v); } catch { /* ignore */ } };
   const [tab, setTab] = useState<TaskTab>(isMobile ? 'today' : 'all');
   const [search, setSearch] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
   const [area, setArea] = useState<LifeArea | 'all'>('all');
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all');
 
@@ -111,43 +111,30 @@ export default function TasksPage() {
   // ─────────────── Mobile ───────────────
   if (isMobile) {
     return (
-      <div className="px-4 pt-4 pb-28 space-y-4">
-        <header className="flex items-center gap-2">
-          <div className="flex-1">
-            <h1 className="text-[26px] font-bold leading-tight">Công việc</h1>
-            <p className="text-[13px] text-muted-foreground">{api.counts.today} việc hôm nay · {api.counts.overdue} quá hạn</p>
-          </div>
-          <button onClick={() => setShowSearch((s) => !s)} className="h-10 w-10 grid place-items-center rounded-full bg-card border border-border shadow-soft" aria-label="Tìm kiếm">
-            {showSearch ? <X className="h-[18px] w-[18px]" /> : <Search className="h-[18px] w-[18px]" />}
-          </button>
-          <button onClick={() => openQuick()} className="h-10 w-10 grid place-items-center rounded-full bg-primary text-primary-foreground shadow-fab" aria-label="Thêm công việc">
-            <Plus className="h-5 w-5" />
-          </button>
-        </header>
-        {showSearch && <TaskSearch value={search} onChange={setSearch} />}
+      <Page className="space-y-4">
+        <PageHeader className="mb-0" title="Công việc" subtitle={`${api.counts.today} việc hôm nay · ${api.counts.overdue} quá hạn`}
+          actions={<SearchToggle value={search} onChange={setSearch} placeholder="Tìm công việc…" />} />
         <div className="flex items-center justify-between gap-2">
           <ViewSwitcher view={view} onView={setView} />
           <TaskFilterPopover area={area} priority={priority} onArea={setArea} onPriority={setPriority} />
         </div>
         {view === 'list' && <TaskTabs tab={tab} onTab={setTab} counts={api.counts} tabs={MOBILE_TABS} className="-mx-4 px-4" />}
         {content}
+        <Fab onClick={() => openQuick()} label="Thêm công việc" />
         {modals}
-      </div>
+      </Page>
     );
   }
 
   // ─────────────── Desktop ───────────────
   const showSide = view === 'list';
   return (
-    <div className="px-6 lg:px-8 py-6 max-w-[1440px] mx-auto space-y-5">
-      <header className="flex flex-wrap items-center gap-4">
-        <div className="mr-auto">
-          <h1 className="text-[28px] font-bold leading-tight">Công việc</h1>
-          <p className="text-[14px] text-muted-foreground">Biến kế hoạch thành tiến bộ mỗi ngày ✨</p>
-        </div>
-        <TaskSearch value={search} onChange={setSearch} className="w-64" />
-        <Button onClick={() => openQuick()} className="h-10 rounded-full px-5"><Plus className="h-4 w-4 mr-1.5" />Thêm việc</Button>
-      </header>
+    <Page className="space-y-5">
+      <PageHeader className="mb-0" title="Công việc" subtitle="Biến kế hoạch thành tiến bộ mỗi ngày ✨"
+        actions={<>
+          <SearchToggle value={search} onChange={setSearch} placeholder="Tìm công việc…" />
+          <Button onClick={() => openQuick()} className="h-10 rounded-full px-5 shadow-soft"><Plus className="h-4 w-4 mr-1.5" />Thêm việc</Button>
+        </>} />
 
       <TaskStats counts={api.counts} tab={tab} onPick={(t) => { setTab(t); setView('list'); }} />
 
@@ -164,6 +151,6 @@ export default function TasksPage() {
         {showSide && <div className="hidden xl:block sticky top-4"><TaskSidePanel tasks={api.tasks} counts={api.counts} onAdd={() => openQuick({ dueDate: todayKey() })} /></div>}
       </div>
       {modals}
-    </div>
+    </Page>
   );
 }
