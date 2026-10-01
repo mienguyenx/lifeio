@@ -7,6 +7,7 @@ import { useNotificationBadges } from '@/hooks/useNotificationBadges';
 import { Badge } from '@/components/ui/badge';
 import { QuickAddSheet } from './QuickAddSheet';
 import { FullScreenMenu } from './FullScreenMenu';
+import { LifeIcon, ROUTE_ICON } from '@/components/icons/LifeIcon';
 
 // Paths that belong to "More" menu — used to highlight More tab
 const MORE_PATHS = [
@@ -35,13 +36,19 @@ function NavTab({ path, icon: Icon, label, isActive, badge, badgeUrgent }: NavTa
       )}
     >
       <div className="relative">
-        <Icon
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isActive ? 'text-primary' : 'text-muted-foreground',
-          )}
-          strokeWidth={isActive ? 2.5 : 2}
-        />
+        {ROUTE_ICON[path] ? (
+          <LifeIcon
+            name={ROUTE_ICON[path]}
+            size={24}
+            variant={isActive ? 'duotone' : 'outline'}
+            color={isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+          />
+        ) : (
+          <Icon
+            className={cn('w-6 h-6 transition-colors duration-200', isActive ? 'text-primary' : 'text-muted-foreground')}
+            strokeWidth={2}
+          />
+        )}
         {badge != null && badge > 0 && (
           <Badge
             className={cn(
@@ -114,7 +121,7 @@ export function BottomNav() {
               onClick={handleQuickAdd}
               className={cn(
                 'w-14 h-14 rounded-full flex items-center justify-center',
-                'bg-primary shadow-lg shadow-primary/30',
+                'bg-primary shadow-fab',
                 'tap-transparent active:scale-90 transition-transform',
               )}
             >

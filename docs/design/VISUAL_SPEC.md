@@ -107,6 +107,7 @@ Một màn hình chỉ có **một** primary CTA.
 - Code UI dùng **lucide-react**: soft rounded, stroke 2px, hình học đơn giản, ít chi tiết. Size mặc định 24 (16–20 trong dòng chữ).
 - Icon chức năng đặt trong `.icon-tile` + `tone-<module>` khi cần nhấn màu module.
 - Icon minh họa soft 3D (onboarding, marketing) được phép nhưng **không trộn** với icon lucide trong cùng một nhóm điều khiển.
+- Chi tiết đầy đủ: [ICON_SPEC.md](ICON_SPEC.md).
 
 ## 9. Mascot system
 
@@ -270,6 +271,7 @@ Mỗi module dùng chung token ở trên. Cột "Mascot" là mascot duy nhất �
 | Today: hero lavender + Lumi, quick actions lucide + icon-tile | ✅ |
 | Empty states: Tasks (Mochi), Habits (Taro), Goals (Lumi), Journal (Ori) | ✅ |
 | AI Coach avatar → Ori | ✅ |
+| Icon system (49 icon × 3 biến thể, LifeIcon/MoodIcon/PriorityIcon) — xem ICON_SPEC.md | ✅ |
 | Sidebar 14 mục tiếng Việt | ✅ |
 | Today: 3 thẻ sức khỏe, bỏ widget review khỏi Today | ⏳ |
 | Tasks stats + nhóm, Habits metrics/insights, Calendar, Insights | ⏳ |

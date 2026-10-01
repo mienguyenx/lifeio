@@ -32,6 +32,7 @@ import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { RecommendationsCard } from '@/components/today/RecommendationsCard';
 import { usePreferencesSync } from '@/hooks/sync/usePreferencesSync';
 import { Mascot } from '@/components/brand/Mascot';
+import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
 // Motivational quotes
 const QUOTES = [
   { text: "Hành trình ngàn dặm bắt đầu từ một bước chân", author: "Lão Tử" },
@@ -364,18 +365,18 @@ export default function TodayPage() {
           {/* Quick Actions — icon lucide trong icon container màu module */}
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: 'Công việc', Icon: ListTodo, tone: 'tone-tasks', onClick: () => setShowTaskModal(true) },
-              { label: 'Thói quen', Icon: Target, tone: 'tone-habits', onClick: () => setShowHabitModal(true) },
-              { label: 'Nhật ký', Icon: PenLine, tone: 'tone-journal', onClick: () => setShowJournalModal(true) },
-              { label: 'Tập trung', Icon: Play, tone: 'tone-home', onClick: () => startPomodoro() },
-            ].map(({ label, Icon, tone, onClick }) => (
+              { label: 'Công việc', icon: 'module/tasks', onClick: () => setShowTaskModal(true) },
+              { label: 'Thói quen', icon: 'module/habits', onClick: () => setShowHabitModal(true) },
+              { label: 'Nhật ký', icon: 'module/journal', onClick: () => setShowJournalModal(true) },
+              { label: 'Tập trung', icon: 'module/focus', onClick: () => startPomodoro() },
+            ].map(({ label, icon, onClick }) => (
               <button
                 key={label}
                 type="button"
                 onClick={onClick}
                 className="group flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 min-h-[72px] sm:min-h-14 px-2 rounded-lg border border-border bg-card shadow-soft text-small sm:text-[13px] font-semibold transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-card active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className={cn('icon-tile w-9 h-9', tone)}><Icon className="w-[18px] h-[18px]" strokeWidth={2} /></span>
+                <LifeIcon name={icon as LifeIconName} size={28} />
                 <span className="truncate">{label}</span>
               </button>
             ))}
@@ -388,7 +389,7 @@ export default function TodayPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <span className="icon-tile tone-habits w-7 h-7"><Target className="w-4 h-4" /></span> Thói quen
+                    <LifeIcon name="module/habits" size={22} /> Thói quen
                   </CardTitle>
                   <Link to="/habits" className="text-xs font-medium text-muted-foreground hover:text-primary-ink">Tất cả <ChevronRight className="w-3 h-3 inline" /></Link>
                 </div>
@@ -468,7 +469,7 @@ export default function TodayPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <span className="icon-tile tone-tasks w-7 h-7"><CheckCircle2 className="w-4 h-4" /></span> Công việc
+                    <LifeIcon name="module/tasks" size={22} /> Công việc
                     {overdueTasks.length > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{overdueTasks.length} quá hạn</Badge>}
                   </CardTitle>
                   <Link to="/tasks" className="text-xs font-medium text-muted-foreground hover:text-primary-ink">Tất cả <ChevronRight className="w-3 h-3 inline" /></Link>

@@ -55,7 +55,7 @@
 
     /* Màu module (icon container, chấm chỉ báo — KHÔNG dùng làm nền lớn) */
     --module-home: 246 85% 66%;
-    --module-tasks: 25 100% 74%;
+    --module-tasks: 22 100% 69%;          /* #FF9B63 */
     --module-calendar: 215 90% 66%;
     --module-habits: 162 58% 58%;
     --module-goals: 335 84% 80%;
@@ -65,21 +65,24 @@
     --module-areas: 168 54% 54%;
     --module-health: 355 100% 71%;
     --module-finance: 217 91% 60%;
-    --module-learning: 255 100% 74%;
+    --module-learning: 253 100% 74%;      /* #987BFF */
+    --module-focus: 30 100% 63%;          /* #FF9F43 */
+    --module-reviews: 250 88% 75%;        /* #9A86F7 */
+    --module-notes: 243 86% 74%;          /* #8B85F6 */
     --module-relationships: 329 86% 70%;
     --module-settings: 215 16% 47%;
 
-    /* 10 Life Area — chỉ dùng làm accent nhỏ (chấm, viền trái, icon) */
-    --area-health: 355 100% 71%;
-    --area-relationships: 329 86% 70%;
-    --area-career: 246 85% 66%;
-    --area-finance: 42 100% 62%;
-    --area-personal: 255 92% 76%;
-    --area-fun: 25 100% 74%;
-    --area-environment: 162 58% 58%;
-    --area-spirituality: 215 90% 66%;
-    --area-learning: 150 65% 43%;
-    --area-contribution: 335 84% 80%;
+    /* 10 Life Area — khớp ICON_SPEC; chỉ dùng làm accent nhỏ (chấm, viền trái, icon) */
+    --area-health: 355 100% 71%;          /* #FF6B78 */
+    --area-relationships: 329 86% 70%;    /* #F472B6 */
+    --area-career: 215 90% 66%;           /* #5B9CF6 */
+    --area-finance: 162 58% 58%;          /* #57D3AE */
+    --area-personal: 243 86% 74%;         /* #8B85F6 */
+    --area-fun: 42 100% 62%;              /* #FFC63D */
+    --area-environment: 168 54% 54%;      /* #4CC9B0 */
+    --area-spirituality: 255 92% 76%;     /* #A78BFA */
+    --area-learning: 253 100% 74%;        /* #987BFF */
+    --area-contribution: 335 84% 80%;     /* #F7A3C6 */
 
     /* Pomodoro */
     --pomodoro-work: 25 100% 66%;
@@ -270,6 +273,13 @@
   .tone-settings { --tone: var(--module-settings); }
 
   .text-primary-ink { color: hsl(var(--primary-ink)); }
+
+  /* LifeOS Icon states (ICON_SPEC §States) — xử lý bằng CSS, không cần file riêng */
+  .lifeos-icon { transition: filter 0.15s ease, opacity 0.15s ease, transform 0.15s ease; }
+  a:hover > .lifeos-icon, button:hover > .lifeos-icon, a:hover .lifeos-icon, button:hover .lifeos-icon { filter: brightness(1.04) saturate(1.05); }
+  .lifeos-icon[data-state='disabled'] { opacity: 0.4; filter: grayscale(0.6); }
+  /* Dark mode: tăng sáng ~15%, giữ nguyên hue */
+  .dark .lifeos-icon { filter: brightness(1.15); }
 
   /* Overscroll containment */
   .overscroll-contain {

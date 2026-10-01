@@ -11,6 +11,7 @@ import { DatabaseIndicator } from './DatabaseIndicator';
 import { useBranding } from '@/hooks/useBranding';
 import { notificationService } from '@/services/notificationService';
 import { useTheme } from 'next-themes';
+import { LifeIcon, ROUTE_ICON } from '@/components/icons/LifeIcon';
 
 // Menu groups configuration — V2: 14 mục chính, toàn bộ tiếng Việt.
 // Các trang ít dùng được gom vào nhóm "Thêm" (thu gọn) để không mất lối vào.
@@ -283,7 +284,11 @@ function MenuItem({ path, icon: Icon, label, badgeKey, isCollapsed, badges }: Me
         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
       )}
       <div className="relative">
-        <Icon className="w-5 h-5" />
+        {ROUTE_ICON[path] ? (
+          <LifeIcon name={ROUTE_ICON[path]} size={20} variant={isActive ? 'filled' : 'duotone'} />
+        ) : (
+          <Icon className="w-5 h-5" strokeWidth={2} />
+        )}
         {getBadgeCount() > 0 && isCollapsed && badgeKey && (
           <DotIndicator badgeKey={badgeKey} badges={badges} />
         )}
