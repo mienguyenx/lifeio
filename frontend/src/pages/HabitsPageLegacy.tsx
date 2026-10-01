@@ -38,7 +38,7 @@ import { ModuleHelpButton } from '@/components/ui/ModuleHelpButton';
 import { toast } from 'sonner';
 import { useAdminTemplates, useUpdateTemplate } from '@/hooks/useAdminData';
 
-export default function HabitsPage() {
+export default function HabitsPageLegacy() {
   const habits = useLifeOSStore((s) => s.habits);
   const goals = useLifeOSStore((s) => s.goals);
   

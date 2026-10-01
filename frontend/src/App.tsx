@@ -19,7 +19,8 @@ import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 import TodayPage from "./pages/TodayPage";
 import DashboardPage from "./pages/DashboardPage";
-import HabitsPage from "./pages/HabitsPage";
+import HabitsPage from "./features/habits/HabitsPage";
+import HabitsPageLegacy from "./pages/HabitsPageLegacy";
 import TasksPage from "./features/tasks/TasksPage";
 import TasksPageLegacy from "./pages/TasksPageLegacy";
 import GoalsPage from "./pages/GoalsPage";
@@ -78,6 +79,7 @@ function MainApp() {
         <Route path="/" element={<TodayPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/habits" element={<HabitsPage />} />
+        <Route path="/habits/classic" element={<HabitsPageLegacy />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/tasks/classic" element={<TasksPageLegacy />} />
         <Route path="/goals" element={<GoalsPage />} />
