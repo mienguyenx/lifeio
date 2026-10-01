@@ -1369,9 +1369,10 @@ export function useAIProviders() {
           .select('*')
           .order('sort_order', { ascending: true });
         if (error) throw error;
+        if (!data || data.length === 0) throw new Error('empty');
         return data as AdminAIProvider[];
       } catch {
-        // Fallback: table doesn't exist yet — use builtin seeds
+        // Fallback: table doesn't exist yet or is still empty — use builtin seeds
         return BUILTIN_PROVIDERS.map((p, i) => ({
           ...p,
           id: `builtin-${p.slug}`,
