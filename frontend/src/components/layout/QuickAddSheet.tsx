@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { AudioLines, X } from 'lucide-react';
+import { AudioLines, Mic, X } from 'lucide-react';
 import { openVoiceChat } from '@/features/ai-coach/components/GlobalVoiceChat';
 import { toast } from 'sonner';
 import { LifeIcon } from '@/components/icons/LifeIcon';
@@ -97,14 +97,19 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
             </div>
 
             {/* Voice: nói để tạo task, thói quen, nhật ký… */}
-            <div className="px-5 pb-3">
+            <div className="px-5 pb-3 flex gap-2.5">
               <button onClick={() => { onOpenChange(false); setTimeout(openVoiceChat, 150); }}
-                className="w-full flex items-center gap-3 rounded-[20px] bg-gradient-to-r from-primary to-[#9B7BFF] text-primary-foreground px-4 py-3 shadow-soft active:scale-[0.98] transition-transform text-left">
+                className="flex-1 min-w-0 flex items-center gap-3 rounded-[20px] bg-gradient-to-r from-primary to-[#9B7BFF] text-primary-foreground px-4 py-3 shadow-soft active:scale-[0.98] transition-transform text-left">
                 <span className="h-10 w-10 rounded-full bg-white/20 grid place-items-center shrink-0"><AudioLines className="h-5 w-5" /></span>
                 <span className="min-w-0">
                   <span className="block text-[14px] font-bold">Nói với AI</span>
                   <span className="block text-[12px] opacity-90 truncate">“Nhắc tôi gọi mẹ lúc 6h tối mai”</span>
                 </span>
+              </button>
+              <button onClick={() => { onOpenChange(false); navigate('/notes?voice'); }} aria-label="Ghi chú bằng giọng nói"
+                className="w-[84px] shrink-0 flex flex-col items-center justify-center gap-1 rounded-[20px] border border-border/60 bg-card shadow-soft active:scale-[0.98] transition-transform">
+                <span className={cn('h-9 w-9 rounded-full grid place-items-center', TINTS.amber.bg)} style={{ color: TINTS.amber.fg }}><Mic className="h-[18px] w-[18px]" /></span>
+                <span className="text-[11.5px] font-bold leading-tight text-center">Ghi chú<br />giọng nói</span>
               </button>
             </div>
 

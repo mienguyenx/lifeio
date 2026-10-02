@@ -184,6 +184,7 @@ const blobToBase64 = (b: Blob) => new Promise<string>((res, rej) => {
 export function plainForSpeech(md: string): string {
   return md
     .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\[[ xX]\]\s*/g, '')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     .replace(/[*_`#>|~]/g, '')
