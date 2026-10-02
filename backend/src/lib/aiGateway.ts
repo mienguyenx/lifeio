@@ -7,11 +7,16 @@
 // so they are never exposed to the browser.
 
 import { env } from '../env';
+import { pool } from '../db';
 import { HttpError } from './errors';
+
+export type ContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'input_audio'; input_audio: { data: string; format: string } };
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: string | ContentPart[];
 }
 
 export interface ChatCompletionOptions {
@@ -38,6 +43,66 @@ export function getGatewayApiKey(): string | null {
 
 export function isAiConfigured(): boolean {
   return getGatewayApiKey() !== null;
+}
+
+interface GatewayConfig {
+  url: string;
+  apiKey: string;
+  model: string;
+}
+
+/** OpenAI-compatible chat endpoints for providers admins can add under Admin → API Keys. */
+const PROVIDER_ENDPOINTS: Record<string, { base: string; model: string }> = {
+  gemini: { base: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.5-flash' },
+  'openai-compatible': { base: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  openai: { base: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  openrouter: { base: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.5-flash' },
+  groq: { base: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
+  together: { base: 'https://api.together.xyz/v1', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
+  deepseek: { base: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  mistral: { base: 'https://api.mistral.ai/v1', model: 'mistral-small-latest' },
+  xai: { base: 'https://api.x.ai/v1', model: 'grok-3-mini' },
+  perplexity: { base: 'https://api.perplexity.ai', model: 'sonar' },
+};
+
+let cachedDbConfig: { at: number; value: GatewayConfig | null } | null = null;
+
+/**
+ * Resolve which gateway to call: the backend environment wins; otherwise fall
+ * back to the primary active key an admin saved in the `api_keys` table, so AI
+ * can be switched on from the admin UI without redeploying.
+ */
+export async function resolveGateway(): Promise<GatewayConfig> {
+  const envKey = getGatewayApiKey();
+  if (envKey) return { url: env.AI_GATEWAY_URL, apiKey: envKey, model: env.AI_MODEL };
+  if (cachedDbConfig && Date.now() - cachedDbConfig.at < 30_000) {
+    if (cachedDbConfig.value) return cachedDbConfig.value;
+    throw new AiNotConfiguredError();
+  }
+  let value: GatewayConfig | null = null;
+  try {
+    const { rows } = await pool.query<{ provider: string; api_key: string; metadata: Record<string, string> | null }>(
+      `SELECT provider, api_key, metadata FROM "api_keys"
+        WHERE is_active = true AND provider = ANY($1)
+        ORDER BY is_primary DESC, (provider = 'gemini') DESC, updated_at DESC LIMIT 1`,
+      [Object.keys(PROVIDER_ENDPOINTS)],
+    );
+    const row = rows[0];
+    if (row) {
+      const def = PROVIDER_ENDPOINTS[row.provider];
+      const base = (row.metadata?.base_url || def.base).replace(/\/+$/, '');
+      value = {
+        url: base.endsWith('/chat/completions') ? base : `${base}/chat/completions`,
+        apiKey: row.api_key,
+        model: row.metadata?.model || def.model,
+      };
+    }
+  } catch {
+    value = null; // table missing or DB error — treat as not configured
+  }
+  cachedDbConfig = { at: Date.now(), value };
+  if (!value) throw new AiNotConfiguredError();
+  return value;
 }
 
 export function defaultModel(): string {
@@ -73,22 +138,21 @@ function mapGatewayError(status: number, bodyText: string): HttpError {
 export async function chatCompletion(
   options: ChatCompletionOptions,
 ): Promise<{ content: string; raw: OpenAIChatResponse }> {
-  const apiKey = getGatewayApiKey();
-  if (!apiKey) throw new AiNotConfiguredError();
+  const gw = await resolveGateway();
 
   const body: Record<string, unknown> = {
-    model: options.model || env.AI_MODEL,
+    model: options.model || gw.model,
     messages: options.messages,
   };
   if (options.temperature !== undefined) body.temperature = options.temperature;
   if (options.tools) body.tools = options.tools;
   if (options.toolChoice) body.tool_choice = options.toolChoice;
 
-  const resp = await fetch(env.AI_GATEWAY_URL, {
+  const resp = await fetch(gw.url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${gw.apiKey}`,
     },
     body: JSON.stringify(body),
   });
@@ -109,17 +173,16 @@ export async function chatCompletion(
  * `data: {choices:[{delta:{content}}]}` + `data: [DONE]`).
  */
 export async function chatCompletionStream(options: ChatCompletionOptions): Promise<Response> {
-  const apiKey = getGatewayApiKey();
-  if (!apiKey) throw new AiNotConfiguredError();
+  const gw = await resolveGateway();
 
-  const resp = await fetch(env.AI_GATEWAY_URL, {
+  const resp = await fetch(gw.url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${gw.apiKey}`,
     },
     body: JSON.stringify({
-      model: options.model || env.AI_MODEL,
+      model: options.model || gw.model,
       messages: options.messages,
       stream: true,
     }),

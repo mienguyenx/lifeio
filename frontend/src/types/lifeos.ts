@@ -356,6 +356,10 @@ export interface ChatMessage {
   content: string;
   createdAt: string;
   isFavorite?: boolean;
+  /** Hành động trợ lý AI đề xuất (tạo task/thói quen…) chờ người dùng xác nhận. */
+  actions?: { id: string; type: string; args: Record<string, any>; status: 'pending' | 'done' | 'dismissed' }[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  /** Tin nhắn được nói bằng giọng nói. */
+  voice?: boolean;
 }
 
 export interface SavedConversation {
