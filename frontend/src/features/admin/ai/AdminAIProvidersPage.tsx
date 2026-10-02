@@ -1,7 +1,8 @@
 // Module 23a — Admin: Nhà cung cấp AI (LIO kit)
 // Dữ liệu/hành động giữ nguyên từ pages/admin/AdminAIProviders.tsx (bản cũ: /admin/ai/providers/classic)
 import { useCallback, useMemo, useState } from 'react';
-import { Bot, CheckCircle2, Download, ExternalLink, Eye, EyeOff, Globe, Key, Loader2, Play, Plus, RefreshCw, Star, Trash2, X } from 'lucide-react';
+import { Bot, CheckCircle2, Download, ExternalLink, Eye, EyeOff, Globe, Key, Loader2, Pencil, Play, Plus, RefreshCw, Star, Trash2, X } from 'lucide-react';
+import { apiFetch } from '@/integrations/api/httpClient';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -14,7 +15,6 @@ import { Donut } from '@/components/lio/charts';
 import { Field, fieldCls, areaCls } from '@/components/lio/form';
 import { useAIProviders, useUpdateAIProvider, useCreateAIProvider, useDeleteAIProvider, useAIModels, useCreateAIModel, useDeleteAIModel, type AIModel } from '@/hooks/useAdminData';
 import { useAdminApiKeys, useDeleteApiKey, useSaveApiKey, useSetPrimaryApiKey, useToggleApiKey, maskKey, type AdminApiKey } from '@/hooks/useAdminApiKeys';
-import { fetchModelsFromProvider, testProviderConnection } from '@/services/providerService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { AdminAIProvider, FetchedModel, ProviderType, AuthType } from '@/types/admin';
@@ -60,6 +60,7 @@ export default function AdminAIProvidersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState(EMPTY_PROVIDER);
+  const [editing, setEditing] = useState<AdminAIProvider | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AdminAIProvider | null>(null);
 
   const all = useMemo(() => providers ?? [], [providers]);
@@ -82,12 +83,28 @@ export default function AdminAIProvidersPage() {
   };
   const create = () => {
     if (!draft.name || !draft.slug) { toast.error('Cần nhập tên và slug'); return; }
+    const fields = { ...draft, base_url: draft.base_url.trim() || null, models_endpoint: draft.models_endpoint.trim() || '/models' };
+    if (editing && !editing.id.startsWith('builtin-')) {
+      updateProvider.mutate({ id: editing.id, ...fields }, { onSuccess: () => { setShowAdd(false); setEditing(null); } });
+      return;
+    }
+    if (editing) {
+      // Provider dựng sẵn chưa lưu DB → tạo bản ghi với cấu hình đã sửa
+      const { id: _i, created_at: _c, updated_at: _u, ...rest } = editing; void _i; void _c; void _u;
+      createProvider.mutate({ ...rest, ...fields }, { onSuccess: () => { setShowAdd(false); setEditing(null); } });
+      return;
+    }
     createProvider.mutate({
       ...draft, icon_url: null, color: null, extra_headers: {}, fetch_type: 'api', model_transform: null,
       is_active: true, is_builtin: false, supports_streaming: true, supports_tools: false, docs_url: null, pricing_url: null, sort_order: all.length + 1,
     }, { onSuccess: () => { setShowAdd(false); setDraft(EMPTY_PROVIDER); } });
   };
-  const openAdd = () => { setDraft(EMPTY_PROVIDER); setShowAdd(true); };
+  const openAdd = () => { setEditing(null); setDraft(EMPTY_PROVIDER); setShowAdd(true); };
+  const openEdit = (p: AdminAIProvider) => {
+    setEditing(p);
+    setDraft({ name: p.name, slug: p.slug, type: p.type, base_url: p.base_url ?? '', models_endpoint: p.models_endpoint ?? '/models', description: p.description ?? '', auth_type: p.auth_type, auth_header: p.auth_header ?? 'Authorization', auth_prefix: p.auth_prefix ?? 'Bearer' });
+    setShowAdd(true);
+  };
 
   const donut = all.map((p, i) => ({ id: p.id, name: p.name, value: modelsOf(p.slug).length, color: p.color || PALETTE[i % PALETTE.length] })).filter((d) => d.value > 0);
   const byType = PROVIDER_TYPES.map((t, i) => ({ label: t.label, value: all.filter((p) => p.type === t.value).length, color: PALETTE[i] })).filter((x) => x.value > 0);
@@ -103,7 +120,7 @@ export default function AdminAIProvidersPage() {
   );
   const detail = selected && (
     <ProviderDetail key={selected.id} provider={selected} inPanel={isXl} models={modelsOf(selected.slug)} keys={keysOf(selected.slug)} allModels={models ?? []}
-      onClose={() => setSelectedId(null)} onToggle={() => toggle(selected)} onDelete={() => setConfirmDelete(selected)} />
+      onClose={() => setSelectedId(null)} onToggle={() => toggle(selected)} onEdit={() => openEdit(selected)} onDelete={() => setConfirmDelete(selected)} />
   );
   const side = isXl && detail ? detail : overviewSide;
 
@@ -160,6 +177,7 @@ export default function AdminAIProvidersPage() {
                       <span onClick={(e) => e.stopPropagation()} className="flex items-center gap-2"><Switch checked={p.is_active} onCheckedChange={() => toggle(p)} aria-label={`Bật ${p.name}`} /></span>
                       <RowMenu items={[
                         { label: 'Xem chi tiết', icon: <Eye />, onClick: () => setSelectedId(p.id) },
+                        { label: 'Sửa provider', icon: <Pencil />, onClick: () => openEdit(p) },
                         { label: p.is_active ? 'Tắt provider' : 'Bật provider', icon: <CheckCircle2 />, onClick: () => toggle(p) },
                         { label: 'Tài liệu', icon: <ExternalLink />, onClick: () => window.open(p.docs_url!, '_blank', 'noopener'), hidden: !p.docs_url },
                         { label: 'Xóa provider', icon: <Trash2 />, onClick: () => setConfirmDelete(p), danger: true, separator: true, hidden: p.is_builtin },
@@ -178,11 +196,11 @@ export default function AdminAIProvidersPage() {
 
       <AdaptiveModal open={!!selected && !isXl} onOpenChange={(o) => !o && setSelectedId(null)} title={selected?.name ?? 'Provider'}>{!isXl && detail}</AdaptiveModal>
 
-      <AdaptiveModal open={showAdd} onOpenChange={setShowAdd} title="Thêm provider tùy chỉnh" description="OpenAI-compatible hoặc kết nối riêng">
+      <AdaptiveModal open={showAdd} onOpenChange={(o) => { setShowAdd(o); if (!o) setEditing(null); }} title={editing ? `Sửa provider ${editing.name}` : 'Thêm provider tùy chỉnh'} description={editing ? 'Base URL chỉ cần domain (VD https://api.cometapi.com) — hệ thống tự thêm /v1' : 'OpenAI-compatible hoặc kết nối riêng'}>
         <form className="space-y-3.5 mt-2" onSubmit={(e) => { e.preventDefault(); create(); }}>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Tên hiển thị *"><input className={fieldCls} value={draft.name} autoFocus placeholder="VD: Groq" onChange={(e) => setDraft({ ...draft, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') })} /></Field>
-            <Field label="Slug *"><input className={cn(fieldCls, 'font-mono text-[13px]')} value={draft.slug} placeholder="groq" onChange={(e) => setDraft({ ...draft, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} /></Field>
+            <Field label="Tên hiển thị *"><input className={fieldCls} value={draft.name} autoFocus placeholder="VD: Groq" onChange={(e) => setDraft({ ...draft, name: e.target.value, slug: editing ? draft.slug : e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') })} /></Field>
+            <Field label="Slug *"><input className={cn(fieldCls, 'font-mono text-[13px]')} value={draft.slug} placeholder="groq" disabled={!!editing} title={editing ? 'Slug gắn với API key & model — không đổi được' : undefined} onChange={(e) => setDraft({ ...draft, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} /></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Loại"><Select value={draft.type} onValueChange={(v) => setDraft({ ...draft, type: v as ProviderType })}><SelectTrigger className="h-11 rounded-2xl bg-card"><SelectValue /></SelectTrigger><SelectContent>{PROVIDER_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent></Select></Field>
@@ -197,7 +215,7 @@ export default function AdminAIProvidersPage() {
           <Field label="Mô tả"><textarea className={areaCls} rows={2} value={draft.description} placeholder="Mô tả ngắn..." onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-2 pt-1">
             <Button type="button" variant="outline" className="h-11 rounded-full" onClick={() => setShowAdd(false)}>Hủy</Button>
-            <Button type="submit" className="h-11 rounded-full shadow-soft" disabled={!draft.name || !draft.slug || createProvider.isPending}>Thêm provider</Button>
+            <Button type="submit" className="h-11 rounded-full shadow-soft" disabled={!draft.name || !draft.slug || createProvider.isPending || updateProvider.isPending}>{editing ? 'Lưu thay đổi' : 'Thêm provider'}</Button>
           </div>
         </form>
       </AdaptiveModal>
@@ -209,8 +227,8 @@ export default function AdminAIProvidersPage() {
 }
 
 type DetailTab = 'models' | 'keys' | 'config';
-function ProviderDetail({ provider, inPanel, models, keys, allModels, onClose, onToggle, onDelete }: {
-  provider: AdminAIProvider; inPanel: boolean; models: AIModel[]; keys: AdminApiKey[]; allModels: AIModel[]; onClose: () => void; onToggle: () => void; onDelete: () => void;
+function ProviderDetail({ provider, inPanel, models, keys, allModels, onClose, onToggle, onEdit, onDelete }: {
+  provider: AdminAIProvider; inPanel: boolean; models: AIModel[]; keys: AdminApiKey[]; allModels: AIModel[]; onClose: () => void; onToggle: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   const [tab, setTab] = useState<DetailTab>('models');
   const [fetched, setFetched] = useState<FetchedModel[]>([]);
@@ -229,8 +247,8 @@ function ProviderDetail({ provider, inPanel, models, keys, allModels, onClose, o
   const doFetch = useCallback(async () => {
     setFetching(true); setFetched([]);
     try {
-      const result = await fetchModelsFromProvider(provider);
-      const existing = new Set(allModels.map((m) => m.model_id));
+      const { models: result } = await apiFetch<{ models: FetchedModel[] }>('/functions/ai-providers/models', { method: 'POST', body: { slug: provider.slug } });
+      const existing = new Set(allModels.filter((m) => m.provider === provider.slug).map((m) => m.model_id));
       const fresh = result.filter((m) => !existing.has(m.id));
       setFetched(fresh);
       toast.success(`Tìm thấy ${result.length} model (${fresh.length} chưa import)`);
@@ -243,9 +261,9 @@ function ProviderDetail({ provider, inPanel, models, keys, allModels, onClose, o
   const test = async () => {
     setTesting(true);
     try {
-      const r = await testProviderConnection(provider);
-      if (r.success) toast.success(`Kết nối thành công — ${r.modelCount} model`); else toast.error(`Lỗi: ${r.error}`);
-    } finally { setTesting(false); }
+      const r = await apiFetch<{ models: unknown[]; url: string }>('/functions/ai-providers/models', { method: 'POST', body: { slug: provider.slug } });
+      toast.success(`Kết nối thành công — ${r.models.length} model`, { description: r.url });
+    } catch (err) { toast.error(`Lỗi: ${(err as Error).message}`); } finally { setTesting(false); }
   };
   const submitKey = () => {
     if (!addKey?.name || !addKey.api_key) { toast.error('Điền đủ thông tin'); return; }
@@ -362,8 +380,9 @@ function ProviderDetail({ provider, inPanel, models, keys, allModels, onClose, o
       )}
 
       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
+        <Button variant="outline" className="h-10 rounded-full mt-3" onClick={onEdit}><Pencil className="h-4 w-4 mr-1.5" />Sửa cấu hình</Button>
         <Button variant="outline" className="h-10 rounded-full mt-3" onClick={onToggle}>{provider.is_active ? 'Tắt provider' : 'Bật provider'}</Button>
-        {!provider.is_builtin ? <Button variant="outline" className="h-10 rounded-full mt-3 text-destructive hover:text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4 mr-1.5" />Xóa</Button> : <span />}
+        {!provider.is_builtin && <Button variant="outline" className="col-span-2 h-10 rounded-full text-destructive hover:text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4 mr-1.5" />Xóa provider</Button>}
       </div>
       <ConfirmDialog open={!!confirmModel} onOpenChange={(o) => !o && setConfirmModel(null)} title={`Xóa model ${confirmModel?.name ?? ''}?`} onConfirm={() => { if (confirmModel) deleteModel.mutate(confirmModel.id); setConfirmModel(null); }} />
     </div>

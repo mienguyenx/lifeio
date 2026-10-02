@@ -16,6 +16,7 @@ import { Composer } from './components/Composer';
 import { CoachHome } from './components/CoachHome';
 import { ContextPanel } from './components/ContextPanel';
 import { openVoiceChat } from './components/GlobalVoiceChat';
+import { PromptLibrarySheet } from './prompts/PromptLibrarySheet';
 
 type Tab = 'chat' | 'history' | 'insights';
 const FOLLOW_UPS = ['Tạo kế hoạch cho tôi', 'Cho tôi ví dụ cụ thể', 'Tóm tắt ngắn gọn hơn'];
@@ -29,6 +30,8 @@ export default function AICoachPage() {
   const [title, setTitle] = useState('');
   const [askNew, setAskNew] = useState(false);
   const [askClear, setAskClear] = useState(false);
+  const [libOpen, setLibOpen] = useState(false);
+  const [insert, setInsert] = useState<{ text: string; n: number } | null>(null);
   const initials = (api.user.name || 'B').trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
   const firstQ = messages.find((m) => m.role === 'user')?.content.slice(0, 60) ?? '';
 
@@ -52,10 +55,10 @@ export default function AICoachPage() {
       )}
       <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
         {messages.length === 0
-          ? <CoachHome name={api.user.name} hasProfile={api.hasProfile} onPrompt={send} compact={isMobile} hero={isMobile} />
+          ? <CoachHome name={api.user.name} hasProfile={api.hasProfile} onPrompt={send} onLibrary={() => setLibOpen(true)} compact={isMobile} hero={isMobile} />
           : <ChatThread messages={messages} loading={loading} initials={initials} onFavorite={api.toggleFavorite} onNote={api.toNote} actions={actionHandlers} />}
       </div>
-      <Composer className="p-3 pt-1" onSend={send} onVoiceChat={() => openVoiceChat()} disabled={loading} chips={messages.length && !loading ? FOLLOW_UPS : undefined} />
+      <Composer className="p-3 pt-1" onSend={send} onVoiceChat={() => openVoiceChat()} onLibrary={() => setLibOpen(true)} insert={insert} disabled={loading} chips={messages.length && !loading ? FOLLOW_UPS : undefined} />
     </Surface>
   );
   const history = <ChatHistory saved={api.saved} onNew={newChat} onLoad={(id) => { api.load(id); setTab('chat'); }} onDelete={api.removeSaved} className="h-full" />;
@@ -104,6 +107,7 @@ export default function AICoachPage() {
         </div>
       )}
 
+      <PromptLibrarySheet open={libOpen} onOpenChange={setLibOpen} onSend={(t) => send(t)} onInsert={(t) => { setTab('chat'); setInsert((s) => ({ text: t, n: (s?.n ?? 0) + 1 })); }} />
       <AdaptiveModal open={!!saveOpen} onOpenChange={(o) => !o && setSaveOpen(null)} title="Lưu cuộc trò chuyện">
         <div className="space-y-3 min-w-0">
           <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doSave()} placeholder="Tên cuộc trò chuyện..."

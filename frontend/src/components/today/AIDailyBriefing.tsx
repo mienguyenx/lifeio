@@ -129,7 +129,7 @@ export function AIDailyBriefing() {
 
         {/* Main goal */}
         {briefing.mainGoal && (
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-primary/8 border border-primary/15">
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-primary/[0.08] border border-primary/15">
             <Target className="w-3.5 h-3.5 text-primary shrink-0" />
             <span className="text-xs font-medium">{briefing.mainGoal}</span>
           </div>

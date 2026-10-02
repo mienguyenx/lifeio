@@ -7,7 +7,7 @@ import * as schema from './schema';
 // instead of JS Dates serialised as UTC timestamps; the frontend compares them as strings.
 types.setTypeParser(1082, (value: string) => value);
 
-export const pool = new Pool({ connectionString: env.DATABASE_URL });
+export const pool = new Pool({ connectionString: env.DATABASE_URL, ...(process.env.PG_POOL_MAX ? { max: Number(process.env.PG_POOL_MAX) } : {}) });
 
 export const db = drizzle(pool, { schema });
 

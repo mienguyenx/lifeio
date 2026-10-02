@@ -1,10 +1,10 @@
-import { Sparkles } from 'lucide-react';
+import { BookOpen, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LifeIcon } from '@/components/icons/LifeIcon';
 import { HeroBanner, SectionTitle, TINTS } from '@/components/lio';
 import { QUICK_ACTIONS, QUICK_PROMPTS } from '../utils/coach.utils';
 
-export function CoachHome({ name, hasProfile, onPrompt, compact, hero = true }: { name?: string; hasProfile: boolean; onPrompt: (p: string) => void; compact?: boolean; hero?: boolean }) {
+export function CoachHome({ name, hasProfile, onPrompt, onLibrary, compact, hero = true }: { name?: string; hasProfile: boolean; onPrompt: (p: string) => void; onLibrary?: () => void; compact?: boolean; hero?: boolean }) {
   return (
     <div className="space-y-5 py-1">
       {hero && <HeroBanner mascot="ori" pose="idea" title={<>Xin chào{name ? `, ${name}` : ''}! 👋</>}
@@ -28,6 +28,13 @@ export function CoachHome({ name, hasProfile, onPrompt, compact, hero = true }: 
             Chào {name || 'bạn'}! Mình là Ori — AI Coach của bạn 👋<br />Mình có thể giúp bạn lập kế hoạch, phân tích tiến độ và gợi ý cá nhân hóa. Hôm nay bạn muốn tập trung vào điều gì?
           </div>
         </div>
+      )}
+      {onLibrary && (
+        <button onClick={onLibrary} className="w-full flex items-center gap-3 rounded-[20px] bg-lavender dark:bg-primary/15 p-3 text-left transition-all hover:-translate-y-0.5">
+          <span className="h-10 w-10 rounded-[13px] bg-card grid place-items-center shrink-0 text-primary shadow-soft"><BookOpen className="h-5 w-5" /></span>
+          <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-bold">Thư viện prompt</span><span className="block text-[11.5px] text-muted-foreground truncate">Mẫu câu hỏi cho kế hoạch, mục tiêu, thói quen, tài chính…</span></span>
+          <ChevronRight className="h-4 w-4 text-primary shrink-0" />
+        </button>
       )}
       <div>
         <SectionTitle title="Câu hỏi gợi ý" />

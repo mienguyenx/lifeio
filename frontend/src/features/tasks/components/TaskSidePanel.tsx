@@ -59,10 +59,10 @@ function FocusCard({ tasks }: { tasks: Task[] }) {
 }
 
 const QUICK: { label: string; icon: LifeIconName; tint: string; to?: string; action?: 'task' }[] = [
-  { label: 'Công việc mới', icon: 'module/tasks', tint: 'bg-[#FFF1E8] dark:bg-[#FF9B63]/12', action: 'task' },
-  { label: 'Mục tiêu mới', icon: 'module/goals', tint: 'bg-[#FFEFF6] dark:bg-[#F472B6]/12', to: '/goals' },
-  { label: 'Thói quen mới', icon: 'module/habits', tint: 'bg-[#E6F8F1] dark:bg-[#57D3AE]/12', to: '/habits' },
-  { label: 'Ghi chú mới', icon: 'module/notes', tint: 'bg-lavender dark:bg-primary/12', to: '/notes' },
+  { label: 'Công việc mới', icon: 'module/tasks', tint: 'bg-[#FFF1E8] dark:bg-[#FF9B63]/15', action: 'task' },
+  { label: 'Mục tiêu mới', icon: 'module/goals', tint: 'bg-[#FFEFF6] dark:bg-[#F472B6]/15', to: '/goals' },
+  { label: 'Thói quen mới', icon: 'module/habits', tint: 'bg-[#E6F8F1] dark:bg-[#57D3AE]/15', to: '/habits' },
+  { label: 'Ghi chú mới', icon: 'module/notes', tint: 'bg-lavender dark:bg-primary/15', to: '/notes' },
 ];
 
 export function TaskSidePanel({ tasks, counts, onAdd }: { tasks: Task[]; counts: TaskCounts; onAdd: () => void }) {

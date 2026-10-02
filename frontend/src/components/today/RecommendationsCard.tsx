@@ -6,7 +6,7 @@ import { useRecommendations, type Recommendation } from '@/hooks/useRecommendati
 import { Link } from 'react-router-dom';
 
 const TYPE_STYLES: Record<string, { icon: React.ReactNode; bg: string }> = {
-  action: { icon: <Zap className="w-3 h-3 text-primary" />, bg: 'bg-primary/8' },
+  action: { icon: <Zap className="w-3 h-3 text-primary" />, bg: 'bg-primary/[0.08]' },
   insight: { icon: <Lightbulb className="w-3 h-3 text-amber-500" />, bg: 'bg-amber-500/8' },
   warning: { icon: <AlertTriangle className="w-3 h-3 text-destructive" />, bg: 'bg-destructive/8' },
   celebration: { icon: <PartyPopper className="w-3 h-3 text-green-500" />, bg: 'bg-green-500/8' },

@@ -29,6 +29,13 @@
       "when": 1790958400000,
       "tag": "0003_port_remaining_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791000000000,
+      "tag": "0004_ai_config_prompts",
+      "breakpoints": true
     }
   ]
 }
