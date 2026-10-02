@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useTaskReminder } from '@/hooks/useTaskReminder';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import type { LifeArea } from '@/types/lifeos';
@@ -30,7 +29,6 @@ const MOBILE_TABS: TaskTab[] = ['today', 'upcoming', 'overdue', 'completed', 'al
 export default function TasksPage() {
   const isMobile = useIsMobile();
   const [params, setParams] = useSearchParams();
-  useTaskReminder();
   const autoArchive = useLifeOSStore((s) => s.autoArchiveOldTasks);
   useEffect(() => { autoArchive(); }, [autoArchive]);
 

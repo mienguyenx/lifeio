@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { notificationService } from '@/services/notificationService';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Target, CheckSquare, Plus, MoreHorizontal } from 'lucide-react';
 // import { motion } from 'framer-motion';
@@ -82,6 +83,8 @@ export function BottomNav() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const badges = useNotificationBadges();
+  const [unread, setUnread] = useState(0);
+  useEffect(() => notificationService.subscribe((n) => setUnread(n.filter((x) => !x.read).length)), []);
 
   const isMoreActive = MORE_PATHS.some((p) => p !== '/' && isActivePath(location.pathname, p));
 
@@ -148,6 +151,7 @@ export function BottomNav() {
               'active:scale-90 transition-transform duration-150',
             )}
           >
+            {unread > 0 && <span className="absolute top-1 right-[calc(50%-16px)] h-2.5 w-2.5 rounded-full bg-destructive border-2 border-card" aria-label={`${unread} thông báo chưa đọc`} />}
             <MoreHorizontal
               className={cn(
                 'w-6 h-6 transition-colors duration-200',

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { showLocalNotification } from '@/lib/pwa';
 import type { PomodoroState, PomodoroPhase } from '@/types/lifeos';
 import { useLifeOSStore } from './useLifeOSStore';
 
@@ -102,10 +103,9 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       get().skip();
       // Trigger notification
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Pomodoro', {
+        void showLocalNotification('Pomodoro', {
           body: get().phase === 'work' ? 'Nghỉ ngơi thôi! 🎉' : 'Quay lại làm việc! 💪',
-          icon: '/favicon.ico',
-        });
+          });
       }
       // Play sound
       const audio = new Audio('/notification.mp3');

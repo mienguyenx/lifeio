@@ -33,7 +33,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="LifeOS" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -43,42 +44,5 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- PWA DISABLED - Gọi lại để restore
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", async () => {
-          try {
-            const reg = await navigator.serviceWorker.register("/sw.js", {
-              updateViaCache: "none",
-            });
-            if (reg.waiting) {
-              reg.waiting.postMessage({ type: "SKIP_WAITING" });
-            }
-            reg.addEventListener("updatefound", () => {
-              const sw = reg.installing;
-              if (!sw) return;
-              sw.addEventListener("statechange", () => {
-                if (sw.state === "installed" && navigator.serviceWorker.controller) {
-                  sw.postMessage({ type: "SKIP_WAITING" });
-                }
-              });
-            });
-            navigator.serviceWorker.addEventListener("controllerchange", () => {
-              if (window.__lifeosSwReloaded) return;
-              window.__lifeosSwReloaded = true;
-              window.location.reload();
-            });
-          } catch {}
-        });
-      }
-    </script>
-    -->
-    
-    <!-- Unregister existing service workers -->
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.getRegistrations().then(r => r.forEach(sw => sw.unregister()));
-      }
-    </script>
-  </body>
+</body>
 </html>

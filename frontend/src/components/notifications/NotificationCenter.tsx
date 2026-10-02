@@ -76,7 +76,7 @@ export function NotificationCenter() {
       case 'habit':
         return <AlertCircle className="w-4 h-4 text-orange-500" />;
       default:
-        return <Info className="w-4 h-4 text-gray-500" />;
+        return <Info className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -132,7 +132,7 @@ export function NotificationCenter() {
 
         <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center text-gray-500">
+            <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
               <Bell className="w-12 h-12 mb-2 opacity-50" />
               <p className="text-sm">Chưa có thông báo</p>
             </div>
@@ -142,8 +142,8 @@ export function NotificationCenter() {
                 <div
                   key={notification.id}
                   className={cn(
-                    "p-4 cursor-pointer hover:bg-gray-50 transition-colors",
-                    !notification.read && "bg-blue-50/50"
+                    "p-4 cursor-pointer hover:bg-secondary/60 transition-colors",
+                    !notification.read && "bg-primary/[0.06]"
                   )}
                   onClick={() => handleNotificationClick(notification)}
                 >
@@ -160,10 +160,10 @@ export function NotificationCenter() {
                           )}>
                             {notification.title}
                           </p>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-muted-foreground mt-1">
                             {notification.message}
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {formatDistanceToNow(new Date(notification.createdAt), {
                               addSuffix: true,
                               locale: vi
@@ -193,6 +193,10 @@ export function NotificationCenter() {
             </div>
           )}
         </ScrollArea>
+        <div className="border-t p-2 grid grid-cols-2 gap-1">
+          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setIsOpen(false); navigate('/notifications'); }}>Xem tất cả</Button>
+          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setIsOpen(false); navigate('/settings?tab=app'); }}>Cài đặt thông báo</Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

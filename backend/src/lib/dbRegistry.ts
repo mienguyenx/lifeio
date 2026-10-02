@@ -41,6 +41,7 @@ export const TABLE_REGISTRY: Record<string, TablePolicy> = {
   profiles: { ownerColumn: 'id', adminAll: true },
   user_roles: own({ adminAll: true, writeAdminOnly: true }),
   user_settings: own({ adminAll: true }),
+  user_notifications: own(),
   tasks: own(),
   task_tags: own(),
   subtasks: childOf('tasks', 'task_id'),

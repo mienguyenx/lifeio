@@ -17,6 +17,7 @@ import healthRoutes from './routes/health';
 import journalRoutes from './routes/journal';
 import noteRoutes from './routes/notes';
 import profileRoutes from './routes/profiles';
+import pushRoutes from './routes/push';
 import rpcRoutes from './routes/rpc';
 import taskRoutes from './routes/tasks';
 
@@ -85,6 +86,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(goalRoutes);
       await api.register(journalRoutes);
       await api.register(noteRoutes);
+      await api.register(pushRoutes);
     },
     { prefix: '/api/v1' },
   );

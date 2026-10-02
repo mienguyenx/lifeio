@@ -17,9 +17,10 @@ import { HeroBanner, MascotCard, Page, PageHeader, SectionTitle, SegmentedTabs, 
 import { Field, fieldCls } from '@/components/lio/form';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { MobileAppSection } from '@/features/notifications/MobileAppSection';
 
 const txt = (s: string) => <span className="block text-[15px] leading-tight whitespace-normal line-clamp-2">{s}</span>;
-type View = 'general' | 'data' | 'extension' | 'account';
+type View = 'general' | 'app' | 'data' | 'extension' | 'account';
 const THEMES = [
   { id: 'light', label: 'Sáng', Icon: Sun },
   { id: 'dark', label: 'Tối', Icon: Moon },
@@ -59,13 +60,12 @@ export default function SettingsPage() {
   const notificationSoundEnabled = useLifeOSStore((s) => s.notificationSoundEnabled);
   const setNotificationSoundEnabled = useLifeOSStore((s) => s.setNotificationSoundEnabled);
   const pushNotificationsEnabled = useLifeOSStore((s) => s.pushNotificationsEnabled);
-  const setPushNotificationsEnabled = useLifeOSStore((s) => s.setPushNotificationsEnabled);
   const isMobile = useIsMobile();
   const { theme } = useTheme();
   // /settings?tab=data mở thẳng tab tương ứng (dùng từ Thùng rác)
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab');
-  const [view, setView] = useState<View>(initialTab === 'data' || initialTab === 'extension' || initialTab === 'account' ? initialTab : 'general');
+  const [view, setView] = useState<View>(initialTab === 'app' || initialTab === 'data' || initialTab === 'extension' || initialTab === 'account' ? initialTab : 'general');
   const [extensionGuideOpen, setExtensionGuideOpen] = useState(false);
   
   const { clearAllAreaModuleData } = useProfileSync();
@@ -161,32 +161,6 @@ export default function SettingsPage() {
     navigate('/auth');
   };
 
-  const handlePushNotificationToggle = async (enabled: boolean) => {
-    if (enabled) {
-      if (!('Notification' in window)) {
-        toast.error('Trình duyệt không hỗ trợ thông báo push');
-        return;
-      }
-
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        setPushNotificationsEnabled(true);
-        toast.success('Đã bật thông báo push');
-        new Notification('✅ LifeOS', {
-          body: 'Thông báo push đã được bật thành công!',
-          icon: '/favicon.svg',
-        });
-      } else if (permission === 'denied') {
-        toast.error('Bạn đã từ chối quyền thông báo. Vui lòng bật lại trong cài đặt trình duyệt.');
-      } else {
-        toast.info('Vui lòng cho phép thông báo để nhận cảnh báo');
-      }
-    } else {
-      setPushNotificationsEnabled(false);
-      toast.success('Đã tắt thông báo push');
-    }
-  };
-
   const handleDownloadExtension = () => {
     try {
       // Tải file extension.zip từ public folder
@@ -226,7 +200,7 @@ export default function SettingsPage() {
     <Page>
       <PageHeader title="Cài đặt" subtitle="Quản lý cấu hình ứng dụng ⚙️"
         actions={!isMobile && <Button variant="outline" className="h-10 rounded-full px-5" onClick={() => navigate('/personalization')}>Cá nhân hóa</Button>} />
-      <SegmentedTabs items={[{ id: 'general', label: 'Chung' }, { id: 'data', label: 'Dữ liệu' }, { id: 'extension', label: 'Tiện ích' }, { id: 'account', label: 'Tài khoản' }]} value={view} onChange={setView} full={isMobile} className="mb-5" />
+      <SegmentedTabs items={[{ id: 'general', label: 'Chung' }, { id: 'app', label: isMobile ? 'App' : 'Ứng dụng & thông báo' }, { id: 'data', label: 'Dữ liệu' }, { id: 'extension', label: 'Tiện ích' }, { id: 'account', label: 'Tài khoản' }]} value={view} onChange={setView} full={isMobile} className="mb-5" />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
         <div className="space-y-4 min-w-0">
@@ -234,7 +208,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatTile icon={theme === 'dark' ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-[#E8961C]" />} tint="amber" value={txt(themeLabel)} label="Giao diện" onClick={() => setView('general')} />
             <StatTile icon="module/focus" tint="rose" value={`${pomodoroSettings.workDuration}/${pomodoroSettings.breakDuration}`} label="Pomodoro" hint="phút làm / nghỉ" onClick={() => setView('general')} />
-            <StatTile icon="module/notifications" tint="sky" value={`${notifOn}/2`} label="Thông báo" hint="đang bật" onClick={() => setView('general')} />
+            <StatTile icon="module/notifications" tint="sky" value={`${notifOn}/2`} label="Thông báo" hint="đang bật" onClick={() => setView('app')} />
             <StatTile icon="module/sync" tint="mint" value={txt(authUser ? 'Đã đăng nhập' : 'Khách')} label="Tài khoản" onClick={() => setView('account')} />
           </div>
 
@@ -256,13 +230,15 @@ export default function SettingsPage() {
                   <Row title="Âm thanh thông báo" desc="Phát âm thanh khi có công việc/mục tiêu quá hạn mới">
                     <Switch checked={notificationSoundEnabled} onCheckedChange={(checked) => { setNotificationSoundEnabled(checked); toast.success(checked ? 'Đã bật âm thanh thông báo' : 'Đã tắt âm thanh thông báo'); }} />
                   </Row>
-                  <Row title="Thông báo đẩy" desc="Nhận thông báo trình duyệt khi có công việc/mục tiêu quá hạn">
-                    <Switch checked={pushNotificationsEnabled} onCheckedChange={handlePushNotificationToggle} />
+                  <Row title="Thông báo đẩy & cài app" desc="Nhắc việc, thói quen, bản tin sáng trên điện thoại — kể cả khi đóng app">
+                    <Button variant="outline" size="sm" className="rounded-full" onClick={() => setView('app')}>Thiết lập</Button>
                   </Row>
                 </div>
               </Surface>
             </>
           )}
+
+          {view === 'app' && <MobileAppSection />}
 
           {view === 'data' && (
             <>
