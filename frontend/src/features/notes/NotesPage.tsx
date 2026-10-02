@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Archive, ArchiveRestore, Check, Hash, Pencil, MoreVertical, Pin, Plus, PlusCircle, Star, Trash2, X } from 'lucide-react';
+import { Archive, ArchiveRestore, Check, Hash, Mic, Pencil, Square, Volume2, MoreVertical, Pin, Plus, PlusCircle, Star, Trash2, X } from 'lucide-react';
 import { format, subDays, isAfter, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
@@ -20,6 +20,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { LifeIcon } from '@/components/icons/LifeIcon';
 import { MarkdownEditor, MarkdownPreview } from '@/components/notes/MarkdownEditor';
+import { speak, stopSpeaking } from '@/features/ai-coach/voice/speech';
+import { VoiceNoteSheet } from './voice/VoiceNoteSheet';
 
 type FilterPeriod = 'all' | '7days' | '30days' | '90days';
 type SortBy = 'updated-desc' | 'updated-asc' | 'created-desc' | 'title-asc';
@@ -67,8 +69,20 @@ export default function NotesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   // Thêm nhanh (QuickAdd / command palette): /notes?add mở hộp tạo ghi chú
   const [params, setParams] = useSearchParams();
+  // Ghi chú bằng giọng nói: /notes?voice (Thêm nhanh) hoặc nút micro
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceAppend, setVoiceAppend] = useState<Note | null>(null);
+  const openVoice = (appendTo: Note | null = null) => { stopSpeaking(); setVoiceAppend(appendTo); setVoiceOpen(true); };
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const toggleSpeak = (note: Note) => {
+    if (speakingId === note.id) { stopSpeaking(); setSpeakingId(null); return; }
+    setSpeakingId(note.id);
+    speak(`${note.title}. ${note.content ?? ''}`, { onEnd: () => setSpeakingId((id) => (id === note.id ? null : id)) });
+  };
+  useEffect(() => () => stopSpeaking(), []);
   useEffect(() => {
     if (params.has('add')) { setIsDialogOpen(true); params.delete('add'); setParams(params, { replace: true }); }
+    if (params.has('voice')) { setVoiceAppend(null); setVoiceOpen(true); params.delete('voice'); setParams(params, { replace: true }); }
   }, [params, setParams]);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -352,6 +366,10 @@ export default function NotesPage() {
           : <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleArchiveNote(note.id)}><Archive className="h-3.5 w-3.5 mr-1" />Lưu trữ</Button>}
       </div>
       <div className="grid grid-cols-2 gap-2">
+        <Button variant="outline" size="sm" className={cn('rounded-full', speakingId === note.id && 'border-primary text-primary')} onClick={() => toggleSpeak(note)}>{speakingId === note.id ? <><Square className="h-3.5 w-3.5 mr-1 fill-current" />Dừng đọc</> : <><Volume2 className="h-3.5 w-3.5 mr-1" />Đọc to</>}</Button>
+        <Button variant="outline" size="sm" className="rounded-full" onClick={() => openVoice(note)} disabled={!!note.archivedAt}><Mic className="h-3.5 w-3.5 mr-1" />Ghi thêm</Button>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
         <Button className="rounded-full" onClick={() => { handleEditNote(note); setSelectedNote(null); }}><Pencil className="h-4 w-4 mr-1.5" />Chỉnh sửa</Button>
         <Button variant="outline" className="rounded-full text-destructive hover:text-destructive" onClick={() => { setNoteToDelete(note); setDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4 mr-1.5" />Xóa</Button>
       </div>
@@ -437,6 +455,8 @@ export default function NotesPage() {
       <PageHeader title="Ghi chú" subtitle="Ghi chép và ý tưởng của bạn 📝"
         actions={<>
           <SearchToggle value={searchQuery} onChange={setSearchQuery} placeholder="Tìm kiếm ghi chú..." />
+          {isMobile ? <IconButton label="Ghi chú bằng giọng nói" onClick={() => openVoice()}><Mic className="h-[18px] w-[18px]" /></IconButton>
+            : <Button variant="outline" className="h-10 rounded-full px-4" onClick={() => openVoice()}><Mic className="h-4 w-4 mr-1.5" />Ghi bằng giọng nói</Button>}
           {!isMobile && <Button className="h-10 rounded-full px-5 shadow-soft" onClick={openCreate}><Plus className="h-4 w-4 mr-1.5" />Tạo ghi chú</Button>}
         </>} />
       <SegmentedTabs items={[{ id: 'all', label: 'Tất cả', count: stats.total }, { id: 'pinned', label: 'Đã ghim', count: stats.pinned }, { id: 'favorites', label: 'Yêu thích', count: stats.favorites }, { id: 'archived', label: 'Lưu trữ', count: stats.archived }]} value={viewMode} onChange={(v) => { setViewMode(v); setSelectedIds(new Set()); }} full={isMobile} className="mb-5" />
@@ -444,7 +464,7 @@ export default function NotesPage() {
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
         <div className="space-y-4 min-w-0">
           <HeroBanner mascot="ori" pose="idea" title="Nơi cất giữ mọi ý tưởng" subtitle={stats.total ? `${stats.total} ghi chú · ${recent7} cập nhật trong 7 ngày qua.` : 'Viết ghi chú đầu tiên với Markdown, thẻ và lĩnh vực.'}
-            action={<Button className="h-10 rounded-full px-5 shadow-soft" onClick={openCreate}><Plus className="h-4 w-4 mr-1.5" />Ghi chú mới</Button>} />
+            action={<div className="flex flex-wrap gap-2"><Button className="h-10 rounded-full px-5 shadow-soft" onClick={openCreate}><Plus className="h-4 w-4 mr-1.5" />Ghi chú mới</Button><Button variant="outline" className="h-10 rounded-full px-4 bg-card/80" onClick={() => openVoice()}><Mic className="h-4 w-4 mr-1.5" />Nói để ghi</Button></div>} />
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <StatTile icon="module/notes" tint="amber" value={stats.total} label="Ghi chú" hint="hoạt động" onClick={() => setViewMode('all')} active={viewMode === 'all'} />
             <StatTile icon={<Pin className="h-5 w-5" />} tint="violet" value={stats.pinned} label="Đã ghim" hint="ưu tiên" onClick={() => setViewMode('pinned')} active={viewMode === 'pinned'} />
@@ -563,11 +583,12 @@ export default function NotesPage() {
         {!isMobile && <aside className="hidden xl:block sticky top-4">{side}</aside>}
       </div>
       {isMobile && <Fab onClick={openCreate} label="Tạo ghi chú" />}
+      <VoiceNoteSheet open={voiceOpen} onOpenChange={setVoiceOpen} appendTo={voiceAppend ? notes.find((n) => n.id === voiceAppend.id) ?? voiceAppend : null} />
 
       <AdaptiveModal open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }} title={editingNote ? 'Chỉnh sửa ghi chú' : 'Tạo ghi chú mới'}>
         <div className="space-y-3.5 mt-2">
           <Field label="Tiêu đề *"><input className={fieldCls} placeholder="Nhập tiêu đề..." value={newNote.title} onChange={(e) => setNewNote({ ...newNote, title: e.target.value })} autoFocus /></Field>
-          <Field label="Nội dung"><MarkdownEditor value={newNote.content} onChange={(content) => setNewNote({ ...newNote, content })} placeholder="Nhập nội dung markdown..." minRows={8} /></Field>
+          <Field label="Nội dung"><MarkdownEditor value={newNote.content} onChange={(content) => setNewNote({ ...newNote, content })} placeholder="Nhập nội dung markdown… hoặc bấm “Đọc” để nói" minRows={8} voice /></Field>
           <Field label="Thẻ" hint={
             <Popover open={isAddingTag} onOpenChange={setIsAddingTag}>
               <PopoverTrigger asChild><button type="button" className="text-[12px] font-semibold text-primary inline-flex items-center gap-1"><PlusCircle className="h-3.5 w-3.5" />Tạo thẻ</button></PopoverTrigger>

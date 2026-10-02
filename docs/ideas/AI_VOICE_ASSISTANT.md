@@ -33,3 +33,10 @@
 - Admin → AI → **Giọng nói AI** (`/admin/ai/voice`): thứ tự xoay vòng (key kế tiếp), trạng thái từng key (sẵn sàng / tạm nghỉ / hết hạn mức), hạn mức ký tự ElevenLabs & tín dụng Fish Audio (nút “Kiểm tra hạn mức”), gỡ tạm nghỉ, nghe thử theo luồng xoay vòng hoặc từng key, cấu hình provider TTS/STT, chiến lược (xoay vòng đều / ưu tiên key chính / ít dùng nhất), giọng & model mặc định.
 - Backend `lib/voiceGateway.ts`: `POST /functions/tts` (mp3), `GET /functions/voice/status`, admin `GET /functions/voice/pool`, `PUT /functions/voice/settings`, `POST /functions/voice/check|reset`. `ai-transcribe` ưu tiên ElevenLabs Scribe / Fish ASR rồi mới đến Gemini.
 - Lỗi được phân loại: key sai → nghỉ 24h; hết hạn mức/tín dụng → 6h; 429 → N phút (cấu hình); lỗi máy chủ → 30s; luôn thử key kế tiếp rồi provider còn lại; hết key thì frontend đọc bằng giọng trình duyệt.
+
+## Ghi chú × giọng nói
+
+- **Ghi chú bằng giọng nói** (`/notes?voice`, nút “Ghi bằng giọng nói”, Thêm nhanh → “Ghi chú giọng nói”): ghi âm dài liên tục (tự nối phiên nhận dạng, tạm dừng/tiếp tục), AI biên tập (`POST /functions/ai-voice-note`) → tiêu đề, Markdown, thẻ gợi ý (dùng lại thẻ có sẵn / tạo mới), lĩnh vực, việc cần làm (tạo task kèm hạn, ưu tiên). Tắt “AI biên tập” hoặc AI chưa cấu hình → lưu nguyên văn.
+- **Ghi thêm bằng giọng nói** vào cuối một ghi chú có sẵn (chế độ append, đánh dấu thời điểm).
+- **Đọc chính tả** trong trình soạn Markdown (nút “Đọc”): chèn lời nói vào vị trí con trỏ.
+- **Đọc to ghi chú** bằng giọng AI (ElevenLabs/Fish xoay vòng key) hoặc giọng trình duyệt.

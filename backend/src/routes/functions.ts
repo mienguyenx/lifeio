@@ -169,6 +169,53 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // --------------------------- ai-voice-note ---------------------------
+  // Biến lời nói (bản chép thô) thành ghi chú gọn gàng: tiêu đề, nội dung Markdown,
+  // thẻ gợi ý, lĩnh vực và các việc cần làm rút ra từ lời nói.
+  fastify.post<{ Body: { transcript?: string; existingTags?: string[]; mode?: 'note' | 'append'; context?: string; today?: string } }>(
+    '/functions/ai-voice-note',
+    { schema: { tags: ['ai'], summary: 'Turn a voice transcript into a structured note', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      const transcript = String(request.body?.transcript ?? '').trim().slice(0, 20000);
+      if (!transcript) throw badRequest('Missing transcript');
+      const tags = (Array.isArray(request.body?.existingTags) ? request.body.existingTags : []).map(String).slice(0, 60);
+      const today = /^\d{4}-\d{2}-\d{2}$/.test(String(request.body?.today)) ? String(request.body?.today) : new Date().toISOString().slice(0, 10);
+      const append = request.body?.mode === 'append';
+      const AREAS = ['health', 'relationships', 'career', 'finance', 'personal', 'fun', 'environment', 'spirituality', 'learning', 'contribution'];
+      const system = [
+        'Bạn là trợ lý biên tập ghi chú của LifeOS. Đầu vào là bản chép lời nói tiếng Việt (có thể thiếu dấu câu, lặp từ, từ đệm như "ờ", "à", "ừm", "kiểu như").',
+        'Nhiệm vụ: biên tập lại thành ghi chú rõ ràng, GIỮ NGUYÊN ý và thông tin (tên, số, ngày), không bịa thêm, xưng hô như người nói.',
+        '- Sửa chính tả/dấu câu, bỏ từ đệm và câu lặp.',
+        '- Nội dung dạng Markdown: đoạn ngắn; nếu có nhiều ý thì dùng gạch đầu dòng; nếu dài thì chia mục bằng "## ". Việc cần làm viết dạng "- [ ] ...".',
+        append ? '- Chế độ BỔ SUNG: chỉ trả về phần nội dung mới để nối vào cuối ghi chú hiện có, không lặp lại nội dung cũ, title để rỗng.' : '- Tiêu đề ngắn gọn ≤ 60 ký tự, không có dấu chấm cuối.',
+        `- Thẻ: tối đa 3 thẻ ngắn, viết thường, không dấu #. Ưu tiên dùng lại thẻ có sẵn: ${tags.length ? tags.join(', ') : '(chưa có)'}.`,
+        `- Lĩnh vực (area): một trong ${AREAS.join(', ')} hoặc null.`,
+        `- tasks: các việc cần làm người nói nhắc tới (tối đa 8), mỗi việc {"title", "dueDate": "YYYY-MM-DD" hoặc null, "priority": "low"|"medium"|"high"}. Hôm nay là ${today}; quy đổi "mai", "thứ 6 tuần này"... thành ngày cụ thể.`,
+        'Chỉ trả về JSON: {"title": string, "content": string, "tags": string[], "area": string|null, "tasks": [...], "summary": string (1 câu tóm tắt)}',
+      ].join('\n');
+      const user = (request.body?.context && append ? `Ghi chú hiện có (chỉ để tham khảo ngữ cảnh):\n${String(request.body.context).slice(0, 4000)}\n\n` : '') + `Bản chép lời:\n${transcript}`;
+      const { content } = await chatCompletion({ temperature: 0.2, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
+      const parsed = parseJsonFromContent<Record<string, unknown> | null>(content, null);
+      if (!parsed || typeof parsed !== 'object') return reply.send({ title: '', content: transcript, tags: [], area: null, tasks: [], summary: '', raw: true });
+      const str = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+      const tasks = (Array.isArray(parsed.tasks) ? parsed.tasks : []).slice(0, 8).flatMap((t) => {
+        const o = (t ?? {}) as Record<string, unknown>;
+        const title = str(o.title, 200);
+        if (!title) return [];
+        const due = str(o.dueDate, 10);
+        return [{ title, dueDate: /^\d{4}-\d{2}-\d{2}$/.test(due) ? due : null, priority: ['low', 'medium', 'high'].includes(String(o.priority)) ? String(o.priority) : 'medium' }];
+      });
+      return reply.send({
+        title: append ? '' : str(parsed.title, 80),
+        content: str(parsed.content, 30000) || transcript,
+        tags: (Array.isArray(parsed.tags) ? parsed.tags : []).map((t) => str(t, 30).replace(/^#/, '').toLowerCase()).filter(Boolean).slice(0, 3),
+        area: AREAS.includes(String(parsed.area)) ? String(parsed.area) : null,
+        tasks,
+        summary: str(parsed.summary, 300),
+      });
+    },
+  );
+
   // ------------------------- voice (TTS + key pool) -------------------------
   const requireAdmin = async (userId: string) => {
     const { rowCount } = await pool.query(`SELECT 1 FROM "user_roles" WHERE "user_id" = $1 AND "role" = 'admin' LIMIT 1`, [userId]);

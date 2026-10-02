@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
+import { toast } from 'sonner';
+import { useElapsed, useVoiceInput, voiceSupport } from '@/features/ai-coach/voice/speech';
 import ReactMarkdown from 'react-markdown';
-import { Eye, Edit3, Bold, Italic, Heading1, Heading2, List, ListOrdered, Link, Quote, Code, Minus, Image, Table } from 'lucide-react';
+import { Eye, Edit3, Mic, Square, Bold, Italic, Heading1, Heading2, List, ListOrdered, Link, Quote, Code, Minus, Image, Table } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -12,6 +14,8 @@ interface MarkdownEditorProps {
   placeholder?: string;
   minRows?: number;
   className?: string;
+  /** Hiện nút đọc chính tả bằng giọng nói (chèn vào vị trí con trỏ). */
+  voice?: boolean;
 }
 
 interface ToolbarButton {
@@ -44,10 +48,40 @@ export function MarkdownEditor({
   onChange, 
   placeholder = 'Nhập nội dung markdown...', 
   minRows = 8,
-  className 
+  className,
+  voice = false,
 }: MarkdownEditorProps) {
   const [isPreview, setIsPreview] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Đọc chính tả: chèn lời nói vào vị trí con trỏ (nhớ vị trí lúc bấm micro)
+  const caret = useRef<number | null>(null);
+  const valueRef = useRef(value); valueRef.current = value;
+  const dictation = useVoiceInput({
+    silenceMs: 3500,
+    maxMs: 120_000,
+    onError: (m) => toast.error(m),
+    onFinal: (text) => {
+      if (!text) return;
+      const v = valueRef.current;
+      const at = Math.min(caret.current ?? v.length, v.length);
+      const before = v.slice(0, at), after = v.slice(at);
+      const sentence = text.charAt(0).toUpperCase() + text.slice(1);
+      const piece = (before && !/\s$/.test(before) ? ' ' : '') + sentence + (/[.!?…]$/.test(sentence) ? '' : '.') + (after && !/^\s/.test(after) ? ' ' : '');
+      onChange(before + piece + after);
+      const pos = at + piece.length;
+      caret.current = pos;
+      requestAnimationFrame(() => { const t = textareaRef.current; if (t) { t.focus(); t.setSelectionRange(pos, pos); } });
+    },
+  });
+  const dictElapsed = useElapsed(dictation.startedAt);
+  const canDictate = voice && (voiceSupport().native || voiceSupport().recorder);
+  const toggleDictation = () => {
+    if (dictation.state !== 'idle') { dictation.stop(); return; }
+    caret.current = textareaRef.current?.selectionStart ?? value.length;
+    setIsPreview(false);
+    void dictation.start();
+  };
 
   const insertText = (button: ToolbarButton) => {
     const textarea = textareaRef.current;
@@ -118,7 +152,15 @@ export function MarkdownEditor({
             Xem trước
           </Button>
         </div>
-        <span className="text-xs text-muted-foreground">Hỗ trợ Markdown</span>
+        <div className="flex items-center gap-2">
+          {canDictate && (
+            <Button type="button" size="sm" variant={dictation.state !== 'idle' ? 'default' : 'outline'} className={cn('h-8 rounded-full', dictation.listening && 'animate-pulse')} onClick={toggleDictation} aria-label={dictation.state !== 'idle' ? 'Dừng đọc chính tả' : 'Đọc chính tả bằng giọng nói'}>
+              {dictation.state !== 'idle' ? <Square className="w-3.5 h-3.5 mr-1 fill-current" /> : <Mic className="w-4 h-4 mr-1" />}
+              {dictation.state === 'transcribing' ? 'Đang chép…' : dictation.listening ? dictElapsed : 'Đọc'}
+            </Button>
+          )}
+          <span className="text-xs text-muted-foreground">Hỗ trợ Markdown</span>
+        </div>
       </div>
 
       {!isPreview && (
@@ -144,6 +186,13 @@ export function MarkdownEditor({
             ))}
           </div>
         </TooltipProvider>
+      )}
+
+      {dictation.state !== 'idle' && (
+        <div className="flex items-start gap-2 rounded-xl bg-primary/[0.07] px-3 py-2 text-[13px]" aria-live="polite">
+          <span className="mt-1 h-2 w-2 rounded-full bg-[#F0587A] animate-pulse shrink-0" />
+          <span className={cn('flex-1 min-w-0 break-words', !dictation.interim && 'text-muted-foreground')}>{dictation.interim || (dictation.state === 'transcribing' ? 'Đang chép lời…' : 'Đang nghe… nói đi, lời nói sẽ được chèn vào chỗ con trỏ.')}</span>
+        </div>
       )}
 
       {isPreview ? (
