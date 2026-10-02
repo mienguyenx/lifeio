@@ -26,9 +26,15 @@ import {
   buildSseFromText,
   chatCompletion,
   chatCompletionStream,
-  defaultModel,
   parseJsonFromContent,
+  resolveGateway,
 } from '../lib/aiGateway';
+import {
+  ASSISTANT_TOOLS,
+  buildAssistantSystemPrompt,
+  parseAssistantActions,
+  type AssistantContext,
+} from '../lib/aiAssistantTools';
 import { generateEmailHtml, sendEmail } from '../lib/email';
 import { badRequest } from '../lib/errors';
 
@@ -69,11 +75,11 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       const chatMessages: ChatMessage[] = [{ role: 'system', content: systemPrompt }, ...normalized];
       const accept = request.headers.accept || '';
       const wantsJson = accept.includes('application/json');
-      const useModel = model || defaultModel();
+      const useModel = model || undefined; // undefined → model of the resolved gateway (env or Admin API key)
 
       if (wantsJson) {
         const { content } = await chatCompletion({ messages: chatMessages, model: useModel });
-        return reply.send({ response: content, model: useModel });
+        return reply.send({ response: content, model: useModel || (await resolveGateway()).model });
       }
 
       const upstream = await chatCompletionStream({ messages: chatMessages, model: useModel });
@@ -86,6 +92,64 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       // Fallback: no stream body — synthesize SSE from a non-streaming call.
       const { content } = await chatCompletion({ messages: chatMessages, model: useModel });
       return reply.send(buildSseFromText(content));
+    },
+  );
+
+  // -------------------------- ai-assistant ---------------------------
+  // Voice/text commands → proposed actions (create task/habit/goal/journal/
+  // note/transaction, complete task/habit). `mode: 'chat'` means no action was
+  // detected and the client should answer conversationally via ai-coach.
+  fastify.post<{ Body: { text?: string; context?: AssistantContext } }>(
+    '/functions/ai-assistant',
+    { schema: { tags: ['ai'], summary: 'Natural-language command → proposed actions', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      const text = String(request.body?.text ?? '').trim().slice(0, 2000);
+      if (!text) throw badRequest('Missing text');
+      const ctx = request.body?.context ?? {};
+      const { content, raw } = await chatCompletion({
+        messages: [
+          { role: 'system', content: buildAssistantSystemPrompt(ctx) },
+          { role: 'user', content: text },
+        ],
+        tools: ASSISTANT_TOOLS,
+        toolChoice: 'auto',
+        temperature: 0.2,
+      });
+      const actions = parseAssistantActions(raw.choices?.[0]?.message?.tool_calls, ctx);
+      return reply.send({ mode: actions.length ? 'actions' : 'chat', actions, message: actions.length ? content || '' : '' });
+    },
+  );
+
+  // -------------------------- ai-transcribe --------------------------
+  // Speech-to-text fallback for browsers without the Web Speech API (Firefox,
+  // some in-app/PWA webviews). The client records audio, converts it to 16 kHz
+  // mono WAV and sends it base64-encoded; an audio-capable model (Gemini)
+  // transcribes it.
+  fastify.post<{ Body: { audio?: string; format?: string; language?: string } }>(
+    '/functions/ai-transcribe',
+    {
+      bodyLimit: 8 * 1024 * 1024,
+      schema: { tags: ['ai'], summary: 'Transcribe a short voice recording', security: [{ bearerAuth: [] }] },
+    },
+    async (request, reply) => {
+      const audio = String(request.body?.audio ?? '');
+      const format = String(request.body?.format ?? 'wav').toLowerCase();
+      if (!audio) throw badRequest('Missing audio');
+      if (!['wav', 'mp3'].includes(format)) throw badRequest('Unsupported audio format');
+      const lang = request.body?.language === 'en' ? 'English' : 'tiếng Việt';
+      const { content } = await chatCompletion({
+        temperature: 0,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: `Chép lại chính xác lời nói trong đoạn ghi âm (${lang}). Chỉ trả về văn bản đã chép, có dấu câu, không thêm lời giải thích. Nếu không nghe thấy lời nói, trả về chuỗi rỗng.` },
+              { type: 'input_audio', input_audio: { data: audio, format } },
+            ],
+          },
+        ],
+      });
+      return reply.send({ text: content.trim() });
     },
   );
 

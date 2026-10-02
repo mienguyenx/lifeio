@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Plus, Save, Trash2 } from 'lucide-react';
+import { AudioLines, Download, Plus, Save, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -15,6 +15,7 @@ import { ChatThread } from './components/ChatThread';
 import { Composer } from './components/Composer';
 import { CoachHome } from './components/CoachHome';
 import { ContextPanel } from './components/ContextPanel';
+import { openVoiceChat } from './components/GlobalVoiceChat';
 
 type Tab = 'chat' | 'history' | 'insights';
 const FOLLOW_UPS = ['Tạo kế hoạch cho tôi', 'Cho tôi ví dụ cụ thể', 'Tóm tắt ngắn gọn hơn'];
@@ -31,7 +32,8 @@ export default function AICoachPage() {
   const initials = (api.user.name || 'B').trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
   const firstQ = messages.find((m) => m.role === 'user')?.content.slice(0, 60) ?? '';
 
-  const send = (t: string) => { setTab('chat'); api.send(t); };
+  const send = (t: string, opts?: { voice?: boolean }) => { setTab('chat'); void api.send(t, opts); };
+  const actionHandlers = { onConfirm: (id: string) => void api.confirmAction(id), onDismiss: api.dismissAction, onConfirmAll: (ids: string[]) => void api.confirmAll(ids) };
   const openSave = (mode: 'save' | 'save-new') => { setTitle(firstQ); setSaveOpen(mode); };
   const doSave = () => { if (!title.trim()) return; api.save(title.trim()); if (saveOpen === 'save-new') api.clear(); setSaveOpen(null); };
   const newChat = () => { if (messages.length) setAskNew(true); setTab('chat'); };
@@ -51,9 +53,9 @@ export default function AICoachPage() {
       <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
         {messages.length === 0
           ? <CoachHome name={api.user.name} hasProfile={api.hasProfile} onPrompt={send} compact={isMobile} hero={isMobile} />
-          : <ChatThread messages={messages} loading={loading} initials={initials} onFavorite={api.toggleFavorite} onNote={api.toNote} />}
+          : <ChatThread messages={messages} loading={loading} initials={initials} onFavorite={api.toggleFavorite} onNote={api.toNote} actions={actionHandlers} />}
       </div>
-      <Composer className="p-3 pt-1" onSend={send} disabled={loading} chips={messages.length && !loading ? FOLLOW_UPS : undefined} />
+      <Composer className="p-3 pt-1" onSend={send} onVoiceChat={() => openVoiceChat()} disabled={loading} chips={messages.length && !loading ? FOLLOW_UPS : undefined} />
     </Surface>
   );
   const history = <ChatHistory saved={api.saved} onNew={newChat} onLoad={(id) => { api.load(id); setTab('chat'); }} onDelete={api.removeSaved} className="h-full" />;
@@ -61,14 +63,20 @@ export default function AICoachPage() {
   return (
     <Page className={isMobile ? 'pb-24' : undefined}>
       <PageHeader title="AI Coach" subtitle="Người bạn đồng hành AI cho cuộc sống tốt đẹp hơn"
-        actions={!isMobile && <Button className="h-10 rounded-full px-5 shadow-soft" onClick={newChat}><Plus className="h-4 w-4 mr-1.5" />Trò chuyện mới</Button>} />
+        actions={isMobile
+          ? <Button size="icon" className="h-10 w-10 rounded-full shadow-soft" aria-label="Voice Chat" onClick={() => openVoiceChat()}><AudioLines className="h-[18px] w-[18px]" /></Button>
+          : undefined} />
       <SegmentedTabs full={isMobile} className="mb-5" value={tab} onChange={setTab} items={[{ id: 'chat', label: 'Trò chuyện' }, { id: 'history', label: 'Lịch sử', count: api.saved.length }, { id: 'insights', label: 'Phân tích' }]} />
       {tab === 'chat' && (isMobile ? (
         <div className="h-[calc(100dvh-245px)] min-h-[420px]">{chat}</div>
       ) : (
         <div className="space-y-4">
           <HeroBanner mascot="ori" pose="idea" title={<>Xin chào{api.user.name ? `, ${api.user.name}` : ''}! 👋</>}
-            subtitle={api.hasProfile ? 'Hôm nay bạn muốn tập trung vào điều gì? Hãy trò chuyện với mình nhé!' : 'Thiết lập Vision & Values trong trang “Me” để nhận tư vấn cá nhân hóa hơn.'}
+            subtitle={api.hasProfile ? 'Hôm nay bạn muốn tập trung vào điều gì? Hãy trò chuyện — hoặc nói “nhắc tôi…”, “tạo thói quen…” để mình làm giúp!' : 'Thiết lập Vision & Values trong trang “Me” để nhận tư vấn cá nhân hóa hơn.'}
+            action={<div className="flex flex-wrap gap-2">
+              <Button className="h-10 rounded-full px-5 shadow-soft" onClick={newChat}><Plus className="h-4 w-4 mr-1.5" />Trò chuyện mới</Button>
+              <Button variant="outline" className="h-10 rounded-full px-5 bg-card/80" onClick={() => openVoiceChat()}><AudioLines className="h-4 w-4 mr-1.5" />Voice Chat</Button>
+            </div>}
             aside={<div className="hidden 2xl:block max-w-[220px] rounded-[20px] bg-card/80 px-4 py-3 text-[13px] italic text-muted-foreground shadow-soft">“Những thay đổi nhỏ hôm nay sẽ tạo nên cuộc sống tuyệt vời hơn ngày mai!” 💜</div>} />
           <div className="flex gap-2.5 overflow-x-auto no-scrollbar -mx-1 px-1">
             {QUICK_ACTIONS.map((a) => (

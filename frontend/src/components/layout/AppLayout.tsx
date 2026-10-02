@@ -10,6 +10,8 @@ import { PomodoroWidget } from '../pomodoro/PomodoroWidget';
 import { SyncStatusIndicator } from './SyncStatusIndicator';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextAwareAICoach } from '@/components/ai/ContextAwareAICoach';
+import { GlobalVoiceChat, openVoiceChat } from '@/features/ai-coach/components/GlobalVoiceChat';
+import { AudioLines } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { Button } from '@/components/ui/button';
@@ -65,6 +67,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
         <BottomNav />
+        <GlobalVoiceChat />
       </div>
     );
   }
@@ -160,6 +163,12 @@ export function AppLayout({ children }: AppLayoutProps) {
 
               {/* Sync Status */}
               <SyncStatusIndicator />
+
+              <GlobalVoiceChat />
+              {/* Voice assistant (Alt+V) */}
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Trợ lý giọng nói" title="Trợ lý giọng nói (Alt+V)" onClick={openVoiceChat}>
+                <AudioLines className="h-4 w-4" />
+              </Button>
 
               {/* AI Coach Button */}
               <ContextAwareAICoach />
