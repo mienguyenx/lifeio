@@ -1,6 +1,7 @@
 // Module 28 — Admin: API key & bí mật (LIO kit)
 // Dữ liệu/hành động giữ nguyên từ pages/admin/AdminAPIKeys.tsx (bản cũ: /admin/api-keys/classic)
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, Copy, Eye, EyeOff, KeyRound, Pencil, Plus, ShieldCheck, Star, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -23,12 +24,20 @@ const BASE_PROVIDERS = [
   { value: 'perplexity', label: 'Perplexity AI' },
   { value: 'openai-compatible', label: 'OpenAI Compatible' },
   { value: 'anthropic-compatible', label: 'Anthropic Compatible' },
+  { value: 'elevenlabs', label: 'ElevenLabs (giọng nói)' },
+  { value: 'fish_audio', label: 'Fish Audio (giọng nói)' },
 ];
+// Provider giọng nói: nhiều key được xoay vòng tự động (Admin → Giọng nói AI)
+const VOICE_PROVIDERS = ['elevenlabs', 'fish_audio'];
+const VOICE_HINT: Record<string, { voice: string; model: string; voicePh: string; modelPh: string }> = {
+  elevenlabs: { voice: 'Voice ID riêng (tùy chọn)', model: 'Model riêng (tùy chọn)', voicePh: 'Mặc định theo Giọng nói AI', modelPh: 'eleven_flash_v2_5' },
+  fish_audio: { voice: 'Reference ID giọng (tùy chọn)', model: 'Model riêng (tùy chọn)', voicePh: 'Mặc định theo Giọng nói AI', modelPh: 's1' },
+};
 const WITH_BASE_URL = ['openai-compatible', 'anthropic-compatible'];
 const COLS = 'minmax(0,1.7fr) minmax(0,0.9fr) minmax(0,1.1fr) 52px 92px 56px 40px';
 type Status = 'all' | 'active' | 'inactive' | 'errors';
-type Form = { id?: string; provider: string; name: string; api_key: string; base_url: string; model: string; is_active: boolean; is_primary: boolean; limit_per_day: string; limit_per_month: string; originalKey?: string };
-const EMPTY: Form = { provider: 'gemini', name: '', api_key: '', base_url: '', model: '', is_active: true, is_primary: false, limit_per_day: '', limit_per_month: '' };
+type Form = { id?: string; provider: string; name: string; api_key: string; base_url: string; model: string; voice_id: string; is_active: boolean; is_primary: boolean; limit_per_day: string; limit_per_month: string; originalKey?: string };
+const EMPTY: Form = { provider: 'gemini', name: '', api_key: '', base_url: '', model: '', voice_id: '', is_active: true, is_primary: false, limit_per_day: '', limit_per_month: '' };
 const pct = (a: number, b?: number | null) => (b ? Math.min(100, Math.round((a / b) * 100)) : 0);
 
 export default function AdminAPIKeysPage() {
@@ -50,6 +59,15 @@ export default function AdminAPIKeysPage() {
   const [form, setForm] = useState<Form | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AdminApiKey | null>(null);
   const [reveal, setReveal] = useState<Record<string, boolean>>({});
+  // /admin/api-keys?new=elevenlabs — mở sẵn form thêm key (từ trang Giọng nói AI)
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const p = params.get('new');
+    if (!p || isLoading) return;
+    const label = p === 'fish_audio' ? 'Fish Audio' : p === 'elevenlabs' ? 'ElevenLabs' : p;
+    setForm({ ...EMPTY, provider: p, name: `${label} ${(keysData ?? []).filter((k) => k.provider === p).length + 1}` });
+    setParams((q) => { q.delete('new'); return q; }, { replace: true });
+  }, [params, setParams, isLoading, keysData]);
 
   const keys = useMemo(() => keysData ?? [], [keysData]);
   const providerOptions = useMemo(() => {
@@ -72,14 +90,19 @@ export default function AdminAPIKeysPage() {
   const selected = keys.find((k) => k.id === selectedId) ?? null;
 
   const openCreate = () => setForm({ ...EMPTY, provider: provider !== 'all' ? provider : 'gemini' });
-  const openEdit = (k: AdminApiKey) => setForm({ id: k.id, provider: k.provider, name: k.name, api_key: k.api_key, originalKey: k.api_key, base_url: k.metadata?.base_url || '', model: k.metadata?.model || '', is_active: k.is_active, is_primary: k.is_primary, limit_per_day: k.limit_per_day?.toString() || '', limit_per_month: k.limit_per_month?.toString() || '' });
+  const openEdit = (k: AdminApiKey) => setForm({ id: k.id, provider: k.provider, name: k.name, api_key: k.api_key, originalKey: k.api_key, base_url: k.metadata?.base_url || '', model: k.metadata?.model || '', voice_id: k.metadata?.voice_id || '', is_active: k.is_active, is_primary: k.is_primary, limit_per_day: k.limit_per_day?.toString() || '', limit_per_month: k.limit_per_month?.toString() || '' });
   const submit = () => {
     if (!form) return;
     if (!form.name || !form.api_key) { toast.error('Vui lòng điền đầy đủ thông tin'); return; }
     // Bản cũ không xóa được giới hạn khi để trống lúc sửa — gửi null để bỏ giới hạn
     saveKey.mutate({
       id: form.id, provider: form.provider, name: form.name, is_active: form.is_active, is_primary: form.is_primary,
-      metadata: { ...(form.base_url && { base_url: form.base_url }), ...(form.model && { model: form.model }) },
+      // Giữ các trường hệ thống ghi (hạn mức, tạm nghỉ…) khi sửa key
+      metadata: (() => {
+        const prev = { ...(keys.find((k) => k.id === form.id)?.metadata ?? {}) } as Record<string, unknown>;
+        delete prev.base_url; delete prev.model; delete prev.voice_id;
+        return { ...prev, ...(form.base_url && { base_url: form.base_url }), ...(form.model && { model: form.model }), ...(form.voice_id && { voice_id: form.voice_id }) };
+      })() as Record<string, string>,
       ...(!form.id || form.api_key !== form.originalKey ? { api_key: form.api_key } : {}),
       limit_per_day: form.limit_per_day ? parseInt(form.limit_per_day) : null,
       limit_per_month: form.limit_per_month ? parseInt(form.limit_per_month) : null,
@@ -103,6 +126,7 @@ export default function AdminAPIKeysPage() {
           {!missingPrimary.length && !nearLimit.length && !withErrors.length && <p className="flex items-center gap-2 text-[12.5px] text-muted-foreground"><ShieldCheck className="h-4 w-4 text-[#1F9D63]" />Mọi key đều ổn.</p>}
         </div>
       </Surface>
+      <Link to="/admin/ai/voice" className="block"><Surface className="p-4 hover:border-primary/40 transition-colors"><SectionTitle title="Giọng nói AI" hint={`${keys.filter((k) => VOICE_PROVIDERS.includes(k.provider)).length} key`} className="mb-1" /><p className="text-[12.5px] text-muted-foreground">Xoay vòng nhiều key ElevenLabs & Fish Audio, xem hạn mức, nghe thử giọng đọc →</p></Surface></Link>
       <MascotCard mascot="taro" pose="care" title="Giữ bí mật an toàn" quote="Mỗi provider nên có một key chính; thêm key phụ để tự xoay vòng khi lỗi hoặc hết hạn mức." />
     </div>
   );
@@ -116,7 +140,7 @@ export default function AdminAPIKeysPage() {
 
   return (
     <Page>
-      <PageHeader title="API key & bí mật" subtitle="Khóa truy cập cho Gemini, Perplexity và các dịch vụ AI khác"
+      <PageHeader title="API key & bí mật" subtitle="Khóa truy cập cho Gemini, ElevenLabs, Fish Audio và các dịch vụ AI khác"
         actions={<>
           <SearchToggle value={search} onChange={(v) => { setSearch(v); setPage(0); }} placeholder="Tìm key..." />
           {!isMobile && <Button className="h-10 rounded-full px-5 shadow-soft" onClick={openCreate}><Plus className="h-4 w-4 mr-1.5" />Thêm API key</Button>}
@@ -209,6 +233,15 @@ export default function AdminAPIKeysPage() {
               <Field label="Tên (để phân biệt) *"><input className={fieldCls} value={f.name} onChange={(e) => setForm({ ...f, name: e.target.value })} placeholder="VD: Production 1" autoFocus /></Field>
             </div>
             <Field label="API key *"><input type="password" autoComplete="off" className={cn(fieldCls, 'font-mono text-[13px]')} value={f.api_key} onChange={(e) => setForm({ ...f, api_key: e.target.value })} placeholder="Nhập API key" /></Field>
+            {VOICE_HINT[f.provider] && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={VOICE_HINT[f.provider].voice}><input className={cn(fieldCls, 'font-mono text-[13px]')} value={f.voice_id} onChange={(e) => setForm({ ...f, voice_id: e.target.value })} placeholder={VOICE_HINT[f.provider].voicePh} /></Field>
+                  <Field label={VOICE_HINT[f.provider].model}><input className={cn(fieldCls, 'font-mono text-[13px]')} value={f.model} onChange={(e) => setForm({ ...f, model: e.target.value })} placeholder={VOICE_HINT[f.provider].modelPh} /></Field>
+                </div>
+                <p className="text-[12px] text-muted-foreground -mt-1">Thêm nhiều key cùng provider để hệ thống tự xoay vòng khi một key lỗi hoặc hết hạn mức. Cấu hình ở <Link to="/admin/ai/voice" className="text-primary font-semibold hover:underline">Giọng nói AI</Link>.</p>
+              </>
+            )}
             {WITH_BASE_URL.includes(f.provider) && (
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Base URL"><input className={cn(fieldCls, 'font-mono text-[13px]')} value={f.base_url} onChange={(e) => setForm({ ...f, base_url: e.target.value })} placeholder="https://api.openai.com/v1" /></Field>
@@ -262,6 +295,7 @@ function KeyDetail({ k, providerLabel, inPanel, revealed, onReveal, onClose, onC
       {k.last_error && <div className="rounded-2xl bg-[#FFE4EA] dark:bg-rose-500/15 p-3"><p className="text-[11.5px] font-semibold text-[#E0445E] mb-0.5">Lỗi gần nhất</p><p className="text-[12px] break-words">{k.last_error}</p></div>}
       <div className="rounded-2xl bg-secondary/40 px-3 py-1.5">
         {k.metadata?.base_url && <InfoRow label="Base URL" value={<span className="font-mono text-[11.5px]">{k.metadata.base_url}</span>} />}
+        {k.metadata?.voice_id && <InfoRow label="Voice ID" value={<span className="font-mono text-[11.5px]">{k.metadata.voice_id}</span>} />}
         {k.metadata?.model && <InfoRow label="Model mặc định" value={<span className="font-mono text-[11.5px]">{k.metadata.model}</span>} />}
         <InfoRow label="Dùng gần nhất" value={k.last_used_at ? fmtDate(k.last_used_at, 'dd/MM/yyyy HH:mm') : 'Chưa dùng'} />
         <InfoRow label="Tạo lúc" value={fmtDate(k.created_at)} />

@@ -8,7 +8,7 @@ import { Mascot } from '@/components/brand/Mascot';
 import type { ChatMessage } from '@/types/lifeos';
 import { ActionCards } from './ActionCards';
 import type { AssistantAction } from '../voice/assistant';
-import { speak, voiceSupport } from '../voice/speech';
+import { canSpeak, speak } from '../voice/speech';
 
 export interface ActionHandlers { onConfirm: (id: string) => void; onDismiss: (id: string) => void; onConfirmAll: (ids: string[]) => void }
 
@@ -43,7 +43,7 @@ export function ChatThread({ messages, loading, initials, onFavorite, onNote, ac
                     <span className={cn('flex items-center gap-0.5 transition-opacity', m.isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 max-sm:opacity-100')}>
                       <Act label={m.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'} onClick={() => onFavorite(m.id)}>{m.isFavorite ? <BookmarkCheck className="h-3.5 w-3.5 text-primary" /> : <Bookmark className="h-3.5 w-3.5" />}</Act>
                       <Act label="Tạo ghi chú" onClick={() => onNote(m.content)}><FileText className="h-3.5 w-3.5" /></Act>
-                      {voiceSupport().tts && <Act label="Đọc to" onClick={() => speak(m.content)}><Volume2 className="h-3.5 w-3.5" /></Act>}
+                      {canSpeak() && <Act label="Đọc to" onClick={() => speak(m.content)}><Volume2 className="h-3.5 w-3.5" /></Act>}
                       <Act label="Sao chép" onClick={() => { navigator.clipboard?.writeText(m.content); toast.success('Đã sao chép'); }}><Copy className="h-3.5 w-3.5" /></Act>
                     </span>
                   )}

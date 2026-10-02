@@ -86,6 +86,7 @@ import AdminTemplatesLibrary from "./features/admin/templates/AdminTemplatesPage
 import AdminAnalyticsPage from "./features/admin/analytics/AdminAnalyticsPage";
 import AdminLocalizationPage from "./features/admin/localization/AdminLocalizationPage";
 import AdminAPIKeysPage from "./features/admin/apikeys/AdminAPIKeysPage";
+import AdminVoicePage from "./features/admin/voice/AdminVoicePage";
 import AdminSystemSettingsPage from "./features/admin/system/AdminSystemSettingsPage";
 import AdminSystemLogsPage from "./features/admin/logs/AdminSystemLogsPage";
 import AdminFeatures from "./pages/admin/AdminFeatures";
@@ -207,6 +208,7 @@ function AdminApp() {
         <Route path="ai/prompts" element={<AdminAIPromptsPage />} />
         <Route path="ai/prompts/classic" element={<AdminAIPrompts />} />
         <Route path="api-keys" element={<AdminAPIKeysPage />} />
+        <Route path="ai/voice" element={<AdminVoicePage />} />
         <Route path="api-keys/classic" element={<AdminAPIKeys />} />
         <Route path="analytics" element={<AdminAnalyticsPage />} />
         <Route path="analytics/classic" element={<AdminAnalytics />} />

@@ -26,3 +26,10 @@
 - iOS Safari: nhận dạng giọng nói cần HTTPS + quyền micro; PWA standalone có thể chặn → fallback ghi âm.
 - Mọi lệnh ghi dữ liệu đều qua thẻ xác nhận (trừ khi bật “tự lưu”), AI không ghi thẳng DB.
 - Giới hạn: ghi âm fallback tối đa 60 giây; body tối đa 8 MB.
+
+## Giọng nói AI — ElevenLabs & Fish Audio (xoay vòng nhiều key)
+
+- Admin → API Keys: thêm nhiều key provider `elevenlabs` / `fish_audio` (tùy chọn Voice ID / model riêng cho từng key).
+- Admin → AI → **Giọng nói AI** (`/admin/ai/voice`): thứ tự xoay vòng (key kế tiếp), trạng thái từng key (sẵn sàng / tạm nghỉ / hết hạn mức), hạn mức ký tự ElevenLabs & tín dụng Fish Audio (nút “Kiểm tra hạn mức”), gỡ tạm nghỉ, nghe thử theo luồng xoay vòng hoặc từng key, cấu hình provider TTS/STT, chiến lược (xoay vòng đều / ưu tiên key chính / ít dùng nhất), giọng & model mặc định.
+- Backend `lib/voiceGateway.ts`: `POST /functions/tts` (mp3), `GET /functions/voice/status`, admin `GET /functions/voice/pool`, `PUT /functions/voice/settings`, `POST /functions/voice/check|reset`. `ai-transcribe` ưu tiên ElevenLabs Scribe / Fish ASR rồi mới đến Gemini.
+- Lỗi được phân loại: key sai → nghỉ 24h; hết hạn mức/tín dụng → 6h; 429 → N phút (cấu hình); lỗi máy chủ → 30s; luôn thử key kế tiếp rồi provider còn lại; hết key thì frontend đọc bằng giọng trình duyệt.

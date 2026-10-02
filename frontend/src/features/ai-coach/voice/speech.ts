@@ -203,12 +203,67 @@ function pickVoice(lang: string): SpeechSynthesisVoice | null {
   return cachedVoice;
 }
 
-export function speak(text: string, { lang = 'vi-VN', rate = 1.05, onEnd }: { lang?: string; rate?: number; onEnd?: () => void } = {}) {
+/* ---------------- Giọng đọc máy chủ (ElevenLabs / Fish Audio) ---------------- */
+
+let serverTts: { at: number; on: boolean } | null = null;
+/** Máy chủ có key giọng nói khỏe không (cache 2 phút). */
+export async function serverTtsAvailable(): Promise<boolean> {
+  if (serverTts && Date.now() - serverTts.at < 120_000) return serverTts.on;
+  try {
+    const token = await getAccessToken();
+    const r = await fetch(functionUrl('voice/status'), { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    const d = r.ok ? ((await r.json()) as { tts?: boolean }) : null;
+    serverTts = { at: Date.now(), on: !!d?.tts };
+  } catch {
+    serverTts = { at: Date.now(), on: false };
+  }
+  return serverTts.on;
+}
+
+// Một <audio> dùng chung, "mở khóa" ở lần chạm đầu tiên để iOS/Safari cho phát sau khi tải xong.
+let player: HTMLAudioElement | null = null;
+/** 50 ms im lặng dạng WAV — dùng để mở khóa phát âm thanh trên iOS. */
+function silentWavUrl() {
+  const n = 400, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o: number, t: string) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+function getPlayer() {
+  if (!player && typeof Audio !== 'undefined') player = new Audio();
+  return player;
+}
+if (typeof document !== 'undefined') {
+  const unlock = () => {
+    const a = getPlayer();
+    if (a && !a.src) { a.src = silentWavUrl(); a.play().catch(() => undefined); }
+    document.removeEventListener('pointerdown', unlock);
+  };
+  document.addEventListener('pointerdown', unlock);
+}
+
+let speakToken = 0;
+let currentUrl: string | null = null;
+
+async function fetchServerTts(text: string, lang: string): Promise<Blob> {
+  const token = await getAccessToken();
+  const r = await fetch(functionUrl('tts'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ text, language: lang.startsWith('en') ? 'en' : 'vi' }),
+  });
+  if (!r.ok) {
+    if (r.status === 503) serverTts = { at: Date.now(), on: false }; // hết key khỏe → dùng giọng trình duyệt
+    throw new Error(`tts ${r.status}`);
+  }
+  return r.blob();
+}
+
+function browserSpeak(clean: string, lang: string, rate: number, onEnd?: () => void) {
   if (!voiceSupport().tts) { onEnd?.(); return; }
   const synth = window.speechSynthesis;
   synth.cancel();
-  const clean = plainForSpeech(text);
-  if (!clean) { onEnd?.(); return; }
   // Chia câu để tránh lỗi Chrome dừng đọc với đoạn dài > ~15s.
   const parts = clean.match(/[^.!?。…\n]+[.!?。…]*/g)?.map((p) => p.trim()).filter(Boolean) ?? [clean];
   const voice = pickVoice(lang);
@@ -220,7 +275,48 @@ export function speak(text: string, { lang = 'vi-VN', rate = 1.05, onEnd }: { la
   });
 }
 
+/** Có thể đọc to không (giọng máy chủ hoặc giọng trình duyệt). */
+export const canSpeak = () => voiceSupport().tts || !!serverTts?.on || typeof Audio !== 'undefined';
+
+/**
+ * Đọc to văn bản: ưu tiên giọng AI của máy chủ (ElevenLabs / Fish Audio, key xoay vòng),
+ * lỗi hoặc chưa cấu hình thì dùng speechSynthesis của trình duyệt.
+ */
+export function speak(text: string, { lang = 'vi-VN', rate = 1.05, onEnd }: { lang?: string; rate?: number; onEnd?: () => void } = {}) {
+  stopSpeaking();
+  const token = ++speakToken;
+  const clean = plainForSpeech(text);
+  if (!clean) { onEnd?.(); return; }
+  void (async () => {
+    if (await serverTtsAvailable()) {
+      try {
+        const blob = await fetchServerTts(clean.slice(0, 2500), lang);
+        if (token !== speakToken) return;
+        const a = getPlayer();
+        if (!a) throw new Error('no audio');
+        const url = URL.createObjectURL(blob);
+        currentUrl = url;
+        const done = () => {
+          a.onended = null; a.onerror = null;
+          if (currentUrl === url) { URL.revokeObjectURL(url); currentUrl = null; }
+          if (token === speakToken) onEnd?.();
+        };
+        a.onended = done; a.onerror = done;
+        a.src = url;
+        await a.play();
+        return;
+      } catch {
+        if (token !== speakToken) return;
+      }
+    }
+    if (token === speakToken) browserSpeak(clean, lang, rate, onEnd);
+  })();
+}
+
 export function stopSpeaking() {
+  speakToken++;
+  if (player) { player.onended = null; player.onerror = null; player.pause(); }
+  if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; }
   if (voiceSupport().tts) window.speechSynthesis.cancel();
 }
 

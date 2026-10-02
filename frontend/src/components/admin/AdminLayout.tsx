@@ -27,7 +27,8 @@ import {
   ChevronDown,
   Shield,
   Globe,
-  ArrowLeft
+  ArrowLeft,
+  AudioLines,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useBranding } from '@/hooks/useBranding';
@@ -92,6 +93,7 @@ const adminNavItems = [
       { title: 'AI Models', href: '/admin/ai/models', icon: Bot },
       { title: 'AI Memory', href: '/admin/ai/memory', icon: MessageSquare },
       { title: 'Prompts', href: '/admin/ai/prompts', icon: FileText },
+      { title: 'Giọng nói AI', href: '/admin/ai/voice', icon: AudioLines },
       { title: 'API Keys', href: '/admin/api-keys', icon: Key },
     ]
   },

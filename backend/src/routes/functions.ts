@@ -5,7 +5,7 @@
 import { Readable } from 'node:stream';
 import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
-import { db } from '../db';
+import { db, pool } from '../db';
 import { profiles } from '../db/schema';
 import {
   buildCoachSystemPrompt,
@@ -36,7 +36,20 @@ import {
   type AssistantContext,
 } from '../lib/aiAssistantTools';
 import { generateEmailHtml, sendEmail } from '../lib/email';
-import { badRequest } from '../lib/errors';
+import { badRequest, forbidden } from '../lib/errors';
+import {
+  VOICE_PROVIDERS,
+  checkKeyQuota,
+  listVoiceKeys,
+  resetKeyHealth,
+  saveVoiceSettings,
+  synthesize,
+  transcribeWithVoiceKeys,
+  voiceAvailability,
+  voicePool,
+  type VoiceProvider,
+  type VoiceSettings,
+} from '../lib/voiceGateway';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -136,6 +149,9 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       const format = String(request.body?.format ?? 'wav').toLowerCase();
       if (!audio) throw badRequest('Missing audio');
       if (!['wav', 'mp3'].includes(format)) throw badRequest('Unsupported audio format');
+      // Ưu tiên ElevenLabs Scribe / Fish Audio ASR (xoay vòng key) nếu admin đã thêm key.
+      const viaVoice = await transcribeWithVoiceKeys(Buffer.from(audio, 'base64'), format, request.body?.language === 'en' ? 'en' : 'vi');
+      if (viaVoice) return reply.send({ text: viaVoice.text, provider: viaVoice.provider });
       const lang = request.body?.language === 'en' ? 'English' : 'tiếng Việt';
       const { content } = await chatCompletion({
         temperature: 0,
@@ -152,6 +168,64 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.send({ text: content.trim() });
     },
   );
+
+  // ------------------------- voice (TTS + key pool) -------------------------
+  const requireAdmin = async (userId: string) => {
+    const { rowCount } = await pool.query(`SELECT 1 FROM "user_roles" WHERE "user_id" = $1 AND "role" = 'admin' LIMIT 1`, [userId]);
+    if (!rowCount) throw forbidden('Admin access required');
+  };
+  const isVoiceProvider = (p: unknown): p is VoiceProvider => VOICE_PROVIDERS.includes(p as VoiceProvider);
+
+  fastify.get('/functions/voice/status', { schema: { tags: ['ai'], summary: 'Server TTS/STT availability', security: [{ bearerAuth: [] }] } }, async () => voiceAvailability());
+
+  // Đọc văn bản thành giọng nói (mp3) bằng ElevenLabs / Fish Audio, tự xoay vòng key.
+  fastify.post<{ Body: { text?: string; provider?: string; voice?: string; language?: string; key_id?: string } }>(
+    '/functions/tts',
+    { schema: { tags: ['ai'], summary: 'Text-to-speech with rotating ElevenLabs / Fish Audio keys', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      const text = String(request.body?.text ?? '').trim().slice(0, 2500);
+      if (!text) throw badRequest('Missing text');
+      const { provider, voice, language, key_id } = request.body ?? {};
+      // Chọn provider/key/giọng cụ thể chỉ dành cho admin (nút “Nghe thử”).
+      if (provider || key_id || voice) await requireAdmin(request.user!.id);
+      if (provider && !isVoiceProvider(provider)) throw badRequest('Unknown voice provider');
+      const out = await synthesize({ text, provider: provider as VoiceProvider | undefined, voice: voice ? String(voice).slice(0, 64) : undefined, language: language === 'en' ? 'en' : 'vi', keyId: key_id ? String(key_id) : undefined });
+      return reply
+        .header('Content-Type', out.contentType)
+        .header('Cache-Control', 'no-store')
+        .header('X-Voice-Provider', out.provider)
+        .header('X-Voice-Key', encodeURIComponent(out.keyName))
+        .header('X-Voice-Tried', String(out.tried))
+        .header('Access-Control-Expose-Headers', 'X-Voice-Provider, X-Voice-Key, X-Voice-Tried')
+        .send(out.audio);
+    },
+  );
+
+  fastify.get('/functions/voice/pool', { schema: { tags: ['admin'], summary: 'Voice key pool health', security: [{ bearerAuth: [] }] } }, async (request) => {
+    await requireAdmin(request.user!.id);
+    return voicePool();
+  });
+
+  fastify.put<{ Body: Partial<VoiceSettings> }>('/functions/voice/settings', { schema: { tags: ['admin'], summary: 'Save voice settings', security: [{ bearerAuth: [] }] } }, async (request) => {
+    await requireAdmin(request.user!.id);
+    await saveVoiceSettings(request.body ?? {});
+    return voicePool();
+  });
+
+  // Kiểm tra hạn mức/tín dụng một key (id) hoặc tất cả key giọng nói.
+  fastify.post<{ Body: { id?: string } }>('/functions/voice/check', { schema: { tags: ['admin'], summary: 'Check voice key quota', security: [{ bearerAuth: [] }] } }, async (request) => {
+    await requireAdmin(request.user!.id);
+    const keys = (await listVoiceKeys()).filter((k) => !request.body?.id || k.id === request.body.id);
+    const results = await Promise.all(keys.map(async (k) => ({ id: k.id, ...(await checkKeyQuota(k)) })));
+    return { results, pool: await voicePool() };
+  });
+
+  fastify.post<{ Body: { id?: string } }>('/functions/voice/reset', { schema: { tags: ['admin'], summary: 'Clear voice key cooldown/errors', security: [{ bearerAuth: [] }] } }, async (request) => {
+    await requireAdmin(request.user!.id);
+    if (!request.body?.id) throw badRequest('Missing id');
+    await resetKeyHealth(request.body.id);
+    return voicePool();
+  });
 
   // ----------------------- ai-template-generate -----------------------
   fastify.post<{ Body: { type: string; prompt?: string; category?: string } }>(

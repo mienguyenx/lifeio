@@ -27,6 +27,7 @@ const ROUTE_LABELS: Record<string, string> = {
   models: 'Models',
   prompts: 'Prompts',
   'api-keys': 'API Keys',
+  voice: 'Giọng nói AI',
   analytics: 'Analytics',
   logs: 'Logs',
   flags: 'Runtime Flags',
