@@ -20,6 +20,7 @@ import AuthPage from "./features/auth/AuthPage";
 import AuthPageLegacy from "./pages/AuthPage";
 import LegacyTodayPage from "./pages/TodayPage";
 import TodayPage from "./features/today/TodayPage";
+import TodayV2Page from "./features/today/v2/TodayV2Page";
 import InsightsPage from "./features/insights/InsightsPage";
 import DashboardPageLegacy from "./pages/DashboardPageLegacy";
 import HabitsPage from "./features/habits/HabitsPage";
@@ -118,6 +119,7 @@ function MainApp() {
       <Routes>
         <Route path="/" element={<TodayPage />} />
         <Route path="/today/classic" element={<LegacyTodayPage />} />
+        <Route path="/today/v2" element={<TodayV2Page />} />
         <Route path="/dashboard" element={<InsightsPage />} />
         <Route path="/dashboard/classic" element={<DashboardPageLegacy />} />
         <Route path="/habits" element={<HabitsPage />} />
