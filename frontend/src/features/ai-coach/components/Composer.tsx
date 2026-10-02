@@ -1,16 +1,29 @@
-import { useRef, useState } from 'react';
-import { AudioLines, Mic, Send, Square } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AudioLines, BookOpen, Mic, Send, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useVoiceInput, voiceSupport } from '../voice/speech';
 
-export function Composer({ onSend, onVoiceChat, disabled, chips, className }: {
+export function Composer({ onSend, onVoiceChat, onLibrary, insert, disabled, chips, className }: {
   onSend: (t: string, opts?: { voice?: boolean }) => void;
   onVoiceChat?: () => void;
+  /** Mở Thư viện prompt */
+  onLibrary?: () => void;
+  /** Chèn văn bản vào ô nhập (đổi `n` để chèn lại) */
+  insert?: { text: string; n: number } | null;
   disabled?: boolean; chips?: string[]; className?: string;
 }) {
   const [v, setV] = useState('');
   const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (!insert) return;
+    setV(insert.text);
+    requestAnimationFrame(() => {
+      const el = ref.current; if (!el) return;
+      el.focus(); el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  }, [insert]);
   const base = useRef('');
   const submit = () => { if (!v.trim() || disabled) return; onSend(v); setV(''); if (ref.current) ref.current.style.height = 'auto'; };
   const voice = useVoiceInput({
@@ -35,7 +48,11 @@ export function Composer({ onSend, onVoiceChat, disabled, chips, className }: {
           <button key={c} onClick={() => onSend(c)} disabled={disabled} className="h-8 px-3 rounded-full bg-lavender dark:bg-primary/15 text-primary text-[12px] font-semibold whitespace-nowrap shrink-0 disabled:opacity-50">{c}</button>
         ))}</div>
       )}
-      <div className={cn('flex items-end gap-1.5 rounded-[24px] bg-card border border-border shadow-soft p-1.5 pl-4 focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10', voice.listening && 'border-primary/50 ring-4 ring-primary/10')}>
+      <div className={cn('flex items-end gap-1.5 rounded-[24px] bg-card border border-border shadow-soft p-1.5', onLibrary ? 'pl-1.5' : 'pl-4', 'focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10', voice.listening && 'border-primary/50 ring-4 ring-primary/10')}>
+        {onLibrary && (
+          <button onClick={onLibrary} disabled={disabled || voice.listening} aria-label="Thư viện prompt" title="Thư viện prompt"
+            className="h-10 w-10 rounded-full grid place-items-center shrink-0 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"><BookOpen className="h-[18px] w-[18px]" /></button>
+        )}
         <textarea ref={ref} rows={1} value={shown} readOnly={voice.listening}
           placeholder={voice.listening ? 'Đang nghe… nói đi bạn' : voice.state === 'transcribing' ? 'Đang chép lời…' : 'Hỏi hoặc ra lệnh: “Nhắc tôi gọi mẹ lúc 6h tối”…'}
           onChange={(e) => { setV(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`; }}

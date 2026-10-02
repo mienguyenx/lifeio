@@ -88,7 +88,7 @@ export function useCoach() {
         }
       } catch (e) {
         if ((e as { status?: number }).status === 503) {
-          const reply = '⚙️ AI chưa được cấu hình. Quản trị viên cần thêm API key (Gemini/OpenAI…) trong **Admin → API Keys**.';
+          const reply = '⚙️ AI chưa được cấu hình. Quản trị viên cần thêm provider + API key trong **Admin → AI Providers**, rồi chọn model ở **Admin → Model theo tính năng**.';
           s.getState().addChatMessage({ role: 'assistant', content: reply });
           setLoading(false);
           return { reply };
@@ -113,11 +113,12 @@ export function useCoach() {
         if (resp.status === 429) toast.error('Vượt quá giới hạn request. Vui lòng thử lại sau.');
         else if (resp.status === 402) toast.error('Cần nạp thêm credit cho AI.');
         else if (resp.status === 503) {
-          acc = '⚙️ AI chưa được cấu hình. Quản trị viên cần thêm API key (Gemini/OpenAI…) trong **Admin → API Keys**.';
+          acc = '⚙️ AI chưa được cấu hình. Quản trị viên cần thêm provider + API key trong **Admin → AI Providers**, rồi chọn model ở **Admin → Model theo tính năng**.';
           s.getState().addChatMessage({ role: 'assistant', content: acc });
           return { reply: acc };
         }
-        throw new Error('Failed to get AI response');
+        const detail = await resp.json().then((j: { error?: string; message?: string }) => j.error || j.message).catch(() => null);
+        throw new Error(detail || 'Failed to get AI response');
       }
       s.getState().addChatMessage({ role: 'assistant', content: '' });
       await readSSE(resp.body, (chunk) => {
@@ -130,7 +131,8 @@ export function useCoach() {
       });
     } catch (e) {
       console.error('AI Coach error:', e);
-      acc = '❌ Có lỗi xảy ra. Vui lòng thử lại sau.';
+      const msg = (e as Error)?.message;
+      acc = `❌ Có lỗi xảy ra${msg && msg !== 'Failed to get AI response' ? `: ${msg}` : ''}. Vui lòng thử lại sau.`;
       s.getState().addChatMessage({ role: 'assistant', content: acc });
     } finally { setLoading(false); }
     return { reply: acc };

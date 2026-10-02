@@ -35,6 +35,17 @@ import {
   parseAssistantActions,
   type AssistantContext,
 } from '../lib/aiAssistantTools';
+import {
+  AI_FEATURES,
+  FEATURE_SETTINGS_KEY,
+  fetchProviderModels,
+  getFeatureConfig,
+  getSystemPrompt,
+  invalidateAiConfig,
+  listProviders,
+  resolveFor,
+  type FeatureConf,
+} from '../lib/aiConfig';
 import { generateEmailHtml, sendEmail } from '../lib/email';
 import { badRequest, forbidden } from '../lib/errors';
 import {
@@ -50,6 +61,9 @@ import {
   type VoiceProvider,
   type VoiceSettings,
 } from '../lib/voiceGateway';
+
+const withExtra = (base: string, extra: string | null) =>
+  extra ? `${base}\n\n--- HƯỚNG DẪN BỔ SUNG (Admin) ---\n${extra}` : base;
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -84,18 +98,18 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       }));
       if (normalized.length === 0) throw badRequest('Missing messages');
 
-      const systemPrompt = buildCoachSystemPrompt(userContext);
+      const systemPrompt = buildCoachSystemPrompt(userContext, await getSystemPrompt('coach.system'));
       const chatMessages: ChatMessage[] = [{ role: 'system', content: systemPrompt }, ...normalized];
       const accept = request.headers.accept || '';
       const wantsJson = accept.includes('application/json');
       const useModel = model || undefined; // undefined → model of the resolved gateway (env or Admin API key)
 
       if (wantsJson) {
-        const { content } = await chatCompletion({ messages: chatMessages, model: useModel });
-        return reply.send({ response: content, model: useModel || (await resolveGateway()).model });
+        const { content } = await chatCompletion({ messages: chatMessages, model: useModel, feature: 'coach' });
+        return reply.send({ response: content, model: useModel || (await resolveGateway('coach')).model });
       }
 
-      const upstream = await chatCompletionStream({ messages: chatMessages, model: useModel });
+      const upstream = await chatCompletionStream({ messages: chatMessages, model: useModel, feature: 'coach' });
       reply.header('Content-Type', 'text/event-stream');
       reply.header('Cache-Control', 'no-cache');
       reply.header('Connection', 'keep-alive');
@@ -103,7 +117,7 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send(Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0]));
       }
       // Fallback: no stream body — synthesize SSE from a non-streaming call.
-      const { content } = await chatCompletion({ messages: chatMessages, model: useModel });
+      const { content } = await chatCompletion({ messages: chatMessages, model: useModel, feature: 'coach' });
       return reply.send(buildSseFromText(content));
     },
   );
@@ -121,12 +135,13 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       const ctx = request.body?.context ?? {};
       const { content, raw } = await chatCompletion({
         messages: [
-          { role: 'system', content: buildAssistantSystemPrompt(ctx) },
+          { role: 'system', content: withExtra(buildAssistantSystemPrompt(ctx), await getSystemPrompt('assistant.system')) },
           { role: 'user', content: text },
         ],
         tools: ASSISTANT_TOOLS,
         toolChoice: 'auto',
         temperature: 0.2,
+        feature: 'assistant',
       });
       const actions = parseAssistantActions(raw.choices?.[0]?.message?.tool_calls, ctx);
       return reply.send({ mode: actions.length ? 'actions' : 'chat', actions, message: actions.length ? content || '' : '' });
@@ -155,6 +170,7 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       const lang = request.body?.language === 'en' ? 'English' : 'tiếng Việt';
       const { content } = await chatCompletion({
         temperature: 0,
+        feature: 'transcribe',
         messages: [
           {
             role: 'user',
@@ -194,7 +210,7 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
         'Chỉ trả về JSON: {"title": string, "content": string, "tags": string[], "area": string|null, "tasks": [...], "summary": string (1 câu tóm tắt)}',
       ].join('\n');
       const user = (request.body?.context && append ? `Ghi chú hiện có (chỉ để tham khảo ngữ cảnh):\n${String(request.body.context).slice(0, 4000)}\n\n` : '') + `Bản chép lời:\n${transcript}`;
-      const { content } = await chatCompletion({ temperature: 0.2, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
+      const { content } = await chatCompletion({ temperature: 0.2, feature: 'voice_note', messages: [{ role: 'system', content: withExtra(system, await getSystemPrompt('voice_note.system')) }, { role: 'user', content: user }] });
       const parsed = parseJsonFromContent<Record<string, unknown> | null>(content, null);
       if (!parsed || typeof parsed !== 'object') return reply.send({ title: '', content: transcript, tags: [], area: null, tasks: [], summary: '', raw: true });
       const str = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
@@ -283,8 +299,9 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       const systemPrompt = TEMPLATE_SYSTEM_PROMPTS[type];
       if (!systemPrompt) throw badRequest(`Unknown template type: ${type}`);
       const { content } = await chatCompletion({
+        feature: 'templates',
         messages: [
-          { role: 'system', content: systemPrompt + '\n\nChỉ trả về JSON array, không có text khác.' },
+          { role: 'system', content: withExtra(systemPrompt, await getSystemPrompt('templates.system')) + '\n\nChỉ trả về JSON array, không có text khác.' },
           { role: 'user', content: buildTemplateUserPrompt(type, category, prompt) },
         ],
       });
@@ -303,8 +320,9 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { systemPrompt, userPrompt } = buildSuggestPrompts(request.body);
       const { content } = await chatCompletion({
+        feature: 'suggest',
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: withExtra(systemPrompt, await getSystemPrompt('suggest.system')) },
           { role: 'user', content: userPrompt },
         ],
       });
@@ -324,8 +342,9 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       const params = request.body;
       const { systemPrompt, userPrompt } = buildTranslatePrompts(params);
       const { content } = await chatCompletion({
+        feature: 'translate',
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: withExtra(systemPrompt, await getSystemPrompt('translate.system')) },
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.3,
@@ -346,8 +365,9 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       const { type, context } = request.body;
       const { systemPrompt, userPrompt } = buildVisionValuesPrompts(type, context);
       const { content } = await chatCompletion({
+        feature: 'vision',
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: withExtra(systemPrompt, await getSystemPrompt('vision.system')) },
           { role: 'user', content: userPrompt },
         ],
       });
@@ -364,8 +384,9 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       const { type, prompt } = request.body;
       const themeReq = buildThemeRequest(type);
       const { raw } = await chatCompletion({
+        feature: 'theme',
         messages: [
-          { role: 'system', content: themeReq.systemPrompt },
+          { role: 'system', content: withExtra(themeReq.systemPrompt, await getSystemPrompt('theme.system')) },
           { role: 'user', content: prompt || 'Create a modern, professional theme' },
         ],
         tools: themeReq.tools,
@@ -377,6 +398,90 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       }
       const result = parseJsonFromContent<unknown>(toolCall.function.arguments, {});
       return reply.send(result);
+    },
+  );
+
+
+  // ------------------------- AI config (admin) -------------------------
+  fastify.get('/functions/ai/status', { schema: { tags: ['ai'], summary: 'Is an AI provider configured', security: [{ bearerAuth: [] }] } }, async () => {
+    const gw = await resolveFor('coach');
+    return { configured: !!gw, provider: gw?.provider ?? null };
+  });
+
+  fastify.post<{ Body: { slug?: string; base_url?: string; models_endpoint?: string; api_key?: string } }>(
+    '/functions/ai-providers/models',
+    { schema: { tags: ['admin'], summary: 'Fetch model list from a provider (server-side)', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      await requireAdmin(request.user!.id);
+      const { slug, ...override } = request.body ?? {};
+      if (!slug) throw badRequest('slug required');
+      invalidateAiConfig();
+      try {
+        return await fetchProviderModels(slug, override);
+      } catch (e) {
+        return reply.code(400).send({ error: (e as Error).message });
+      }
+    },
+  );
+
+  fastify.get('/functions/ai-config/features', { schema: { tags: ['admin'], summary: 'Per-feature AI model config', security: [{ bearerAuth: [] }] } }, async (request) => {
+    await requireAdmin(request.user!.id);
+    invalidateAiConfig();
+    const [config, providers] = await Promise.all([getFeatureConfig(), listProviders()]);
+    const { rows: keys } = await pool.query<{ provider: string; n: number }>(`SELECT provider, count(*)::int AS n FROM "api_keys" WHERE is_active = true GROUP BY provider`);
+    const keyCount = new Map(keys.map((k) => [k.provider, k.n]));
+    const effective: Record<string, { provider: string; model: string; source: string } | null> = {};
+    for (const key of ['_default', ...AI_FEATURES.map((f) => f.key)]) {
+      const gw = await resolveFor(key);
+      effective[key] = gw ? { provider: gw.provider, model: gw.model, source: gw.source } : null;
+    }
+    return {
+      features: AI_FEATURES,
+      config,
+      providers: providers.map((p) => ({ slug: p.slug, name: p.name, defaultModel: p.defaultModel, keys: keyCount.get(p.slug) ?? 0 })),
+      effective,
+    };
+  });
+
+  fastify.put<{ Body: { config?: Record<string, FeatureConf> } }>(
+    '/functions/ai-config/features',
+    { schema: { tags: ['admin'], summary: 'Save per-feature AI model config', security: [{ bearerAuth: [] }] } },
+    async (request) => {
+      await requireAdmin(request.user!.id);
+      const clean: Record<string, FeatureConf> = {};
+      for (const [k, v] of Object.entries(request.body?.config ?? {})) {
+        if (!v?.provider) continue;
+        const t = v.temperature == null || Number.isNaN(Number(v.temperature)) ? null : Math.min(2, Math.max(0, Number(v.temperature)));
+        clean[k] = { provider: String(v.provider), model: v.model ? String(v.model) : undefined, temperature: t };
+      }
+      await pool.query(
+        `INSERT INTO "admin_settings" (key, value, description) VALUES ($1, $2::jsonb, 'Model AI cho từng tính năng')
+           ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+        [FEATURE_SETTINGS_KEY, JSON.stringify(clean)],
+      );
+      invalidateAiConfig();
+      return { ok: true, config: clean };
+    },
+  );
+
+  fastify.post<{ Body: { feature?: string } }>(
+    '/functions/ai-config/test',
+    { schema: { tags: ['admin'], summary: 'Quick test a feature model', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      await requireAdmin(request.user!.id);
+      invalidateAiConfig();
+      const feature = request.body?.feature || '_default';
+      const started = Date.now();
+      try {
+        const { content } = await chatCompletion({
+          feature,
+          messages: [{ role: 'user', content: 'Trả lời đúng một câu ngắn bằng tiếng Việt: "Kết nối OK".' }],
+        });
+        const gw = await resolveFor(feature);
+        return { ok: true, reply: content.trim().slice(0, 200), ms: Date.now() - started, provider: gw?.provider, model: gw?.model };
+      } catch (e) {
+        return reply.code(200).send({ ok: false, error: (e as Error).message, ms: Date.now() - started });
+      }
     },
   );
 

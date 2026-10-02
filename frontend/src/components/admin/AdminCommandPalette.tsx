@@ -36,6 +36,7 @@ const NAV_ITEMS = [
   { title: 'AI Models', href: '/admin/ai/models', icon: Bot, group: 'AI', keywords: 'llm gpt gemini' },
   { title: 'AI Prompts', href: '/admin/ai/prompts', icon: MessageSquare, group: 'AI', keywords: 'system prompt template' },
   { title: 'API Keys', href: '/admin/api-keys', icon: Key, group: 'AI', keywords: 'tokens secrets' },
+  { title: 'Model theo tính năng', href: '/admin/ai/features', icon: Bot, group: 'AI', keywords: 'model coach assistant feature module cấu hình' },
   { title: 'Giọng nói AI', href: '/admin/ai/voice', icon: AudioLines, group: 'AI', keywords: 'voice tts elevenlabs fish audio xoay vòng key' },
   { title: 'System Logs', href: '/admin/logs', icon: ScrollText, group: 'System', keywords: 'errors warnings' },
   { title: 'Runtime Flags', href: '/admin/flags', icon: Flag, group: 'System', keywords: 'feature toggle' },

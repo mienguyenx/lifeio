@@ -91,6 +91,7 @@ const adminNavItems = [
     items: [
       { title: 'AI Providers', href: '/admin/ai/providers', icon: Globe },
       { title: 'AI Models', href: '/admin/ai/models', icon: Bot },
+      { title: 'Model theo tính năng', href: '/admin/ai/features', icon: Bot },
       { title: 'AI Memory', href: '/admin/ai/memory', icon: MessageSquare },
       { title: 'Prompts', href: '/admin/ai/prompts', icon: FileText },
       { title: 'Giọng nói AI', href: '/admin/ai/voice', icon: AudioLines },

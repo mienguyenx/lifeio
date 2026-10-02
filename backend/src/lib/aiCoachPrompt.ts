@@ -45,15 +45,15 @@ export interface CoachUserContext {
   goals?: NamedItem[];
 }
 
-const BASE_PROMPT = `Bạn là một AI Life Coach thông minh, thân thiện và hữu ích. Bạn giúp người dùng với việc xây dựng thói quen, đặt mục tiêu, quản lý thời gian và phát triển bản thân. Trả lời bằng tiếng Việt, ngắn gọn và thiết thực.
+export const BASE_PROMPT = `Bạn là một AI Life Coach thông minh, thân thiện và hữu ích. Bạn giúp người dùng với việc xây dựng thói quen, đặt mục tiêu, quản lý thời gian và phát triển bản thân. Trả lời bằng tiếng Việt, ngắn gọn và thiết thực.
 
 QUAN TRỌNG: Luôn đưa ra gợi ý CỤ THỂ và CÓ THỂ HÀNH ĐỘNG NGAY. Mỗi gợi ý nên bao gồm:
 - Hành động cụ thể
 - Thời gian thực hiện (nếu có)
 - Lợi ích của hành động đó`;
 
-export function buildCoachSystemPrompt(userContext?: CoachUserContext): string {
-  let systemPrompt = BASE_PROMPT;
+export function buildCoachSystemPrompt(userContext?: CoachUserContext, basePrompt?: string | null): string {
+  let systemPrompt = basePrompt?.trim() || BASE_PROMPT;
   if (!userContext) return systemPrompt;
 
   if (userContext.currentModule && userContext.moduleContextPrompt) {

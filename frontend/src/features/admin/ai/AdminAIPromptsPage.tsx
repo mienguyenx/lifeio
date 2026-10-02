@@ -1,6 +1,8 @@
 // Module 27 — Admin: Thư viện prompt AI (LIO kit)
 // Dữ liệu/hành động giữ nguyên từ pages/admin/AdminAIPrompts.tsx (bản cũ: /admin/ai/prompts/classic)
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { categoryGroup, categoryLabel } from '@/features/ai-coach/prompts/promptLibrary';
 import { Bot, Braces, CheckCircle2, Copy, FolderOpen, MessageSquare, Pencil, Plus, Power, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -32,7 +34,8 @@ export default function AdminAIPromptsPage() {
   const deletePrompt = useDeleteAIPrompt();
 
   const [cat, setCat] = useState('all');
-  const [search, setSearch] = useState('');
+  const [params] = useSearchParams();
+  const [search, setSearch] = useState(params.get('q') ?? '');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -41,12 +44,14 @@ export default function AdminAIPromptsPage() {
 
   const all = useMemo(() => prompts ?? [], [prompts]);
   const categories = useMemo(() => [...new Set(all.map((p) => p.category))], [all]);
+  const groups = useMemo(() => [...new Set(all.map((p) => categoryGroup(p.category)))], [all]);
+  const inCat = (p: AIPrompt) => cat === 'all' || p.category === cat || categoryGroup(p.category) === cat;
   const activeModels = (models ?? []).filter((m) => m.is_active);
   const modelName = (id: string | null) => (id ? (models ?? []).find((m) => m.id === id)?.name ?? 'Model đã xóa' : 'Mặc định');
   const varsOf = (p: Pick<AIPrompt, 'variables' | 'system_prompt' | 'user_prompt_template'>) => (p.variables?.length ? p.variables : extractVars(p.system_prompt, p.user_prompt_template));
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return all.filter((p) => (cat === 'all' || p.category === cat) && (!q || p.name.toLowerCase().includes(q) || p.prompt_key.toLowerCase().includes(q) || p.system_prompt.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q)));
+    return all.filter((p) => inCat(p) && (!q || p.name.toLowerCase().includes(q) || p.prompt_key.toLowerCase().includes(q) || p.system_prompt.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q)));
   }, [all, cat, search]);
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pages - 1);
@@ -65,7 +70,7 @@ export default function AdminAIPromptsPage() {
 
   const overviewSide = (
     <div className="space-y-4">
-      <Surface className="p-4"><SectionTitle title="Prompt theo danh mục" hint={`${categories.length} danh mục`} /><CountBars items={categories.map((c) => ({ label: <span className="capitalize">{c}</span>, value: all.filter((p) => p.category === c).length }))} /></Surface>
+      <Surface className="p-4"><SectionTitle title="Prompt theo danh mục" hint={`${categories.length} danh mục`} /><CountBars items={categories.map((c) => ({ label: c.includes(':') ? `${categoryLabel(categoryGroup(c))} · ${categoryLabel(c)}` : categoryLabel(c), value: all.filter((p) => p.category === c).length }))} /></Surface>
       <Surface className="p-4"><SectionTitle title="Model được gán" /><CountBars items={[...new Set(all.map((p) => p.model_id))].map((id) => ({ label: modelName(id), value: all.filter((p) => p.model_id === id).length }))} /></Surface>
       <MascotCard mascot="lumi" pose="love" title="Viết prompt hay" quote="Dùng {{ten_bien}} trong mẫu — biến sẽ được nhận diện và lưu tự động." />
     </div>
@@ -85,7 +90,7 @@ export default function AdminAIPromptsPage() {
           <SearchToggle value={search} onChange={(v) => { setSearch(v); setPage(0); }} placeholder="Tìm prompt..." />
           {!isMobile && <Button className="h-10 rounded-full px-5 shadow-soft" onClick={() => setDraft({ ...EMPTY })}><Plus className="h-4 w-4 mr-1.5" />Thêm prompt</Button>}
         </>} />
-      <div className="mb-5 overflow-x-auto -mx-1 px-1"><SegmentedTabs items={[{ id: 'all', label: 'Tất cả', count: all.length }, ...categories.map((c) => ({ id: c, label: <span className="capitalize">{c}</span>, count: all.filter((p) => p.category === c).length }))]} value={cat} onChange={(v) => { setCat(v); setPage(0); }} /></div>
+      <div className="mb-5 overflow-x-auto -mx-1 px-1"><SegmentedTabs items={[{ id: 'all', label: 'Tất cả', count: all.length }, ...groups.map((g) => ({ id: g, label: categoryLabel(g), count: all.filter((p) => categoryGroup(p.category) === g).length }))]} value={cat} onChange={(v) => { setCat(v); setPage(0); }} /></div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] items-start">
         <div className="space-y-4 min-w-0">
@@ -107,7 +112,7 @@ export default function AdminAIPromptsPage() {
                   {paged.map((p) => (
                     <div key={p.id} role="button" tabIndex={0} onClick={() => setSelectedId(p.id)} className={cn('flex items-center gap-3 px-1 py-3', !p.is_active && 'opacity-60')}>
                       <span className="h-10 w-10 rounded-xl grid place-items-center bg-primary/10 text-primary shrink-0"><MessageSquare className="h-5 w-5" /></span>
-                      <div className="min-w-0 flex-1"><p className="text-[14px] font-semibold truncate">{p.name}</p><p className="text-[11.5px] text-muted-foreground font-mono truncate">{p.prompt_key}</p><div className="flex items-center gap-1.5 mt-1"><Pill className="capitalize">{p.category}</Pill><Pill tone="blue">{modelName(p.model_id)}</Pill></div></div>
+                      <div className="min-w-0 flex-1"><p className="text-[14px] font-semibold truncate">{p.name}</p><p className="text-[11.5px] text-muted-foreground font-mono truncate">{p.prompt_key}</p><div className="flex items-center gap-1.5 mt-1"><Pill>{categoryLabel(p.category)}</Pill><Pill tone="blue">{modelName(p.model_id)}</Pill></div></div>
                       <span onClick={(e) => e.stopPropagation()}><Switch checked={p.is_active} onCheckedChange={() => toggle(p)} aria-label={`Bật ${p.name}`} /></span>
                     </div>
                   ))}
@@ -121,7 +126,7 @@ export default function AdminAIPromptsPage() {
                         <span className="h-9 w-9 rounded-xl grid place-items-center bg-primary/10 text-primary shrink-0"><MessageSquare className="h-[18px] w-[18px]" /></span>
                         <div className="min-w-0"><p className="text-[13.5px] font-semibold truncate">{p.name}</p><p className="text-[11px] text-muted-foreground font-mono truncate">{p.prompt_key}</p></div>
                       </div>
-                      <span><Pill className="capitalize">{p.category}</Pill></span>
+                      <span><Pill>{categoryLabel(p.category)}</Pill></span>
                       <span className="text-[12.5px] truncate">{modelName(p.model_id)}</span>
                       <span><Pill tone="violet" icon={<Braces className="h-3 w-3" />}>{varsOf(p).length}</Pill></span>
                       <span onClick={(e) => e.stopPropagation()}><Switch checked={p.is_active} onCheckedChange={() => toggle(p)} aria-label={`Bật ${p.name}`} /></span>
@@ -193,7 +198,7 @@ function PromptDetail({ p, vars, modelName, inPanel, onClose, onCopy, onEdit, on
         <div className="min-w-0 flex-1">
           <p className="text-[16px] font-bold">{p.name}</p>
           <p className="text-[11.5px] text-muted-foreground font-mono truncate">{p.prompt_key}</p>
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap"><Pill tone={p.is_active ? 'green' : 'gray'}>{p.is_active ? 'Đang bật' : 'Đang tắt'}</Pill><Pill className="capitalize">{p.category}</Pill></div>
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap"><Pill tone={p.is_active ? 'green' : 'gray'}>{p.is_active ? 'Đang bật' : 'Đang tắt'}</Pill><Pill>{categoryLabel(p.category)}</Pill></div>
         </div>
         {inPanel && <IconButton label="Đóng" onClick={onClose}><X className="h-4 w-4" /></IconButton>}
       </div>
