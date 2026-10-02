@@ -57,7 +57,7 @@ export function JournalEditor({ open, onOpenChange, mode, initial, tags, onManag
       <AdaptiveModal open={open} onOpenChange={onOpenChange} title={mode === 'edit' ? 'Chỉnh sửa nhật ký' : 'Viết nhật ký mới'} className="sm:max-w-[620px] rounded-[28px] max-h-[92vh] overflow-y-auto">
         <form onSubmit={submit} className="space-y-4 min-w-0">
           <div className="flex items-center gap-2">
-            <label className="relative flex-1">
+            <label className="relative flex-1 min-w-0">
               <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <input type="date" value={d.date} onChange={(e) => set('date', e.target.value)} className={cn(fieldCls, 'pl-10')} />
             </label>

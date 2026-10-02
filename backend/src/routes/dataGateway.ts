@@ -52,6 +52,42 @@ function requirePolicy(table: string): TablePolicy {
   return policy;
 }
 
+async function isAdmin(userId: string): Promise<boolean> {
+  const { rowCount } = await pool.query(`SELECT 1 FROM "user_roles" WHERE "user_id" = $1 AND "role" = 'admin' LIMIT 1`, [
+    userId,
+  ]);
+  return !!rowCount;
+}
+
+/**
+ * Decide whether a request may touch `table` and whether rows must be scoped to
+ * the caller. Returns `scoped=false` for global tables and for admins on
+ * admin-managed tables.
+ */
+async function resolveAccess(
+  policy: TablePolicy,
+  userId: string,
+  mode: 'read' | 'write',
+): Promise<{ scoped: boolean; empty?: boolean }> {
+  if (policy.global) {
+    if (mode === 'write' || policy.global.read === 'admin') {
+      if (!(await isAdmin(userId))) {
+        // Like RLS: non-admin reads of admin-only tables see no rows; writes are rejected.
+        if (mode === 'read') return { scoped: false, empty: true };
+        throw forbidden('Admin access required');
+      }
+    }
+    return { scoped: false };
+  }
+  const needsAdmin = mode === 'write' && policy.writeAdminOnly;
+  if (policy.adminAll || needsAdmin) {
+    const admin = await isAdmin(userId);
+    if (needsAdmin && !admin) throw forbidden('Admin access required');
+    if (admin && policy.adminAll) return { scoped: false };
+  }
+  return { scoped: true };
+}
+
 function scopeClause(table: string, policy: TablePolicy, userId: string, params: ParamList): string {
   if (policy.ownerColumn) {
     return `${qi(table)}.${qi(policy.ownerColumn)} = ${params.add(userId)}`;
@@ -90,8 +126,9 @@ function buildWhere(
   userId: string,
   filters: Filter[],
   params: ParamList,
+  scoped = true,
 ): string {
-  const clauses = [scopeClause(table, policy, userId, params)];
+  const clauses = scoped ? [scopeClause(table, policy, userId, params)] : ['TRUE'];
   for (const f of filters) clauses.push(buildFilter(table, f, params));
   return clauses.join(' AND ');
 }
@@ -104,14 +141,19 @@ function validateSelect(table: string, select?: string[]): string {
   return select.map((c) => `${qi(table)}.${qi(c)}`).join(', ');
 }
 
-function sanitizeRow(table: string, policy: TablePolicy, row: Record<string, unknown>, userId: string) {
+function sanitizeRow(table: string, policy: TablePolicy, row: Record<string, unknown>, userId: string, scoped = true) {
   const cleaned: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(row)) {
     if (!isValidColumn(table, key)) throw badRequest(`Unknown column '${key}' on '${table}'`);
     cleaned[key] = value;
   }
-  // Force ownership; never trust a client-supplied owner id.
-  if (policy.ownerColumn) cleaned[policy.ownerColumn] = userId;
+  // Force ownership; never trust a client-supplied owner id (admins on
+  // admin-managed tables may target other users, defaulting to themselves).
+  if (policy.ownerColumn) {
+    if (scoped || cleaned[policy.ownerColumn] === undefined || cleaned[policy.ownerColumn] === null) {
+      cleaned[policy.ownerColumn] = userId;
+    }
+  }
   return cleaned;
 }
 
@@ -156,8 +198,14 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ data: [], error: null });
       }
       const policy = requirePolicy(table);
+      const { scoped, empty } = await resolveAccess(policy, userId, 'read');
+      if (empty) {
+        if (count || head) return reply.send({ data: head ? [] : undefined, count: 0, error: null });
+        if (single) return reply.send({ data: null, error: { message: 'Expected a single row', code: 'PGRST116' } });
+        return reply.send({ data: [], error: null });
+      }
       const params = new ParamList();
-      const where = buildWhere(table, policy, userId, filters, params);
+      const where = buildWhere(table, policy, userId, filters, params, scoped);
 
       if (count || head) {
         const countSql = `SELECT count(*)::int AS count FROM ${qi(table)} WHERE ${where}`;
@@ -207,8 +255,9 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
       const policy = requirePolicy(table);
       if (rows.length === 0) throw badRequest('No rows to insert');
 
-      const cleaned = rows.map((r) => sanitizeRow(table, policy, r, userId));
-      for (const r of cleaned) await assertParentOwned(policy, r, userId);
+      const { scoped } = await resolveAccess(policy, userId, 'write');
+      const cleaned = rows.map((r) => sanitizeRow(table, policy, r, userId, scoped));
+      if (scoped) for (const r of cleaned) await assertParentOwned(policy, r, userId);
 
       const columns = Array.from(new Set(cleaned.flatMap((r) => Object.keys(r))));
       if (columns.length === 0) throw badRequest('No valid columns to insert');
@@ -244,15 +293,17 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
       const { table, set, filters = [], returning = true } = request.body;
       if (isDeferredTable(table)) return reply.send({ data: returning ? [] : null, error: null });
       const policy = requirePolicy(table);
+      const { scoped } = await resolveAccess(policy, userId, 'write');
       const entries = Object.entries(set ?? {});
       if (entries.length === 0) throw badRequest('No fields to update');
       for (const [k] of entries) {
         if (!isValidColumn(table, k)) throw badRequest(`Unknown column '${k}' on '${table}'`);
-        if (policy.ownerColumn && k === policy.ownerColumn) throw badRequest('Cannot modify ownership column');
+        if (scoped && policy.ownerColumn && k === policy.ownerColumn) throw badRequest('Cannot modify ownership column');
+        if (scoped && policy.parent && k === policy.parent.fk) throw badRequest('Cannot modify parent column');
       }
       const params = new ParamList();
       const setSql = entries.map(([k, v]) => `${qi(k)} = ${params.add(v)}`).join(', ');
-      const where = buildWhere(table, policy, userId, filters, params);
+      const where = buildWhere(table, policy, userId, filters, params, scoped);
       let sql = `UPDATE ${qi(table)} SET ${setSql} WHERE ${where}`;
       if (returning) sql += ' RETURNING *';
       const res = await pool.query(sql, params.all());
@@ -269,8 +320,9 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
       const { table, filters = [], returning = false } = request.body;
       if (isDeferredTable(table)) return reply.send({ data: returning ? [] : null, error: null });
       const policy = requirePolicy(table);
+      const { scoped } = await resolveAccess(policy, userId, 'write');
       const params = new ParamList();
-      const where = buildWhere(table, policy, userId, filters, params);
+      const where = buildWhere(table, policy, userId, filters, params, scoped);
       let sql = `DELETE FROM ${qi(table)} WHERE ${where}`;
       if (returning) sql += ' RETURNING *';
       const res = await pool.query(sql, params.all());
