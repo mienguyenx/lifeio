@@ -1,18 +1,15 @@
 import { useEffect, useRef } from 'react';
+import { showLocalNotification } from '@/lib/pwa';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { getTodayDateString, parseDateInTimezone, isToday } from '@/utils/dateUtils';
 
-export function useTaskReminder() {
+export function useTaskReminder(enabled = true) {
   const tasks = useLifeOSStore((s) => s.tasks);
   const updateTask = useLifeOSStore((s) => s.updateTask);
   const notifiedTasksRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    // Request notification permission on mount
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-
+    if (!enabled) return;
     const checkReminders = () => {
       const now = new Date();
       const todayStr = getTodayDateString();
@@ -52,9 +49,8 @@ export function useTaskReminder() {
               ? `${Math.round(timeLeft / 60)} giờ` 
               : `${timeLeft} phút`;
 
-            new Notification(`⏰ Nhắc nhở: ${task.title}`, {
+            void showLocalNotification(`⏰ Nhắc nhở: ${task.title}`, {
               body: `Còn ${timeText} đến deadline!`,
-              icon: '/favicon.svg',
               tag: task.id,
             });
           }
@@ -67,5 +63,5 @@ export function useTaskReminder() {
     const interval = setInterval(checkReminders, 60000);
 
     return () => clearInterval(interval);
-  }, [tasks, updateTask]);
+  }, [tasks, updateTask, enabled]);
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { showLocalNotification } from '@/lib/pwa';
 import { Play, Pause, SkipForward, X, Volume2, VolumeX, Bell, ChevronUp, ChevronDown } from 'lucide-react';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
@@ -95,9 +96,8 @@ export function PomodoroWidget() {
 
       // Show notification
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('🍅 Pomodoro', {
+        void showLocalNotification('🍅 Pomodoro', {
           body: phase === 'work' ? 'Quay lại làm việc! 💪' : 'Nghỉ ngơi thôi! 🎉',
-          icon: '/favicon.ico',
           tag: 'pomodoro',
         });
       }

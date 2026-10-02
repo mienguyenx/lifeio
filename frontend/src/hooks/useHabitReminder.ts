@@ -1,14 +1,15 @@
 import { useEffect, useCallback } from 'react';
+import { showLocalNotification } from '@/lib/pwa';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { toast } from 'sonner';
 import { getTodayDateString, getCurrentTimeString } from '@/utils/dateUtils';
 
-export function useHabitReminder() {
+export function useHabitReminder(enabled = true) {
   const habits = useLifeOSStore((s) => s.habits);
   const pushNotificationsEnabled = useLifeOSStore((s) => s.pushNotificationsEnabled);
 
   const checkReminders = useCallback(() => {
-    if (!pushNotificationsEnabled) return;
+    if (!enabled || !pushNotificationsEnabled) return;
     
     // Use timezone-aware date utilities (GMT+7, format 24h)
     const currentTime = getCurrentTimeString().substring(0, 5); // HH:MM
@@ -40,11 +41,10 @@ export function useHabitReminder() {
       
       // Show notification
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(`Nhắc nhở: ${habit.name}`, {
+        void showLocalNotification(`Nhắc nhở: ${habit.name}`, {
           body: target > 1 
             ? `Còn ${target - todayCount}/${target} ${habit.targetUnit || 'lần'} để hoàn thành hôm nay!`
             : 'Đừng quên hoàn thành habit này hôm nay!',
-          icon: '/favicon.svg',
           tag: `habit-reminder-${habit.id}`,
         });
       } else {
@@ -57,7 +57,7 @@ export function useHabitReminder() {
         });
       }
     });
-  }, [habits, pushNotificationsEnabled]);
+  }, [habits, pushNotificationsEnabled, enabled]);
 
   // Request notification permission
   const requestPermission = useCallback(async () => {

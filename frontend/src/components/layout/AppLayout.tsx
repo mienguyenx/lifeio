@@ -25,6 +25,8 @@ import { useKeyboardShortcuts, SHORTCUTS } from '@/hooks/useKeyboardShortcuts';
 import { toast } from 'sonner';
 import { CommandPalette } from './CommandPalette';
 import { ALL_NAV_ITEMS } from './navigationConfig';
+import { useNotificationSync } from '@/features/notifications/useNotificationSync';
+import { MobileNudges } from '@/features/notifications/MobileNudges';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -43,6 +45,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   
   // Enable overdue notification sounds
   useOverdueNotification();
+  useNotificationSync(!!user);
   useKeyboardShortcuts();
 
   const handleSignOut = async () => {
@@ -67,6 +70,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
         <BottomNav />
+        {user && <MobileNudges />}
         <GlobalVoiceChat />
       </div>
     );

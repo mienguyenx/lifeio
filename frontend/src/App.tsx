@@ -35,6 +35,7 @@ import LifeWheelPageLegacy from "./pages/LifeWheelPageLegacy";
 import WeeklyReviewPage from "./features/reviews/WeeklyReviewPage";
 import WeeklyReviewPageLegacy from "./pages/WeeklyReviewPageLegacy";
 import AICoachPage from "./features/ai-coach/AICoachPage";
+import NotificationsPage from "./features/notifications/NotificationsPage";
 import AIChatPageLegacy from "./pages/AIChatPageLegacy";
 import LegacyNotesPage from "./pages/NotesPage";
 import NotesPage from "./features/notes/NotesPage";
@@ -138,6 +139,7 @@ function MainApp() {
         <Route path="/yearly-review" element={<YearlyReviewPage />} />
         <Route path="/yearly-review/classic" element={<YearlyReviewPageLegacy />} />
         <Route path="/ai-chat" element={<AICoachPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/ai-chat/classic" element={<AIChatPageLegacy />} />
         <Route path="/notes" element={<NotesPage />} />
         <Route path="/notes/classic" element={<LegacyNotesPage />} />

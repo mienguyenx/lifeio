@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { showLocalNotification } from '@/lib/pwa';
 import { Bell, BellOff, BellRing, Calendar, Settings, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,10 +44,9 @@ export function GoalNotificationsCard({ goals }: GoalNotificationsCardProps) {
       if (result === 'granted') {
         toast.success('Đã bật thông báo');
         // Send test notification
-        new Notification('LifeOS Goals', {
+        void showLocalNotification('LifeOS Goals', {
           body: 'Thông báo đã được kích hoạt!',
-          icon: '/favicon.ico',
-        });
+          });
         return true;
       } else {
         toast.error('Không được cấp quyền thông báo');

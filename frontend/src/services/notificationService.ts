@@ -89,19 +89,24 @@ class NotificationService {
   /**
    * Add a notification
    */
-  addNotification(notification: Omit<Notification, 'id' | 'read' | 'createdAt'>): Notification {
+  addNotification(
+    notification: Omit<Notification, 'id' | 'read' | 'createdAt'>,
+    opts: { id?: string; createdAt?: string; read?: boolean; skipTelegram?: boolean } = {},
+  ): Notification {
+    if (opts.id && this.notifications.some((n) => n.id === opts.id)) return this.notifications.find((n) => n.id === opts.id)!;
     const notif: Notification = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      read: false,
-      createdAt: new Date().toISOString(),
+      id: opts.id ?? `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      read: opts.read ?? false,
+      createdAt: opts.createdAt ?? new Date().toISOString(),
       ...notification,
     };
 
     this.notifications.unshift(notif); // Add to beginning
+    if (opts.createdAt) this.notifications.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     this.saveNotifications();
 
     // Send Telegram notification (fire and forget)
-    if (['task', 'goal', 'habit', 'system'].includes(notif.type)) {
+    if (!opts.skipTelegram && ['task', 'goal', 'habit', 'system'].includes(notif.type)) {
       telegramService.sendNotification({
         type: notif.type as 'task' | 'goal' | 'habit' | 'system',
         title: notif.title,
@@ -117,6 +122,7 @@ class NotificationService {
    * Mark notification as read
    */
   markAsRead(notificationId: string): void {
+    if (notificationId.startsWith('srv-')) window.dispatchEvent(new CustomEvent('lifeos:notif-read', { detail: [notificationId.slice(4)] }));
     const notif = this.notifications.find(n => n.id === notificationId);
     if (notif) {
       notif.read = true;
@@ -128,6 +134,8 @@ class NotificationService {
    * Mark all notifications as read
    */
   markAllAsRead(): void {
+    const srv = this.notifications.filter((n) => !n.read && n.id.startsWith('srv-')).map((n) => n.id.slice(4));
+    if (srv.length) window.dispatchEvent(new CustomEvent('lifeos:notif-read', { detail: srv }));
     this.notifications.forEach(notif => {
       notif.read = true;
     });

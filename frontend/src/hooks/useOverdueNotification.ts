@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { showLocalNotification } from '@/lib/pwa';
 import { useNotificationBadges } from './useNotificationBadges';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
 
@@ -45,9 +46,8 @@ function sendPushNotification(title: string, body: string) {
   if (Notification.permission !== 'granted') return;
 
   try {
-    new Notification(title, {
+    void showLocalNotification(title, {
       body,
-      icon: '/favicon.svg',
       tag: 'overdue-notification',
     });
   } catch (error) {
