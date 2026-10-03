@@ -188,7 +188,7 @@ export function AIDailyBriefing() {
           {briefing.overdueCount > 0 && (
             <>
               <span className="w-px h-3 bg-border" />
-              <span className="text-destructive">{briefing.overdueCount} overdue</span>
+              <span className="text-destructive">{briefing.overdueCount} quá hạn</span>
             </>
           )}
         </div>
