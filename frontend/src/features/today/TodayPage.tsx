@@ -166,7 +166,7 @@ export default function TodayPage() {
   const todayJournal = journalEntries.find((j) => j.date === todayStr);
   const topPriorityTask = todayTasks.find(t => t.priority === 'high') || todayTasks[0];
 
-  const hour = today.getHours();
+  const hour = new Date().getHours(); // giờ thực (today = 00:00 đầu ngày)
   const greeting = hour < 12 ? 'Chào buổi sáng' : hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
   const habitProgress = todayHabits.length > 0 
     ? Math.round((completedHabitsToday.length / todayHabits.length) * 100) 
