@@ -1,9 +1,9 @@
 import { memo, useRef, useState } from 'react';
-import { CalendarClock, Check, ChevronDown, ListChecks, Play, Plus, Repeat, Trash2 } from 'lucide-react';
+import { CalendarClock, Check, ChevronDown, CornerDownRight, GitBranch, ListChecks, Play, Plus, Repeat, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Task } from '../types/task.types';
 import { PRIORITY_META, areaMeta, formatDue, isDone, isOverdue, subtaskProgress } from '../utils/task.utils';
-import type { TaskItemActions } from './TaskItem';
+import type { TaskItemActions, TreeProps } from './TaskItem';
 
 export interface TaskMobileExtra {
   onSubToggle: (t: Task, subId: string) => void;
@@ -15,14 +15,14 @@ const ACTION_W = 168; // độ rộng vùng nút khi vuốt trái
 const COMPLETE_AT = 96; // vuốt phải quá ngưỡng → hoàn thành
 
 /** Vòng check màu theo ưu tiên (kiểu Todoist): đỏ = cao, cam = vừa, xám xanh = thấp. */
-function PriorityCheck({ task, onToggle }: { task: Task; onToggle: () => void }) {
+function PriorityCheck({ task, onToggle, small }: { task: Task; onToggle: () => void; small?: boolean }) {
   const done = isDone(task);
   const c = PRIORITY_META[task.priority].dot;
   return (
     <button type="button" role="checkbox" aria-checked={done} aria-label={done ? 'Bỏ hoàn thành' : 'Hoàn thành'}
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
       className="relative shrink-0 h-[26px] w-[26px] -m-0.5 grid place-items-center active:scale-90 transition-transform">
-      <span className={cn('h-[22px] w-[22px] rounded-full border-2 grid place-items-center transition-colors', done && 'border-transparent')}
+      <span className={cn(small ? 'h-[19px] w-[19px]' : 'h-[22px] w-[22px]', 'rounded-full border-2 grid place-items-center transition-colors', done && 'border-transparent')}
         style={done ? { background: '#22B07D' } : { borderColor: c, background: `${c}14` }}>
         {done && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
       </span>
@@ -31,7 +31,7 @@ function PriorityCheck({ task, onToggle }: { task: Task; onToggle: () => void })
 }
 
 /** Dòng công việc trên mobile: vuốt phải = xong, vuốt trái = Mai / Focus / Xoá, mở rộng checklist tại chỗ. */
-export const TaskMobileRow = memo(function TaskMobileRow({ task, extra, ...a }: { task: Task; extra: TaskMobileExtra } & TaskItemActions) {
+export const TaskMobileRow = memo(function TaskMobileRow({ task, extra, depth = 0, parentTitle, kids, kidsOpen, onToggleKids, ...a }: { task: Task; extra: TaskMobileExtra } & TreeProps & TaskItemActions) {
   const done = isDone(task), overdue = isOverdue(task), due = formatDue(task), sp = subtaskProgress(task), area = areaMeta(task.area);
   const [dx, setDx] = useState(0);
   const [open, setOpen] = useState(false);
@@ -76,19 +76,26 @@ export const TaskMobileRow = memo(function TaskMobileRow({ task, extra, ...a }: 
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
         className="relative bg-card">
         <div role="button" tabIndex={0} onClick={() => (open ? close() : a.onOpen(task))} onKeyDown={(e) => e.key === 'Enter' && a.onOpen(task)}
-          className="flex items-start gap-3 px-4 py-3 active:bg-secondary/40">
-          <div className="pt-0.5"><PriorityCheck task={task} onToggle={() => a.onToggle(task)} /></div>
+          className={cn('flex items-start gap-3 pr-4 py-3 active:bg-secondary/40', depth ? 'pl-11 py-2.5 bg-secondary/[0.18]' : 'pl-4')}>
+          {depth ? <CornerDownRight className="absolute left-5 top-3.5 h-4 w-4 text-muted-foreground/40" /> : null}
+          <div className="pt-0.5"><PriorityCheck small={!!depth} task={task} onToggle={() => a.onToggle(task)} /></div>
           <div className="min-w-0 flex-1">
-            <p className={cn('text-[14.5px] font-semibold leading-snug line-clamp-2', done && 'line-through text-muted-foreground')}>{task.title}</p>
-            {(due || area || sp.total > 0 || task.recurring) && (
+            {parentTitle && <p className="text-[11px] text-muted-foreground truncate inline-flex items-center gap-1 max-w-full"><CornerDownRight className="h-3 w-3 shrink-0" /><span className="truncate">{parentTitle}</span></p>}
+            <p className={cn('font-semibold leading-snug line-clamp-2', depth ? 'text-[13.5px]' : 'text-[14.5px]', done && 'line-through text-muted-foreground')}>{task.title}</p>
+            {(due || area || sp.total > 0 || task.recurring || kids) && (
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-[12px] text-muted-foreground">
                 {due && <span className={cn('inline-flex items-center gap-1', overdue && 'text-[#E5484D] font-semibold')}><CalendarClock className="h-3 w-3" />{due}</span>}
+                {kids && (
+                  <button onClick={(e) => { e.stopPropagation(); onToggleKids?.(); }} className={cn('inline-flex items-center gap-1 rounded-full px-1.5 -mx-0.5 font-semibold', kids.done === kids.total ? 'text-[#22B07D]' : 'text-foreground/70')}>
+                    <GitBranch className="h-3 w-3" />{kids.done}/{kids.total} việc con{onToggleKids && <ChevronDown className={cn('h-3 w-3 transition-transform', !kidsOpen && '-rotate-90')} />}
+                  </button>
+                )}
                 {sp.total > 0 && (
                   <button onClick={(e) => { e.stopPropagation(); setExpanded((x) => !x); }} className={cn('inline-flex items-center gap-1 rounded-full px-1.5 -mx-0.5 font-semibold', sp.done === sp.total ? 'text-[#22B07D]' : 'text-foreground/70', expanded && 'bg-secondary')}>
                     <ListChecks className="h-3 w-3" />{sp.done}/{sp.total}<ChevronDown className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} />
                   </button>
                 )}
-                {area && <span className="inline-flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full" style={{ background: `hsl(var(--area-${task.area}))` }} />{area.name}</span>}
+                {area && !depth && <span className="inline-flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full" style={{ background: `hsl(var(--area-${task.area}))` }} />{area.name}</span>}
                 {task.recurring && <Repeat className="h-3 w-3" aria-label="Lặp lại" />}
               </div>
             )}

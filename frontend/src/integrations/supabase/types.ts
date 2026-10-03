@@ -1704,6 +1704,7 @@ export type Database = {
           id: string
           last_reminded: string | null
           milestone_id: string | null
+          parent_id: string | null
           position: number | null
           priority: Database["public"]["Enums"]["task_priority"] | null
           recurring_end_date: string | null
@@ -1734,6 +1735,7 @@ export type Database = {
           id?: string
           last_reminded?: string | null
           milestone_id?: string | null
+          parent_id?: string | null
           position?: number | null
           priority?: Database["public"]["Enums"]["task_priority"] | null
           recurring_end_date?: string | null
@@ -1764,6 +1766,7 @@ export type Database = {
           id?: string
           last_reminded?: string | null
           milestone_id?: string | null
+          parent_id?: string | null
           position?: number | null
           priority?: Database["public"]["Enums"]["task_priority"] | null
           recurring_end_date?: string | null

@@ -17,6 +17,7 @@ export interface TaskDraft {
   repeat?: 'none' | 'daily' | 'weekly' | 'monthly';
   status?: TaskStatus;
   subtasks?: string[];
+  parentId?: string;
 }
 
 export interface TaskCounts {

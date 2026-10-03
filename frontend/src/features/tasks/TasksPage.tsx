@@ -113,13 +113,13 @@ export default function TasksPage() {
         </div>
       );
     }
-    return <TaskList tasks={api.filtered} mobile={isMobile} extra={isMobile ? extra : undefined} {...actions} />;
+    return <TaskList tasks={api.filtered} mobile={isMobile} extra={isMobile ? extra : undefined} tree={{ byId: api.byId, childrenOf: api.childrenOf }} {...actions} />;
   })();
 
   const modals = (
     <>
       <TaskQuickAdd open={quickOpen} onOpenChange={setQuickOpen} initial={quickInitial} onCreate={api.createTask} />
-      <TaskDetailModal task={detailTask} open={!!detailTask} onOpenChange={(o) => !o && setDetailId(null)} api={api} onFocus={onFocus} />
+      <TaskDetailModal task={detailTask} open={!!detailTask} onOpenChange={(o) => !o && setDetailId(null)} api={api} onFocus={onFocus} onOpenTask={setDetailId} />
     </>
   );
 

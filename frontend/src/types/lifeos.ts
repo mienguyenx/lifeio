@@ -133,6 +133,7 @@ export interface Task {
   milestoneId?: string; // Link to specific milestone
   deletedAt?: string; // Soft delete - move to trash
   position?: number; // Custom sort order within column
+  parentId?: string; // Việc cha (subtask = công việc con đầy đủ thuộc tính)
 }
 
 // Goal Progress History Entry

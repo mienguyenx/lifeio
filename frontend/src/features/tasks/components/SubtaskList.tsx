@@ -1,5 +1,5 @@
 import { useState, type ClipboardEvent } from 'react';
-import { Check, GripVertical, Loader2, Plus, Sparkles, X } from 'lucide-react';
+import { Check, GitBranch, GripVertical, Loader2, Plus, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent,
@@ -21,9 +21,17 @@ export interface SubtaskListProps {
   onReorder: (ids: string[]) => void;
   /** Ngữ cảnh cho nút “Chia nhỏ bằng AI”. */
   ai?: { title: string; description?: string };
+  /** Chuyển 1 mục checklist thành việc con. */
+  onPromote?: (id: string) => void;
   /** Chế độ nháp (form tạo mới): không có checkbox. */
   draft?: boolean;
   className?: string;
+}
+
+/** Gọi AI chia nhỏ một công việc thành các bước. */
+export async function fetchBreakdown(title: string, description: string | undefined, existing: string[]): Promise<string[]> {
+  const r = await apiFetch<{ subtasks: string[] }>('/functions/ai-task-breakdown', { method: 'POST', body: { title, description, existing } });
+  return r.subtasks ?? [];
 }
 
 /** Tách văn bản dán vào thành nhiều dòng (bỏ gạch đầu dòng / số thứ tự). */
@@ -31,7 +39,7 @@ export function splitLines(text: string): string[] {
   return text.split(/\r?\n/).map((l) => l.replace(/^\s*(?:[-*•+]|\d+[.)]|\[[ x]\])\s*/i, '').trim()).filter(Boolean);
 }
 
-function Row({ item, draft, onToggle, onRename, onDelete }: { item: SubItem; draft?: boolean } & Pick<SubtaskListProps, 'onToggle' | 'onRename' | 'onDelete'>) {
+function Row({ item, draft, onToggle, onRename, onDelete, onPromote }: { item: SubItem; draft?: boolean } & Pick<SubtaskListProps, 'onToggle' | 'onRename' | 'onDelete' | 'onPromote'>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const [editing, setEditing] = useState(false);
   const [v, setV] = useState(item.title);
@@ -62,6 +70,12 @@ function Row({ item, draft, onToggle, onRename, onDelete }: { item: SubItem; dra
           {item.title}
         </button>
       )}
+      {onPromote && (
+        <button type="button" onClick={() => onPromote(item.id)} aria-label="Chuyển thành việc con" title="Chuyển thành việc con"
+          className="h-8 w-8 grid place-items-center rounded-full text-muted-foreground hover:text-primary sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity">
+          <GitBranch className="h-3.5 w-3.5" />
+        </button>
+      )}
       <button type="button" onClick={() => onDelete(item.id)} aria-label="Xoá mục"
         className="h-8 w-8 grid place-items-center rounded-full text-muted-foreground hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity">
         <X className="h-3.5 w-3.5" />
@@ -71,7 +85,7 @@ function Row({ item, draft, onToggle, onRename, onDelete }: { item: SubItem; dra
 }
 
 /** Checklist mục con: tick, sửa tên tại chỗ, kéo thả sắp xếp, dán nhiều dòng, chia nhỏ bằng AI. */
-export function SubtaskList({ items, onToggle, onRename, onDelete, onAdd, onReorder, ai, draft, className }: SubtaskListProps) {
+export function SubtaskList({ items, onToggle, onRename, onDelete, onAdd, onReorder, onPromote, ai, draft, className }: SubtaskListProps) {
   const [text, setText] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [ideas, setIdeas] = useState<string[]>([]);
@@ -94,8 +108,8 @@ export function SubtaskList({ items, onToggle, onRename, onDelete, onAdd, onReor
     if (!ai?.title.trim()) return toast.error('Nhập tên công việc trước');
     setAiBusy(true);
     try {
-      const r = await apiFetch<{ subtasks: string[] }>('/functions/ai-task-breakdown', { method: 'POST', body: { title: ai.title, description: ai.description, existing: items.map((i) => i.title) } });
-      if (!r.subtasks?.length) toast('AI chưa gợi ý được bước nào'); else setIdeas(r.subtasks);
+      const list = await fetchBreakdown(ai.title, ai.description, items.map((i) => i.title));
+      if (!list.length) toast('AI chưa gợi ý được bước nào'); else setIdeas(list);
     } catch (err) {
       toast.error('Không gọi được AI', { description: err instanceof Error ? err.message : undefined });
     } finally { setAiBusy(false); }
@@ -112,14 +126,14 @@ export function SubtaskList({ items, onToggle, onRename, onDelete, onAdd, onReor
       )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          {items.map((it) => <Row key={it.id} item={it} draft={draft} onToggle={onToggle} onRename={onRename} onDelete={onDelete} />)}
+          {items.map((it) => <Row key={it.id} item={it} draft={draft} onToggle={onToggle} onRename={onRename} onDelete={onDelete} onPromote={onPromote} />)}
         </SortableContext>
       </DndContext>
 
       <form onSubmit={(e) => { e.preventDefault(); add(); }} className="flex items-center gap-2 rounded-2xl border border-dashed border-border px-3 focus-within:border-primary/50">
         <Plus className="h-4 w-4 text-primary shrink-0" />
         <input value={text} onChange={(e) => setText(e.target.value)} onPaste={onPaste} enterKeyHint="done"
-          placeholder={items.length ? 'Thêm mục con…' : 'Thêm mục con (dán nhiều dòng để thêm nhanh)…'}
+          placeholder="Thêm mục checklist…"
           className="flex-1 min-w-0 h-10 bg-transparent text-[13.5px] focus:outline-none placeholder:text-muted-foreground" />
         {text.trim() && <Button type="submit" size="sm" variant="soft" className="rounded-full h-8">Thêm</Button>}
       </form>

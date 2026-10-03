@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, Check, Clock, Play, Repeat, Trash2 } from 'lucide-react';
+import { CalendarDays, Check, Clock, CornerUpLeft, Play, Repeat, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Button } from '@/components/ui/button';
@@ -9,33 +9,56 @@ import { STATUS_META, dueKey, isDone, subtaskProgress } from '../utils/task.util
 import { AreaSelect, FieldLabel, PriorityPicker, fieldCls } from './TaskFormFields';
 import { TaskCheck } from './TaskItem';
 import { SubtaskList } from './SubtaskList';
+import { ChildTasks } from './ChildTasks';
 import type { useTasks } from '../hooks/useTasks';
 
 type Api = ReturnType<typeof useTasks>;
 
-export function TaskDetailModal({ task, open, onOpenChange, api, onFocus }: {
+export function TaskDetailModal({ task, open, onOpenChange, api, onFocus, onOpenTask }: {
   task: Task | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   api: Api;
   onFocus: (t: Task) => void;
+  /** Mở một việc khác trong cùng modal (việc cha / việc con). */
+  onOpenTask?: (id: string) => void;
 }) {
-  const [tab, setTab] = useState<'checklist' | 'notes'>('checklist');
+  const [tab, setTab] = useState<'children' | 'checklist' | 'notes'>('children');
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
 
   useEffect(() => {
-    if (task) { setTitle(task.title); setDesc(task.description ?? ''); }
+    if (task) {
+      setTitle(task.title); setDesc(task.description ?? '');
+      // Việc con không có tầng con nữa → mở thẳng Checklist; việc cha có checklist mà chưa có việc con → mở Checklist.
+      const hasKids = (api.childrenOf.get(task.id)?.length ?? 0) > 0;
+      setTab(task.parentId || (!hasKids && (task.subtasks?.length ?? 0) > 0) ? 'checklist' : 'children');
+    }
   }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!task) return null;
   const sp = subtaskProgress(task);
   const done = isDone(task);
   const up = (u: Partial<Task>) => api.updateTask(task.id, u);
+  const kids = api.childrenOf.get(task.id) ?? [];
+  const parent = task.parentId ? api.byId.get(task.parentId) : undefined;
+  const tabs = ([
+    !task.parentId && ['children', `Việc con (${kids.filter(isDone).length}/${kids.length})`],
+    ['checklist', `Checklist (${sp.done}/${sp.total})`],
+    ['notes', 'Ghi chú'],
+  ].filter(Boolean) as [typeof tab, string][]);
 
   return (
     <AdaptiveModal open={open} onOpenChange={onOpenChange} title="Chi tiết công việc" className="sm:max-w-[560px] rounded-[28px]">
       <div className="space-y-5">
+        {parent && (
+          <div className="flex items-center gap-2 -mt-1 text-[12.5px]">
+            <button onClick={() => onOpenTask?.(parent.id)} className="min-w-0 inline-flex items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5 font-semibold text-muted-foreground hover:text-foreground">
+              <CornerUpLeft className="h-3.5 w-3.5 shrink-0" /><span className="truncate">Thuộc: {parent.title}</span>
+            </button>
+            <button onClick={() => api.detachChild(task)} className="shrink-0 font-semibold text-primary hover:underline">Tách riêng</button>
+          </div>
+        )}
         {/* Title */}
         <div className="flex items-start gap-3">
           <div className="pt-2.5"><TaskCheck task={task} onToggle={() => api.toggleTaskCompletion(task)} /></div>
@@ -51,20 +74,26 @@ export function TaskDetailModal({ task, open, onOpenChange, api, onFocus }: {
         {/* Tabs */}
         <div>
           <div className="flex gap-5 border-b border-border">
-            {([['checklist', `Checklist (${sp.done}/${sp.total})`], ['notes', 'Ghi chú']] as const).map(([id, label]) => (
+            {tabs.map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} className={cn('pb-2.5 -mb-px text-[13.5px] font-semibold border-b-2 transition-colors', tab === id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
                 {label}
               </button>
             ))}
           </div>
 
-          {tab === 'checklist' ? (
+          {tab === 'children' ? (
+            <div className="pt-3">
+              <ChildTasks parent={task} kids={kids} onToggle={api.toggleTaskCompletion} onOpen={(k) => onOpenTask?.(k.id)} onFocus={onFocus}
+                onAdd={(titles) => api.addChildren(task, titles)} />
+            </div>
+          ) : tab === 'checklist' ? (
             <SubtaskList className="pt-3" items={task.subtasks ?? []}
               onToggle={(id) => api.toggleSubtaskSmart(task, id)}
               onRename={(id, t) => api.updateSubtask(task.id, id, t)}
               onDelete={(id) => api.deleteSubtask(task.id, id)}
               onAdd={(titles) => api.addSubtasks(task.id, titles)}
               onReorder={(ids) => api.reorderSubtasks(task.id, ids)}
+              onPromote={task.parentId ? undefined : (id) => api.promoteChecklistItem(task, id)}
               ai={{ title: task.title, description: task.description }} />
           ) : (
             <textarea

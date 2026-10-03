@@ -49,6 +49,7 @@ function transformTaskFromDB(row: TaskRow, subtasks: SubtaskRow[]): Task {
     milestoneId: row.milestone_id || undefined,
     deletedAt: row.deleted_at || undefined,
     position: row.position || undefined,
+    parentId: row.parent_id || undefined,
   };
 }
 
@@ -81,6 +82,7 @@ function transformTaskToDB(task: Partial<Task>, userId: string) {
     milestone_id: task.milestoneId || null,
     deleted_at: task.deletedAt || null,
     position: task.position || null,
+    parent_id: task.parentId || null,
   };
 }
 
@@ -114,6 +116,7 @@ function transformTaskUpdatesToDB(updates: Partial<Task>): Record<string, unknow
   if ('milestoneId' in updates) data.milestone_id = updates.milestoneId || null;
   if ('deletedAt' in updates) data.deleted_at = updates.deletedAt || null;
   if ('position' in updates) data.position = updates.position || null;
+  if ('parentId' in updates) data.parent_id = updates.parentId || null;
   
   return data;
 }
@@ -249,7 +252,7 @@ export function useTasksSync() {
       // Filter out deleted tasks at database level
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
-        .select('id,title,description,area,priority,status,due_date,estimated_pomodoros,completed_pomodoros,tags,recurring_frequency,recurring_interval,recurring_week_days,recurring_end_date,reminder_minutes,reminder_time,last_reminded,archived,archived_at,created_at,completed_at,goal_id,milestone_id,deleted_at,position,user_id')
+        .select('id,title,description,area,priority,status,due_date,estimated_pomodoros,completed_pomodoros,tags,recurring_frequency,recurring_interval,recurring_week_days,recurring_end_date,reminder_minutes,reminder_time,last_reminded,archived,archived_at,created_at,completed_at,goal_id,milestone_id,deleted_at,position,parent_id,user_id')
         .eq('user_id', user.id)
         .is('deleted_at', null) // Only load non-deleted tasks
         .order('created_at', { ascending: false })
