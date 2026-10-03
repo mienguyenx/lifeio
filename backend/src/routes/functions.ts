@@ -351,7 +351,7 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
         ],
         temperature: 0.4,
       });
-      const parsed = parseJsonFromContent<{ subtasks?: unknown } | unknown[]>(content, null);
+      const parsed = parseJsonFromContent<{ subtasks?: unknown } | unknown[] | null>(content, null);
       const arr = Array.isArray(parsed) ? parsed : (parsed as { subtasks?: unknown })?.subtasks;
       const subtasks = (Array.isArray(arr) ? arr : [])
         .map((x) => (typeof x === 'string' ? x : (x as { title?: string })?.title ?? '').trim())
