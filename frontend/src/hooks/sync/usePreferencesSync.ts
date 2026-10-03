@@ -19,7 +19,8 @@ export function usePreferencesSync() {
   const loadOnboardingState = useCallback(async (): Promise<boolean | null> => {
     if (!user) return null;
     // Tên hiển thị: lấy từ hồ sơ (đã nhập lúc đăng ký) nếu store chưa có — không hỏi lại trong onboarding.
-    if (!useLifeOSStore.getState().user?.name) {
+    const cur = (useLifeOSStore.getState().user?.name || '').trim();
+    if (!cur || cur === 'User') {
       supabase.from('profiles').select('name').eq('id', user.id).maybeSingle()
         .then(({ data: p }) => {
           const n = ((p as { name?: string } | null)?.name || '').trim();

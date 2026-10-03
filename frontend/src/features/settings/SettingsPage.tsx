@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, Chrome, Download, ExternalLink, Globe, Loader2, LogOut, Monitor, Moon, Package, RefreshCw, RotateCcw, ShieldAlert, Sun, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ChevronDown, Chrome, KeyRound, Mail, Download, ExternalLink, Globe, Loader2, LogOut, Monitor, Moon, Package, RefreshCw, RotateCcw, ShieldAlert, Sun, Trash2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -12,14 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { DataExportImport } from '@/components/data/DataExportImport';
 import { useProfileSync } from '@/hooks/sync/useProfileSync';
 import { activeSupabase as supabase } from '@/integrations/supabase/externalClient';
-import { LifeIcon } from '@/components/icons/LifeIcon';
-import { HeroBanner, MascotCard, Page, PageHeader, SectionTitle, SegmentedTabs, StatTile, Surface } from '@/components/lio';
+import { Page, PageHeader, SectionTitle, SegmentedTabs, Surface } from '@/components/lio';
 import { Field, fieldCls } from '@/components/lio/form';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { MobileAppSection } from '@/features/notifications/MobileAppSection';
 
-const txt = (s: string) => <span className="block text-[15px] leading-tight whitespace-normal line-clamp-2">{s}</span>;
 type View = 'general' | 'app' | 'data' | 'extension' | 'account';
 const THEMES = [
   { id: 'light', label: 'Sáng', Icon: Sun },
@@ -49,6 +47,58 @@ function Row({ title, desc, children }: { title: string; desc: string; children:
   );
 }
 
+/** Đổi mật khẩu / email — luôn cần mật khẩu hiện tại (POST /auth/update). */
+function AccountSecurity({ email }: { email?: string }) {
+  const [mode, setMode] = useState<'none' | 'password' | 'email'>('none');
+  const [cur, setCur] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const reset = (m: typeof mode) => { setMode(m); setCur(''); setNext(''); setConfirm(''); };
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode === 'password') {
+      if (next.length < 8) { toast.error('Mật khẩu mới cần ít nhất 8 ký tự'); return; }
+      if (next !== confirm) { toast.error('Mật khẩu nhập lại không khớp'); return; }
+    }
+    setBusy(true);
+    const auth = supabase.auth as unknown as { updateUser: (a: { currentPassword: string; email?: string; password?: string }) => Promise<{ error: { message: string } | null }> };
+    const { error } = await auth.updateUser({ currentPassword: cur, ...(mode === 'password' ? { password: next } : { email: next.trim() }) });
+    setBusy(false);
+    if (error) { toast.error(/incorrect|unauthor/i.test(error.message) ? 'Mật khẩu hiện tại không đúng' : error.message); return; }
+    toast.success(mode === 'password' ? 'Đã đổi mật khẩu' : 'Đã đổi email đăng nhập');
+    reset('none');
+  };
+  return (
+    <Surface className="p-4 sm:p-5">
+      <SectionTitle title="Đăng nhập & bảo mật" />
+      <div className="divide-y divide-border/50">
+        <Row title="Email đăng nhập" desc={email || 'Chưa đăng nhập'}>
+          <Button variant="outline" size="sm" className="rounded-full" disabled={!email} onClick={() => reset(mode === 'email' ? 'none' : 'email')}><Mail className="h-3.5 w-3.5 mr-1" />Đổi</Button>
+        </Row>
+        <Row title="Mật khẩu" desc="Nên dùng ít nhất 8 ký tự, khó đoán">
+          <Button variant="outline" size="sm" className="rounded-full" disabled={!email} onClick={() => reset(mode === 'password' ? 'none' : 'password')}><KeyRound className="h-3.5 w-3.5 mr-1" />Đổi</Button>
+        </Row>
+      </div>
+      {mode !== 'none' && (
+        <form onSubmit={submit} className="mt-2 space-y-3 rounded-2xl bg-secondary/50 p-3">
+          {mode === 'email'
+            ? <Field label="Email mới"><input type="email" required autoComplete="email" className={fieldCls} value={next} onChange={(e) => setNext(e.target.value)} placeholder="ban@email.com" /></Field>
+            : <>
+                <Field label="Mật khẩu mới"><input type="password" required autoComplete="new-password" className={fieldCls} value={next} onChange={(e) => setNext(e.target.value)} placeholder="Ít nhất 8 ký tự" /></Field>
+                <Field label="Nhập lại mật khẩu mới"><input type="password" required autoComplete="new-password" className={fieldCls} value={confirm} onChange={(e) => setConfirm(e.target.value)} /></Field>
+              </>}
+          <Field label="Mật khẩu hiện tại"><input type="password" required autoComplete="current-password" className={fieldCls} value={cur} onChange={(e) => setCur(e.target.value)} placeholder="Để xác nhận đây là bạn" /></Field>
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="ghost" className="rounded-full" onClick={() => reset('none')}>Huỷ</Button>
+            <Button type="submit" className="rounded-full" disabled={busy || !cur || !next}>{busy && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}{mode === 'email' ? 'Đổi email' : 'Đổi mật khẩu'}</Button>
+          </div>
+        </form>
+      )}
+    </Surface>
+  );
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user: authUser, signOut } = useAuth();
@@ -61,12 +111,12 @@ export default function SettingsPage() {
   const setNotificationSoundEnabled = useLifeOSStore((s) => s.setNotificationSoundEnabled);
   const pushNotificationsEnabled = useLifeOSStore((s) => s.pushNotificationsEnabled);
   const isMobile = useIsMobile();
-  const { theme } = useTheme();
   // /settings?tab=data mở thẳng tab tương ứng (dùng từ Thùng rác)
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab');
   const [view, setView] = useState<View>(initialTab === 'app' || initialTab === 'data' || initialTab === 'extension' || initialTab === 'account' ? initialTab : 'general');
   const [extensionGuideOpen, setExtensionGuideOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   
   const { clearAllAreaModuleData } = useProfileSync();
   const [isClearingAreaData, setIsClearingAreaData] = useState(false);
@@ -177,41 +227,16 @@ export default function SettingsPage() {
     }
   };
 
-  const themeLabel = theme === 'dark' ? 'Tối' : theme === 'light' ? 'Sáng' : 'Hệ thống';
-  const notifOn = [notificationSoundEnabled, pushNotificationsEnabled].filter(Boolean).length;
   const num = (v: string, d: number) => parseInt(v) || d;
-
-  const side = (
-    <div className="space-y-4">
-      <Surface className="p-4">
-        <SectionTitle title="Tài khoản" />
-        <div className="rounded-2xl bg-secondary/50 px-3 py-2.5">
-          <p className="text-[12px] text-muted-foreground">Email đăng nhập</p>
-          <p className="text-[13.5px] font-semibold truncate">{authUser?.email || 'Chưa đăng nhập'}</p>
-        </div>
-        <Button variant="outline" className="w-full mt-3 rounded-full" onClick={() => navigate('/me')}>Xem hồ sơ</Button>
-        {authUser && <Button variant="ghost" className="w-full mt-1 rounded-full text-destructive hover:text-destructive" onClick={handleSignOut}><LogOut className="h-4 w-4 mr-1.5" />Đăng xuất</Button>}
-      </Surface>
-      <MascotCard mascot="mochi" pose="default" title="Theo cách của bạn" quote="Điều chỉnh LifeOS cho vừa nhịp làm việc và nghỉ ngơi của bạn." />
-    </div>
-  );
 
   return (
     <Page>
-      <PageHeader title="Cài đặt" subtitle="Quản lý cấu hình ứng dụng ⚙️"
-        actions={!isMobile && <Button variant="outline" className="h-10 rounded-full px-5" onClick={() => navigate('/personalization')}>Cá nhân hóa</Button>} />
-      <SegmentedTabs items={[{ id: 'general', label: 'Chung' }, { id: 'app', label: isMobile ? 'App' : 'Ứng dụng & thông báo' }, { id: 'data', label: 'Dữ liệu' }, { id: 'extension', label: 'Tiện ích' }, { id: 'account', label: 'Tài khoản' }]} value={view} onChange={setView} full={isMobile} className="mb-5" />
+      <PageHeader title={<span className="inline-flex items-center gap-2"><button aria-label="Về Tài khoản" onClick={() => navigate('/me')} className="h-9 w-9 -ml-1 rounded-full grid place-items-center hover:bg-secondary"><ArrowLeft className="h-5 w-5" /></button>Cài đặt</span>}
+        subtitle="Giao diện, thông báo, dữ liệu & bảo mật" />
+      <SegmentedTabs items={[{ id: 'general' as View, label: 'Chung' }, { id: 'app' as View, label: isMobile ? 'Thông báo' : 'Thông báo & app' }, { id: 'data' as View, label: 'Dữ liệu' }, { id: 'account' as View, label: 'Tài khoản' }, ...(isMobile ? [] : [{ id: 'extension' as View, label: 'Tiện ích' }])]} value={view} onChange={setView} full={isMobile} className="mb-5" />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
+      <div className="max-w-3xl">
         <div className="space-y-4 min-w-0">
-          <HeroBanner mascot="mochi" pose="default" title="Thiết lập LifeOS" subtitle="Giao diện, Pomodoro, thông báo, dữ liệu và tiện ích trình duyệt — tất cả ở một nơi." />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatTile icon={theme === 'dark' ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-[#E8961C]" />} tint="amber" value={txt(themeLabel)} label="Giao diện" onClick={() => setView('general')} />
-            <StatTile icon="module/focus" tint="rose" value={`${pomodoroSettings.workDuration}/${pomodoroSettings.breakDuration}`} label="Pomodoro" hint="phút làm / nghỉ" onClick={() => setView('general')} />
-            <StatTile icon="module/notifications" tint="sky" value={`${notifOn}/2`} label="Thông báo" hint="đang bật" onClick={() => setView('app')} />
-            <StatTile icon="module/sync" tint="mint" value={txt(authUser ? 'Đã đăng nhập' : 'Khách')} label="Tài khoản" onClick={() => setView('account')} />
-          </div>
-
           {view === 'general' && (
             <>
               <Surface className="p-4 sm:p-5"><SectionTitle title="Giao diện" /><ThemeSelector /></Surface>
@@ -243,6 +268,11 @@ export default function SettingsPage() {
           {view === 'data' && (
             <>
               <DataExportImport />
+              <button type="button" onClick={() => setAdvancedOpen((o) => !o)} className="w-full flex items-center justify-between rounded-[20px] border border-border/60 bg-card px-4 py-3 text-left">
+                <span><span className="block text-[13.5px] font-semibold">Nâng cao</span><span className="block text-[11.5px] text-muted-foreground">Dữ liệu mẫu, xoá dữ liệu, cài đặt lại từ đầu</span></span>
+                <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', advancedOpen && 'rotate-180')} />
+              </button>
+              {advancedOpen && <>
               <Surface className="p-4 sm:p-5">
                 <SectionTitle title="Dữ liệu mẫu" />
                 <div className="grid sm:grid-cols-2 gap-2">
@@ -268,6 +298,7 @@ export default function SettingsPage() {
                 </div>
                 <Button variant="destructive" className="w-full mt-3 h-11 rounded-full" disabled={!authUser} onClick={() => { setResetConfirmText(''); setResetDialogOpen(true); }}><RotateCcw className="h-4 w-4 mr-2" />Xóa toàn bộ & cài đặt lại</Button>
               </Surface>
+              </>}
             </>
           )}
 
@@ -293,18 +324,16 @@ export default function SettingsPage() {
           )}
 
           {view === 'account' && (
-            <Surface className="p-4 sm:p-5">
-              <SectionTitle title="Tài khoản" />
-              <div className="flex items-center gap-3 rounded-2xl bg-secondary/50 p-3">
-                <span className="h-10 w-10 rounded-[13px] bg-lavender dark:bg-primary/15 grid place-items-center"><LifeIcon name="module/profile" size={22} variant="duotone" /></span>
-                <div className="min-w-0"><p className="text-[12px] text-muted-foreground">Email đăng nhập</p><p className="text-[14px] font-semibold truncate">{authUser?.email || 'Chưa đăng nhập'}</p></div>
-              </div>
-              <Button variant="destructive" className="w-full mt-3 h-11 rounded-full" onClick={handleSignOut}><LogOut className="h-4 w-4 mr-2" />Đăng xuất</Button>
-            </Surface>
+            <>
+              <AccountSecurity email={authUser?.email} />
+              <Surface className="p-4 sm:p-5">
+                <SectionTitle title="Hồ sơ" />
+                <Row title="Tên, ảnh, giới thiệu" desc="AI dùng để xưng hô & cá nhân hoá gợi ý"><Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate('/me')}>Mở hồ sơ</Button></Row>
+              </Surface>
+              {authUser && <Button variant="outline" className="w-full h-11 rounded-full text-destructive hover:text-destructive" onClick={handleSignOut}><LogOut className="h-4 w-4 mr-2" />Đăng xuất</Button>}
+            </>
           )}
-          {isMobile && side}
         </div>
-        {!isMobile && <aside className="hidden xl:block sticky top-4">{side}</aside>}
       </div>
 
       <AlertDialog open={areaConfirmOpen} onOpenChange={setAreaConfirmOpen}>
