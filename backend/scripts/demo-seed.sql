@@ -39,6 +39,16 @@ BEGIN
   DELETE FROM life_roles WHERE user_id = u;
   DELETE FROM ai_memories WHERE user_id = u;
   DELETE FROM user_notifications WHERE user_id = u;
+  DELETE FROM task_tags WHERE user_id = u;
+  DELETE FROM note_tags WHERE user_id = u;
+  DELETE FROM journal_tags WHERE user_id = u;
+
+  -- ── Nhãn (tags là uuid[] trỏ tới bảng *_tags) ──
+  INSERT INTO task_tags(user_id, name, color) VALUES (u, 'báo cáo', '#6C5CE7'), (u, 'khách hàng', '#FF7A45'), (u, 'gia đình', '#F2557A');
+  INSERT INTO note_tags(user_id, name, color) VALUES (u, 'sản phẩm', '#6C5CE7'), (u, 'ý tưởng', '#E8961C'), (u, 'chạy bộ', '#22B07D'),
+    (u, 'sách', '#3D8BFD'), (u, 'gia đình', '#F2557A'), (u, 'họp', '#8E86F7'), (u, 'du lịch', '#57D3AE');
+  INSERT INTO journal_tags(user_id, name, color) VALUES (u, 'công việc', '#6C5CE7'), (u, 'chạy bộ', '#22B07D'), (u, 'sức khoẻ', '#FF6B78'),
+    (u, 'gia đình', '#F2557A'), (u, 'bạn bè', '#3D8BFD'), (u, 'năng suất', '#E8961C');
 
   -- ── Hồ sơ & cài đặt ──
   UPDATE profiles SET name = 'Minh Demo', timezone = 'Asia/Ho_Chi_Minh', birthday = '1994-08-15',
@@ -79,7 +89,7 @@ BEGIN
 
   -- ── Công việc (đủ trạng thái: quá hạn, hôm nay, sắp tới, chưa hạn, đã xong, lặp lại, việc con, checklist) ──
   INSERT INTO tasks(user_id, title, description, area, priority, status, due_date, goal_id, estimated_pomodoros, completed_pomodoros, tags, created_at)
-    VALUES (u, 'Hoàn thiện slide báo cáo Q4', 'Slide cho buổi họp ban giám đốc thứ 2', 'career', 'high', 'in_progress', today, g3, 4, 2, ARRAY['báo cáo'], now() - interval '3 days')
+    VALUES (u, 'Hoàn thiện slide báo cáo Q4', 'Slide cho buổi họp ban giám đốc thứ 2', 'career', 'high', 'in_progress', today, g3, 4, 2, (SELECT array_agg(id) FROM task_tags WHERE user_id = u AND name = 'báo cáo'), now() - interval '3 days')
     RETURNING id INTO t;
   INSERT INTO subtasks(task_id, title, completed, position) VALUES
     (t, 'Thu thập số liệu doanh thu', true, 0), (t, 'Vẽ biểu đồ tăng trưởng', true, 1), (t, 'Viết phần kết luận', false, 2), (t, 'Gửi anh Hùng review', false, 3);
@@ -191,9 +201,9 @@ BEGIN
           'Cuối tuần đi cà phê với Lan và Tuấn, bàn kế hoạch du lịch Đà Lạt.',
           'Cảm thấy hơi quá tải vì nhiều việc dồn lại. Đã dùng Pomodoro, làm xong 5 phiên.'])[1 + i % 7],
         2 + ((i * 7) % 4), 2 + ((i * 3) % 4),
-        ARRAY[(ARRAY['career','health','personal','relationships','career','fun','career'])[1 + i % 7]],
+        ARRAY[(ARRAY['career','health','personal','relationships','career','fun','career'])[1 + i % 7]]::life_area[],
         ARRAY[(ARRAY['Cà phê sáng ngon','Được đồng nghiệp giúp','Trời mát','Mẹ khoẻ','Sếp ghi nhận','Bạn bè','Ngủ đủ giấc'])[1 + i % 7]],
-        ARRAY[(ARRAY['công việc','chạy bộ','sức khoẻ','gia đình','công việc','bạn bè','năng suất'])[1 + i % 7]],
+        (SELECT array_agg(id) FROM journal_tags WHERE user_id = u AND name = (ARRAY['công việc','chạy bộ','sức khoẻ','gia đình','công việc','bạn bè','năng suất'])[1 + i % 7]),
         (today - i - 1)::timestamp + time '22:15' - interval '7 hours');
     END IF;
   END LOOP;
@@ -206,12 +216,12 @@ BEGIN
 
   -- ── Ghi chú ──
   INSERT INTO notes(user_id, title, content, tags, area, is_pinned, is_favorite, color, created_at, updated_at) VALUES
-    (u, 'Ý tưởng cải thiện onboarding', E'- Giảm từ 5 bước xuống 3\n- Cho phép bỏ qua\n- Thêm video 30s', ARRAY['sản phẩm','ý tưởng'], 'career', true, true, NULL, now() - interval '6 days', now() - interval '1 day'),
-    (u, 'Giáo án chạy half-marathon', E'Tuần 1-4: 3 buổi/tuần, chạy dài 8-10km\nTuần 5-8: thêm interval\nTuần 9-12: chạy dài 15-18km', ARRAY['chạy bộ'], 'health', true, false, NULL, now() - interval '30 days', now() - interval '3 days'),
-    (u, 'Trích dẫn hay — Atomic Habits', '“Bạn không vươn tới mục tiêu, bạn rơi xuống mức hệ thống của mình.”', ARRAY['sách'], 'learning', false, true, NULL, now() - interval '12 days', now() - interval '12 days'),
-    (u, 'Danh sách quà tặng', E'Lan: tai nghe\nBố: áo len\nMẹ: máy massage', ARRAY['gia đình'], 'relationships', false, false, NULL, now() - interval '9 days', now() - interval '2 days'),
-    (u, 'Biên bản họp sprint 42', E'Mục tiêu: hoàn thiện checkout\nRủi ro: cổng thanh toán chậm phản hồi\nAction: Minh follow-up với đối tác', ARRAY['họp'], 'career', false, false, NULL, now() - interval '4 days', now() - interval '4 days'),
-    (u, 'Kế hoạch du lịch Đà Lạt', E'Thời gian: cuối tháng\nNgân sách: 5 triệu/người\nĐi cùng: Lan, Tuấn', ARRAY['du lịch'], 'fun', false, false, NULL, now() - interval '2 days', now() - interval '2 days');
+    (u, 'Ý tưởng cải thiện onboarding', E'- Giảm từ 5 bước xuống 3\n- Cho phép bỏ qua\n- Thêm video 30s', (SELECT array_agg(id) FROM note_tags WHERE user_id = u AND name = ANY(ARRAY['sản phẩm','ý tưởng'])), 'career', true, true, NULL, now() - interval '6 days', now() - interval '1 day'),
+    (u, 'Giáo án chạy half-marathon', E'Tuần 1-4: 3 buổi/tuần, chạy dài 8-10km\nTuần 5-8: thêm interval\nTuần 9-12: chạy dài 15-18km', (SELECT array_agg(id) FROM note_tags WHERE user_id = u AND name = ANY(ARRAY['chạy bộ'])), 'health', true, false, NULL, now() - interval '30 days', now() - interval '3 days'),
+    (u, 'Trích dẫn hay — Atomic Habits', '“Bạn không vươn tới mục tiêu, bạn rơi xuống mức hệ thống của mình.”', (SELECT array_agg(id) FROM note_tags WHERE user_id = u AND name = ANY(ARRAY['sách'])), 'learning', false, true, NULL, now() - interval '12 days', now() - interval '12 days'),
+    (u, 'Danh sách quà tặng', E'Lan: tai nghe\nBố: áo len\nMẹ: máy massage', (SELECT array_agg(id) FROM note_tags WHERE user_id = u AND name = ANY(ARRAY['gia đình'])), 'relationships', false, false, NULL, now() - interval '9 days', now() - interval '2 days'),
+    (u, 'Biên bản họp sprint 42', E'Mục tiêu: hoàn thiện checkout\nRủi ro: cổng thanh toán chậm phản hồi\nAction: Minh follow-up với đối tác', (SELECT array_agg(id) FROM note_tags WHERE user_id = u AND name = ANY(ARRAY['họp'])), 'career', false, false, NULL, now() - interval '4 days', now() - interval '4 days'),
+    (u, 'Kế hoạch du lịch Đà Lạt', E'Thời gian: cuối tháng\nNgân sách: 5 triệu/người\nĐi cùng: Lan, Tuấn', (SELECT array_agg(id) FROM note_tags WHERE user_id = u AND name = ANY(ARRAY['du lịch'])), 'fun', false, false, NULL, now() - interval '2 days', now() - interval '2 days');
 
   -- ── Tài chính (2 tháng) ──
   FOR i IN 0..59 LOOP
@@ -221,7 +231,7 @@ BEGIN
     IF i % 3 = 0 THEN INSERT INTO finance_transactions(user_id, date, type, category, amount, description) VALUES (u, d, 'expense', 'transport', (30 + random() * 90)::int * 1000, 'Grab / xăng xe'); END IF;
     IF i % 9 = 4 THEN INSERT INTO finance_transactions(user_id, date, type, category, amount, description) VALUES (u, d, 'expense', 'shopping', (200 + random() * 1300)::int * 1000, (ARRAY['Mua giày chạy','Quần áo','Đồ gia dụng'])[1 + (i / 9) % 3]); END IF;
     IF i % 11 = 6 THEN INSERT INTO finance_transactions(user_id, date, type, category, amount, description) VALUES (u, d, 'expense', 'entertainment', (150 + random() * 400)::int * 1000, 'Xem phim / cà phê bạn bè'); END IF;
-    IF extract(day from d) = 5 THEN
+    IF extract(day from d) = 1 THEN
       INSERT INTO finance_transactions(user_id, date, type, category, amount, description) VALUES
         (u, d, 'income', 'salary', 32000000, 'Lương tháng'),
         (u, d, 'expense', 'bills', 1850000, 'Điện, nước, internet'),
@@ -269,13 +279,13 @@ BEGIN
   -- ── Review tuần / tháng ──
   FOR i IN 1..4 LOOP
     INSERT INTO weekly_reviews(user_id, week_start, overall_rating, highlight, lowlight, wins, challenges, lessons_learned, next_week_focus, gratitude)
-    VALUES (u, date_trunc('week', today)::date - 7 * i, 6 + i % 3, 'Hoàn thành mục tiêu chạy tuần', 'Ngủ muộn 3 đêm',
+    VALUES (u, date_trunc('week', today)::date - 7 * i, 3 + i % 3, 'Hoàn thành mục tiêu chạy tuần', 'Ngủ muộn 3 đêm',
       ARRAY['Ship beta thanh toán','Chạy 20km/tuần'], ARRAY['Họp quá nhiều'], ARRAY['Chặn lịch làm sâu buổi sáng'],
       ARRAY['Slide Q4','Ngủ trước 23h'], ARRAY['Gia đình khoẻ']);
   END LOOP;
   INSERT INTO monthly_reviews(user_id, month, wins, challenges, lessons_learned, next_month_focus, overall_rating, highlight, lowlight, gratitude)
   VALUES (u, to_char(today - interval '1 month', 'YYYY-MM'), ARRAY['Chạy được 10km','Tiết kiệm 8 triệu'], ARRAY['Chi tiêu ăn uống vượt'],
-    ARRAY['Lên kế hoạch tuần vào Chủ nhật'], ARRAY['Launch thanh toán','Half-marathon'], 7, 'Beta thanh toán', 'Ốm 3 ngày', ARRAY['Đồng đội tốt']);
+    ARRAY['Lên kế hoạch tuần vào Chủ nhật'], ARRAY['Launch thanh toán','Half-marathon'], 4, 'Beta thanh toán', 'Ốm 3 ngày', ARRAY['Đồng đội tốt']);
 
   -- ── AI memory & thông báo ──
   INSERT INTO ai_memories(user_id, type, content, importance, source, tags) VALUES
