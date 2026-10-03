@@ -4,13 +4,14 @@ import { cn } from '@/lib/utils';
 import type { Task } from '../types/task.types';
 import { groupTasks } from '../utils/task.utils';
 import { TaskCard, TaskRow, type TaskItemActions } from './TaskItem';
+import { TaskMobileRow, type TaskMobileExtra } from './TaskMobileRow';
 
 const GROUP_DOT: Record<string, string> = {
   overdue: '#FF6B78', today: '#6D5DF2', upcoming: '#5B9CF6', someday: '#B5BAC7', done: '#22B07D',
 };
 
 /** Desktop: grouped table. Mobile: grouped cards. */
-export function TaskList({ tasks, mobile, ...actions }: { tasks: Task[]; mobile?: boolean } & TaskItemActions) {
+export function TaskList({ tasks, mobile, extra, ...actions }: { tasks: Task[]; mobile?: boolean; extra?: TaskMobileExtra } & TaskItemActions) {
   const groups = groupTasks(tasks);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ done: groups.length > 1 });
 
@@ -41,9 +42,15 @@ export function TaskList({ tasks, mobile, ...actions }: { tasks: Task[]; mobile?
               <ChevronDown className={cn('h-4 w-4 ml-auto text-muted-foreground transition-transform', isCollapsed && '-rotate-90')} />
             </button>
             {!isCollapsed && (
-              <div className={mobile ? 'space-y-2.5' : 'divide-y divide-border/50'}>
-                {g.tasks.map((t) => (mobile ? <TaskCard key={t.id} task={t} {...actions} /> : <TaskRow key={t.id} task={t} {...actions} />))}
-              </div>
+              mobile && extra ? (
+                <div className="rounded-[20px] bg-card border border-border/60 shadow-soft overflow-hidden divide-y divide-border/50">
+                  {g.tasks.map((t) => <TaskMobileRow key={t.id} task={t} extra={extra} {...actions} />)}
+                </div>
+              ) : (
+                <div className={mobile ? 'space-y-2.5' : 'divide-y divide-border/50'}>
+                  {g.tasks.map((t) => (mobile ? <TaskCard key={t.id} task={t} {...actions} /> : <TaskRow key={t.id} task={t} {...actions} />))}
+                </div>
+              )
             )}
           </section>
         );

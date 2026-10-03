@@ -16,6 +16,7 @@ export interface TaskDraft {
   time?: string; // HH:mm -> stored as reminderTime
   repeat?: 'none' | 'daily' | 'weekly' | 'monthly';
   status?: TaskStatus;
+  subtasks?: string[];
 }
 
 export interface TaskCounts {

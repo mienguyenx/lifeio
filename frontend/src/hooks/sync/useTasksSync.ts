@@ -22,12 +22,15 @@ function transformTaskFromDB(row: TaskRow, subtasks: SubtaskRow[]): Task {
     dueDate: row.due_date || undefined,
     estimatedPomodoros: row.estimated_pomodoros || undefined,
     completedPomodoros: row.completed_pomodoros || 0,
-    subtasks: subtasks.map(s => ({
-      id: s.id,
-      title: s.title,
-      completed: s.completed || false,
-      completedAt: s.completed_at || undefined,
-    })),
+    subtasks: [...subtasks]
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || (a.created_at ?? '').localeCompare(b.created_at ?? ''))
+      .map((s, i) => ({
+        id: s.id,
+        title: s.title,
+        completed: s.completed || false,
+        completedAt: s.completed_at || undefined,
+        position: s.position ?? i,
+      })),
     tags: row.tags || undefined,
     recurring: row.recurring_frequency ? {
       frequency: row.recurring_frequency,
@@ -174,7 +177,7 @@ async function loadSubtasksForTasks(taskIds: string[]): Promise<Record<string, S
         const batchSubtasks = await retryWithBackoff(async () => {
           const { data, error } = await supabase
             .from('subtasks')
-            .select('id,task_id,title,completed,completed_at')
+            .select('id,task_id,title,completed,completed_at,position,created_at')
             .in('task_id', batch);
 
           if (error) throw error;
@@ -201,7 +204,7 @@ async function loadSubtasksForTasks(taskIds: string[]): Promise<Record<string, S
       const subtasksData = await retryWithBackoff(async () => {
         const { data, error } = await supabase
           .from('subtasks')
-          .select('id,task_id,title,completed,completed_at')
+          .select('id,task_id,title,completed,completed_at,position,created_at')
           .in('task_id', taskIds);
 
         if (error) throw error;
@@ -340,9 +343,10 @@ export function useTasksSync() {
 
       // Handle subtasks
       if (task.subtasks && task.subtasks.length > 0) {
-        const subtasksData = task.subtasks.map(s => ({
+        const subtasksData = task.subtasks.map((s, i) => ({
           id: s.id,
           task_id: task.id,
+          position: s.position ?? i,
           title: s.title,
           completed: s.completed || false,
           completed_at: s.completedAt || null,
@@ -451,6 +455,7 @@ export function useTasksSync() {
         .insert({
           id: subtask.id,
           task_id: taskId,
+          position: subtask.position ?? 0,
           title: subtask.title,
           completed: subtask.completed || false,
           completed_at: subtask.completedAt || null,
@@ -460,6 +465,19 @@ export function useTasksSync() {
       return true;
     } catch (error) {
       console.error('Error adding subtask:', error);
+      return false;
+    }
+  }, [user]);
+
+  // Update subtask (title / position)
+  const updateSubtask = useCallback(async (subtaskId: string, updates: { title?: string; position?: number }): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const { error } = await supabase.from('subtasks').update(updates).eq('id', subtaskId);
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error updating subtask:', error);
       return false;
     }
   }, [user]);
@@ -531,6 +549,7 @@ export function useTasksSync() {
     deleteTask,
     toggleSubtask,
     addSubtask,
+    updateSubtask,
     deleteSubtask,
     saveTaskTag,
     deleteTaskTag,

@@ -1599,6 +1599,8 @@ export type Database = {
           completed: boolean | null
           completed_at: string | null
           id: string
+          position: number | null
+          created_at: string | null
           task_id: string
           title: string
         }
@@ -1606,6 +1608,8 @@ export type Database = {
           completed?: boolean | null
           completed_at?: string | null
           id?: string
+          position?: number | null
+          created_at?: string | null
           task_id: string
           title: string
         }
@@ -1613,6 +1617,8 @@ export type Database = {
           completed?: boolean | null
           completed_at?: string | null
           id?: string
+          position?: number | null
+          created_at?: string | null
           task_id?: string
           title?: string
         }

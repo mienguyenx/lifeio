@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, Clock, Repeat, Sun } from 'lucide-react';
+import { CalendarDays, Clock, ListChecks, Repeat, Sun } from 'lucide-react';
 import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { TaskDraft } from '../types/task.types';
 import { todayKey } from '../utils/task.utils';
 import { AreaSelect, FieldLabel, PriorityPicker, fieldCls } from './TaskFormFields';
+import { SubtaskList, type SubItem } from './SubtaskList';
 
 const EMPTY: TaskDraft = { title: '', description: '', priority: 'medium', dueDate: todayKey(), time: '', repeat: 'none' };
 
@@ -18,10 +19,13 @@ export function TaskQuickAdd({ open, onOpenChange, initial, onCreate }: {
 }) {
   const [d, setD] = useState<TaskDraft>(EMPTY);
   const titleRef = useRef<HTMLInputElement>(null);
+  const [subs, setSubs] = useState<SubItem[]>([]);
+  const [showSubs, setShowSubs] = useState(false);
 
   useEffect(() => {
     if (open) {
       setD({ ...EMPTY, dueDate: todayKey(), ...initial });
+      setSubs([]); setShowSubs(false);
       setTimeout(() => titleRef.current?.focus(), 120);
     }
   }, [open, initial]);
@@ -29,7 +33,7 @@ export function TaskQuickAdd({ open, onOpenChange, initial, onCreate }: {
   const set = <K extends keyof TaskDraft>(k: K, v: TaskDraft[K]) => setD((p) => ({ ...p, [k]: v }));
   const submit = async () => {
     if (!d.title.trim()) return titleRef.current?.focus();
-    await onCreate(d);
+    await onCreate({ ...d, subtasks: subs.map((x) => x.title) });
     onOpenChange(false);
   };
 
@@ -50,6 +54,20 @@ export function TaskQuickAdd({ open, onOpenChange, initial, onCreate }: {
             className={`${fieldCls} h-auto py-2.5 resize-none`}
           />
         </div>
+        {showSubs || subs.length ? (
+          <div>
+            <FieldLabel><span className="inline-flex items-center gap-1"><ListChecks className="h-3.5 w-3.5" />Mục con</span></FieldLabel>
+            <SubtaskList draft items={subs} ai={{ title: d.title, description: d.description }}
+              onAdd={(titles) => setSubs((x) => [...x, ...titles.map((title) => ({ id: crypto.randomUUID(), title, completed: false }))])}
+              onRename={(id, title) => setSubs((x) => x.map((i) => (i.id === id ? { ...i, title } : i)))}
+              onDelete={(id) => setSubs((x) => x.filter((i) => i.id !== id))}
+              onReorder={(ids) => setSubs((x) => ids.map((id) => x.find((i) => i.id === id)!))} />
+          </div>
+        ) : (
+          <button type="button" onClick={() => setShowSubs(true)} className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-secondary/70 text-[13px] font-semibold hover:bg-secondary">
+            <ListChecks className="h-4 w-4 text-primary" />Thêm mục con
+          </button>
+        )}
         <div>
           <FieldLabel>Mức ưu tiên</FieldLabel>
           <PriorityPicker value={d.priority} onChange={(p) => set('priority', p)} />

@@ -35,7 +35,7 @@ interface LifeOSStore {
 
   // Tasks
   tasks: Task[];
-  addTask: (task: Omit<Task, 'id' | 'completedPomodoros' | 'createdAt' | 'subtasks'>) => void;
+  addTask: (task: Omit<Task, 'id' | 'completedPomodoros' | 'createdAt' | 'subtasks'> & { subtasks?: Subtask[] }) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void; // Soft delete - move to trash
   restoreTask: (id: string) => void; // Restore from trash
@@ -44,6 +44,9 @@ interface LifeOSStore {
   addSubtask: (taskId: string, title: string) => void;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
   deleteSubtask: (taskId: string, subtaskId: string) => void;
+  addSubtasks: (taskId: string, titles: string[]) => Subtask[];
+  updateSubtask: (taskId: string, subtaskId: string, updates: Partial<Pick<Subtask, 'title'>>) => void;
+  reorderSubtasks: (taskId: string, orderedIds: string[]) => Subtask[];
   archiveTask: (id: string) => void;
   unarchiveTask: (id: string) => void;
   autoArchiveOldTasks: () => void;
@@ -500,7 +503,7 @@ export const useLifeOSStore = create<LifeOSStore>()(
       // Tasks - Khởi tạo với empty array, không dùng sample data
       tasks: [],
       addTask: (task) =>
-        set((state) => ({ tasks: [...state.tasks, { ...task, id: crypto.randomUUID(), completedPomodoros: 0, subtasks: [], createdAt: new Date().toISOString() }] })),
+        set((state) => ({ tasks: [...state.tasks, { ...task, id: crypto.randomUUID(), completedPomodoros: 0, subtasks: task.subtasks ?? [], createdAt: new Date().toISOString() }] })),
       updateTask: (id, updates) =>
         set((state) => {
           const task = state.tasks.find((t) => t.id === id);
@@ -600,7 +603,7 @@ export const useLifeOSStore = create<LifeOSStore>()(
         set((state) => ({
           tasks: state.tasks.map((t) =>
             t.id === taskId
-              ? { ...t, subtasks: [...(t.subtasks || []), { id: crypto.randomUUID(), title, completed: false }] }
+              ? { ...t, subtasks: [...(t.subtasks || []), { id: crypto.randomUUID(), title, completed: false, position: (t.subtasks || []).length }] }
               : t
           ),
         })),
@@ -617,6 +620,24 @@ export const useLifeOSStore = create<LifeOSStore>()(
               : t
           ),
         })),
+      addSubtasks: (taskId, titles) => {
+        const t = get().tasks.find((x) => x.id === taskId);
+        const base = t?.subtasks?.length ?? 0;
+        const created = titles.map((title, i) => ({ id: crypto.randomUUID(), title, completed: false, position: base + i }));
+        set((state) => ({ tasks: state.tasks.map((x) => (x.id === taskId ? { ...x, subtasks: [...(x.subtasks || []), ...created] } : x)) }));
+        return created;
+      },
+      updateSubtask: (taskId, subtaskId, updates) =>
+        set((state) => ({
+          tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, subtasks: (t.subtasks || []).map((s) => (s.id === subtaskId ? { ...s, ...updates } : s)) } : t)),
+        })),
+      reorderSubtasks: (taskId, orderedIds) => {
+        const t = get().tasks.find((x) => x.id === taskId);
+        const map = new Map((t?.subtasks || []).map((s) => [s.id, s]));
+        const next = orderedIds.map((id, i) => ({ ...map.get(id)!, position: i })).filter((s) => s.id);
+        set((state) => ({ tasks: state.tasks.map((x) => (x.id === taskId ? { ...x, subtasks: next } : x)) }));
+        return next;
+      },
       deleteSubtask: (taskId, subtaskId) =>
         set((state) => ({
           tasks: state.tasks.map((t) =>

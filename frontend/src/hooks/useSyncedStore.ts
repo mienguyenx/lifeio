@@ -33,7 +33,7 @@ export function useSyncedStore() {
   const shouldSync = isExternalSupabaseConfigured && user;
 
   // ================== TASKS ==================
-  const addTask = useCallback(async (task: Omit<Task, 'id' | 'completedPomodoros' | 'createdAt' | 'subtasks'>) => {
+  const addTask = useCallback(async (task: Omit<Task, 'id' | 'completedPomodoros' | 'createdAt' | 'subtasks'> & { subtasks?: Subtask[] }) => {
     // First add to local store
     store.addTask(task);
     
@@ -118,6 +118,21 @@ export function useSyncedStore() {
       console.log('Syncing subtask toggle to Supabase:', subtaskId);
       await tasksSync.toggleSubtask(subtaskId, newCompleted);
     }
+  }, [store, tasksSync, shouldSync]);
+
+  const addSubtasks = useCallback(async (taskId: string, titles: string[]) => {
+    const created = store.addSubtasks(taskId, titles);
+    if (shouldSync) for (const s of created) await tasksSync.addSubtask(taskId, s);
+  }, [store, tasksSync, shouldSync]);
+
+  const updateSubtask = useCallback(async (taskId: string, subtaskId: string, title: string) => {
+    store.updateSubtask(taskId, subtaskId, { title });
+    if (shouldSync) await tasksSync.updateSubtask(subtaskId, { title });
+  }, [store, tasksSync, shouldSync]);
+
+  const reorderSubtasks = useCallback(async (taskId: string, orderedIds: string[]) => {
+    const next = store.reorderSubtasks(taskId, orderedIds);
+    if (shouldSync) await Promise.all(next.map((s) => tasksSync.updateSubtask(s.id, { position: s.position })));
   }, [store, tasksSync, shouldSync]);
 
   const deleteSubtask = useCallback(async (taskId: string, subtaskId: string) => {
@@ -906,6 +921,9 @@ export function useSyncedStore() {
     
     // Synced subtask actions
     addSubtask,
+    addSubtasks,
+    updateSubtask,
+    reorderSubtasks,
     toggleSubtask,
     deleteSubtask,
     

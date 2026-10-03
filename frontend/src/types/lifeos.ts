@@ -90,6 +90,7 @@ export interface Subtask {
   title: string;
   completed: boolean;
   completedAt?: string;
+  position?: number;
 }
 
 // Task Tag

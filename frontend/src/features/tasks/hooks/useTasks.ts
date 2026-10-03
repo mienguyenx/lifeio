@@ -61,6 +61,7 @@ export function useTasks(query?: TaskQuery) {
         dueDate: d.dueDate || undefined,
         reminderTime: d.time || undefined,
         recurring: d.repeat && d.repeat !== 'none' ? { frequency: d.repeat, interval: 1 } : undefined,
+        subtasks: (d.subtasks ?? []).map((t, i) => t.trim()).filter(Boolean).map((title, i) => ({ id: crypto.randomUUID(), title, completed: false, position: i })),
       });
       toast.success('Đã thêm công việc', { description: title });
     },
@@ -105,5 +106,20 @@ export function useTasks(query?: TaskQuery) {
     addSubtask: synced.addSubtask,
     toggleSubtask: synced.toggleSubtask,
     deleteSubtask: synced.deleteSubtask,
+    addSubtasks: synced.addSubtasks,
+    updateSubtask: synced.updateSubtask,
+    reorderSubtasks: synced.reorderSubtasks,
+    /** Tick một mục con; nếu đó là mục cuối cùng → gợi ý hoàn thành luôn công việc. */
+    toggleSubtaskSmart: (task: Task, subId: string) => {
+      const sub = task.subtasks?.find((s) => s.id === subId);
+      synced.toggleSubtask(task.id, subId);
+      const willAllDone = !!sub && !sub.completed && (task.subtasks ?? []).every((s) => s.id === subId || s.completed);
+      if (willAllDone && !isDone(task)) {
+        toast.success('Đã xong mọi mục con 🎉', {
+          description: task.title,
+          action: { label: 'Hoàn thành việc', onClick: () => setStatus(task, 'done') },
+        });
+      }
+    },
   };
 }
