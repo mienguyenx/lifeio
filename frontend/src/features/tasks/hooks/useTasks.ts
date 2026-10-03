@@ -19,6 +19,14 @@ export function useTasks(query?: TaskQuery) {
   const synced = useSyncedStore();
 
   const tasks = useMemo(() => allTasks.filter((t) => !t.deletedAt && !t.archived), [allTasks]);
+  /** Việc con theo việc cha (1 cấp). */
+  const childrenOf = useMemo(() => {
+    const m = new Map<string, Task[]>();
+    for (const t of tasks) if (t.parentId) m.set(t.parentId, [...(m.get(t.parentId) ?? []), t]);
+    for (const list of m.values()) list.sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || a.createdAt.localeCompare(b.createdAt));
+    return m;
+  }, [tasks]);
+  const byId = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
 
   const counts: TaskCounts = useMemo(() => {
     const dueToday = tasks.filter(isDueToday);
@@ -37,15 +45,17 @@ export function useTasks(query?: TaskQuery) {
   const filtered = useMemo(() => {
     if (!query) return sortTasks(tasks);
     const q = query.search?.trim().toLowerCase();
-    return sortTasks(
-      tasks.filter((t) => {
+    const base = tasks.filter((t) => {
         if (!matchesTab(t, query.tab)) return false;
         if (query.area && query.area !== 'all' && t.area !== query.area) return false;
         if (query.priority && query.priority !== 'all' && t.priority !== query.priority) return false;
         if (q && !`${t.title} ${t.description ?? ''}`.toLowerCase().includes(q)) return false;
         return true;
-      }),
-    );
+      });
+    // Việc con không có hạn riêng “đi theo” việc cha: hiện dưới việc cha nếu việc cha đang hiển thị.
+    const shown = new Set(base.map((t) => t.id));
+    const extra = tasks.filter((t) => t.parentId && !shown.has(t.id) && shown.has(t.parentId) && !t.dueDate && (query.tab === 'completed' ? isDone(t) : !isDone(t)));
+    return sortTasks([...base, ...extra]);
   }, [tasks, query]);
 
   const createTask = useCallback(
@@ -61,8 +71,10 @@ export function useTasks(query?: TaskQuery) {
         dueDate: d.dueDate || undefined,
         reminderTime: d.time || undefined,
         recurring: d.repeat && d.repeat !== 'none' ? { frequency: d.repeat, interval: 1 } : undefined,
+        parentId: d.parentId,
+        subtasks: (d.subtasks ?? []).map((t, i) => t.trim()).filter(Boolean).map((title, i) => ({ id: crypto.randomUUID(), title, completed: false, position: i })),
       });
-      toast.success('Đã thêm công việc', { description: title });
+      if (!d.parentId) toast.success('Đã thêm công việc', { description: title });
     },
     [synced],
   );
@@ -80,17 +92,31 @@ export function useTasks(query?: TaskQuery) {
     (task: Task) => {
       const next = isDone(task) ? 'todo' : 'done';
       setStatus(task, next);
-      if (next === 'done') toast.success('Hoàn thành! 🎉', { description: task.title });
+      if (next !== 'done') return;
+      const openKids = (childrenOf.get(task.id) ?? []).filter((c) => !isDone(c));
+      const parent = task.parentId ? byId.get(task.parentId) : undefined;
+      if (openKids.length) {
+        toast.success('Hoàn thành! 🎉', {
+          description: `Còn ${openKids.length} việc con chưa xong`,
+          action: { label: 'Xong tất cả', onClick: () => openKids.forEach((c) => setStatus(c, 'done')) },
+        });
+      } else if (parent && !isDone(parent) && (childrenOf.get(parent.id) ?? []).every((c) => c.id === task.id || isDone(c))) {
+        toast.success('Đã xong mọi việc con 🎉', { description: parent.title, action: { label: 'Hoàn thành việc cha', onClick: () => setStatus(parent, 'done') } });
+      } else {
+        toast.success('Hoàn thành! 🎉', { description: task.title });
+      }
     },
-    [setStatus],
+    [setStatus, childrenOf, byId],
   );
 
   const deleteTask = useCallback(
     (task: Task) => {
+      const kids = childrenOf.get(task.id) ?? [];
       synced.deleteTask(task.id);
-      toast('Đã chuyển vào thùng rác', { description: task.title });
+      kids.forEach((c) => synced.deleteTask(c.id));
+      toast('Đã chuyển vào thùng rác', { description: kids.length ? `${task.title} và ${kids.length} việc con` : task.title });
     },
-    [synced],
+    [synced, childrenOf],
   );
 
   return {
@@ -105,5 +131,38 @@ export function useTasks(query?: TaskQuery) {
     addSubtask: synced.addSubtask,
     toggleSubtask: synced.toggleSubtask,
     deleteSubtask: synced.deleteSubtask,
+    addSubtasks: synced.addSubtasks,
+    childrenOf,
+    byId,
+    /** Tạo nhiều việc con (kế thừa lĩnh vực, ưu tiên của việc cha). */
+    addChildren: async (parent: Task, titles: string[]) => {
+      const base = childrenOf.get(parent.id)?.length ?? 0;
+      for (const [i, title] of titles.entries()) {
+        await synced.addTask({ title, priority: parent.priority, area: parent.area, status: 'todo', parentId: parent.id, position: base + i });
+      }
+      if (titles.length > 1) toast.success(`Đã thêm ${titles.length} việc con`);
+    },
+    detachChild: (child: Task) => { synced.updateTask(child.id, { parentId: undefined }); toast('Đã tách thành việc độc lập', { description: child.title }); },
+    /** Chuyển một mục checklist thành việc con. */
+    promoteChecklistItem: async (task: Task, subId: string) => {
+      const item = task.subtasks?.find((s) => s.id === subId); if (!item) return;
+      await synced.addTask({ title: item.title, priority: task.priority, area: task.area, status: item.completed ? 'done' : 'todo', completedAt: item.completed ? new Date().toISOString() : undefined, parentId: task.id, position: childrenOf.get(task.id)?.length ?? 0 });
+      synced.deleteSubtask(task.id, subId);
+      toast.success('Đã chuyển thành việc con', { description: item.title });
+    },
+    updateSubtask: synced.updateSubtask,
+    reorderSubtasks: synced.reorderSubtasks,
+    /** Tick một mục con; nếu đó là mục cuối cùng → gợi ý hoàn thành luôn công việc. */
+    toggleSubtaskSmart: (task: Task, subId: string) => {
+      const sub = task.subtasks?.find((s) => s.id === subId);
+      synced.toggleSubtask(task.id, subId);
+      const willAllDone = !!sub && !sub.completed && (task.subtasks ?? []).every((s) => s.id === subId || s.completed);
+      if (willAllDone && !isDone(task)) {
+        toast.success('Đã xong mọi mục con 🎉', {
+          description: task.title,
+          action: { label: 'Hoàn thành việc', onClick: () => setStatus(task, 'done') },
+        });
+      }
+    },
   };
 }

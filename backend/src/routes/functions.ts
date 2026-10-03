@@ -335,6 +335,31 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // ----------------------------- ai-translate -----------------------------
+  fastify.post<{ Body: { title?: string; description?: string; existing?: string[]; count?: number } }>(
+    '/functions/ai-task-breakdown',
+    { schema: { tags: ['ai'], summary: 'Break a task into concrete subtasks', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      const { title, description, existing = [], count = 5 } = request.body ?? {};
+      if (!title?.trim()) throw badRequest('Missing title');
+      const n = Math.min(Math.max(+count || 5, 2), 10);
+      const base = `Bạn là trợ lý năng suất. Chia một công việc thành ${n} bước con cụ thể, hành động được ngay, mỗi bước bắt đầu bằng động từ, tối đa 80 ký tự, đúng ngôn ngữ của tên công việc, theo thứ tự thực hiện. Không lặp lại các bước đã có. Chỉ trả về JSON dạng {"subtasks":["..."]}.`;
+      const { content } = await chatCompletion({
+        feature: 'task_breakdown',
+        messages: [
+          { role: 'system', content: withExtra(base, await getSystemPrompt('task_breakdown.system')) },
+          { role: 'user', content: `Công việc: ${title.trim()}${description?.trim() ? `\nMô tả: ${description.trim().slice(0, 1000)}` : ''}${existing.length ? `\nĐã có: ${existing.slice(0, 30).join('; ')}` : ''}` },
+        ],
+        temperature: 0.4,
+      });
+      const parsed = parseJsonFromContent<{ subtasks?: unknown } | unknown[]>(content, null);
+      const arr = Array.isArray(parsed) ? parsed : (parsed as { subtasks?: unknown })?.subtasks;
+      const subtasks = (Array.isArray(arr) ? arr : [])
+        .map((x) => (typeof x === 'string' ? x : (x as { title?: string })?.title ?? '').trim())
+        .filter(Boolean).slice(0, n);
+      return reply.send({ subtasks });
+    },
+  );
+
   fastify.post<{ Body: TranslateParams }>(
     '/functions/ai-translate',
     { schema: { tags: ['ai'], summary: 'Translate / localize content', security: [{ bearerAuth: [] }] } },

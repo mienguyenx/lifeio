@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
-import { Fab, Page, PageHeader, SearchToggle } from '@/components/lio';
+import { Maximize2, Plus } from 'lucide-react';
+import { addDays, format } from 'date-fns';
+import { Page, PageHeader, SearchToggle } from '@/components/lio';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import type { BoardColumnId, Task, TaskDraft, TaskPriority, TaskTab, TaskView } 
 import { useTasks } from './hooks/useTasks';
 import { todayKey } from './utils/task.utils';
 import { TaskStats } from './components/TaskStats';
-import { TaskFilterPopover, TaskTabs, ViewSwitcher } from './components/TaskFilter';
+import { TaskFilterPopover, TaskTabs, ViewMenu, ViewSwitcher } from './components/TaskFilter';
 import { TaskList } from './components/TaskList';
 import { TaskBoard } from './components/TaskBoard';
 import { TaskCalendar } from './components/TaskCalendar';
@@ -22,6 +23,7 @@ import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskEmptyState } from './components/TaskEmptyState';
 import { TaskSidePanel } from './components/TaskSidePanel';
 import type { TaskItemActions } from './components/TaskItem';
+import { SwipeHint, type TaskMobileExtra } from './components/TaskMobileRow';
 
 const VIEW_KEY = 'lifeos.tasks.view';
 const MOBILE_TABS: TaskTab[] = ['today', 'upcoming', 'overdue', 'completed', 'all'];
@@ -79,6 +81,21 @@ export default function TasksPage() {
     onDelete: api.deleteTask,
   };
 
+  const extra: TaskMobileExtra = {
+    onSubToggle: (t, id) => api.toggleSubtaskSmart(t, id),
+    onSubAdd: (t, title) => api.addSubtasks(t.id, [title]),
+    onPostpone: (t) => { api.updateTask(t.id, { dueDate: format(addDays(new Date(), 1), 'yyyy-MM-dd') }); toast('Đã dời sang ngày mai', { description: t.title }); },
+  };
+  const [quickTitle, setQuickTitle] = useState('');
+  const quickDue = tab === 'today' ? todayKey() : tab === 'upcoming' ? format(addDays(new Date(), 1), 'yyyy-MM-dd') : undefined;
+  const quickCreate = async () => {
+    const title = quickTitle.trim(); if (!title) return;
+    setQuickTitle('');
+    await api.createTask({ title, priority: 'medium', dueDate: quickDue, repeat: 'none' });
+  };
+  const [hint, setHint] = useState(() => { try { return !localStorage.getItem('lifeos.tasks.swipeHint'); } catch { return false; } });
+  const closeHint = () => { setHint(false); try { localStorage.setItem('lifeos.tasks.swipeHint', '1'); } catch { /* ignore */ } };
+
   const searching = !!search.trim() || area !== 'all' || priority !== 'all';
   const listEmpty = api.filtered.length === 0;
 
@@ -96,29 +113,42 @@ export default function TasksPage() {
         </div>
       );
     }
-    return <TaskList tasks={api.filtered} mobile={isMobile} {...actions} />;
+    return <TaskList tasks={api.filtered} mobile={isMobile} extra={isMobile ? extra : undefined} tree={{ byId: api.byId, childrenOf: api.childrenOf }} {...actions} />;
   })();
 
   const modals = (
     <>
       <TaskQuickAdd open={quickOpen} onOpenChange={setQuickOpen} initial={quickInitial} onCreate={api.createTask} />
-      <TaskDetailModal task={detailTask} open={!!detailTask} onOpenChange={(o) => !o && setDetailId(null)} api={api} onFocus={onFocus} />
+      <TaskDetailModal task={detailTask} open={!!detailTask} onOpenChange={(o) => !o && setDetailId(null)} api={api} onFocus={onFocus} onOpenTask={setDetailId} />
     </>
   );
 
   // ─────────────── Mobile ───────────────
   if (isMobile) {
     return (
-      <Page className="space-y-4">
+      <Page className="space-y-3.5">
         <PageHeader className="mb-0" title="Công việc" subtitle={`${api.counts.today} việc hôm nay · ${api.counts.overdue} quá hạn`}
-          actions={<SearchToggle value={search} onChange={setSearch} placeholder="Tìm công việc…" />} />
-        <div className="flex items-center justify-between gap-2">
-          <ViewSwitcher view={view} onView={setView} />
-          <TaskFilterPopover area={area} priority={priority} onArea={setArea} onPriority={setPriority} />
-        </div>
-        {view === 'list' && <TaskTabs tab={tab} onTab={setTab} counts={api.counts} tabs={MOBILE_TABS} className="-mx-4 px-4" />}
+          actions={<>
+            <SearchToggle value={search} onChange={setSearch} placeholder="Tìm công việc…" />
+            <ViewMenu view={view} onView={setView} />
+            <TaskFilterPopover compact area={area} priority={priority} onArea={setArea} onPriority={setPriority} />
+          </>} />
+        {view === 'list'
+          ? <TaskTabs tab={tab} onTab={setTab} counts={{ ...api.counts, today: api.counts.today + api.counts.overdue }} tabs={MOBILE_TABS} className="-mx-4 px-4" />
+          : <p className="text-[12.5px] text-muted-foreground">{view === 'board' ? 'Kéo thẻ để đổi trạng thái' : 'Chạm một ngày để thêm việc'}</p>}
+        {view === 'list' && (
+          <form onSubmit={(e) => { e.preventDefault(); quickCreate(); }} className="flex items-center gap-2 rounded-full bg-card border border-border/70 shadow-soft pl-4 pr-1.5 h-12 focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10">
+            <Plus className="h-4 w-4 text-primary shrink-0" />
+            <input value={quickTitle} onChange={(e) => setQuickTitle(e.target.value)} enterKeyHint="done"
+              placeholder={tab === 'today' ? 'Thêm việc cho hôm nay…' : tab === 'upcoming' ? 'Thêm việc cho ngày mai…' : 'Thêm việc…'}
+              className="flex-1 min-w-0 bg-transparent text-[14px] focus:outline-none placeholder:text-muted-foreground" />
+            {quickTitle.trim()
+              ? <Button type="submit" size="sm" className="h-9 rounded-full px-4">Thêm</Button>
+              : <button type="button" onClick={() => openQuick({ dueDate: quickDue })} aria-label="Mở form đầy đủ" className="h-9 w-9 grid place-items-center rounded-full text-muted-foreground hover:bg-secondary"><Maximize2 className="h-4 w-4" /></button>}
+          </form>
+        )}
+        {view === 'list' && hint && !listEmpty && <SwipeHint onClose={closeHint} />}
         {content}
-        <Fab onClick={() => openQuick()} label="Thêm công việc" />
         {modals}
       </Page>
     );

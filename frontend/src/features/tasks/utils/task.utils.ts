@@ -22,7 +22,8 @@ export const isUpcoming = (t: Task) => !isDone(t) && !!dueKey(t) && dueKey(t)! >
 export function matchesTab(t: Task, tab: TaskTab): boolean {
   switch (tab) {
     case 'all': return !isDone(t);
-    case 'today': return isDueToday(t) && !isDone(t);
+    // Hôm nay = việc đến hạn hôm nay + việc quá hạn + việc đã xong trong hôm nay (nhóm “Đã xong” thu gọn).
+    case 'today': return isDone(t) ? !!t.completedAt && format(parseISO(t.completedAt), 'yyyy-MM-dd') === todayKey() : isDueToday(t) || isOverdue(t);
     case 'upcoming': return isUpcoming(t);
     case 'overdue': return isOverdue(t);
     case 'completed': return isDone(t);

@@ -1,6 +1,7 @@
 import { CalendarDays, Columns3, List, Search, SlidersHorizontal, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LIFE_AREAS, type LifeArea } from '@/types/lifeos';
 import type { TaskCounts, TaskPriority, TaskTab, TaskView } from '../types/task.types';
 import { PRIORITY_META, TAB_LABEL } from '../utils/task.utils';
@@ -43,7 +44,7 @@ const VIEWS: { id: TaskView; label: string; Icon: typeof List }[] = [
   { id: 'calendar', label: 'Lịch', Icon: CalendarDays },
 ];
 
-export function ViewSwitcher({ view, onView }: { view: TaskView; onView: (v: TaskView) => void }) {
+export function ViewSwitcher({ view, onView, compact }: { view: TaskView; onView: (v: TaskView) => void; compact?: boolean }) {
   return (
     <div className="inline-flex p-1 rounded-full bg-secondary/80 border border-border/60">
       {VIEWS.map(({ id, label, Icon }) => (
@@ -51,12 +52,13 @@ export function ViewSwitcher({ view, onView }: { view: TaskView; onView: (v: Tas
           key={id}
           onClick={() => onView(id)}
           aria-pressed={view === id}
+          aria-label={label}
           className={cn(
-            'h-8 px-3 rounded-full text-[12.5px] font-semibold inline-flex items-center gap-1.5 transition-all',
+            compact ? 'h-8 w-8 justify-center' : 'h-8 px-3', 'rounded-full text-[12.5px] font-semibold inline-flex items-center gap-1.5 transition-all',
             view === id ? 'bg-card text-primary shadow-soft' : 'text-muted-foreground hover:text-foreground',
           )}
         >
-          <Icon className="h-3.5 w-3.5" />{label}
+          <Icon className={compact ? 'h-4 w-4' : 'h-3.5 w-3.5'} />{!compact && label}
         </button>
       ))}
     </div>
@@ -82,8 +84,8 @@ export function TaskSearch({ value, onChange, className }: { value: string; onCh
   );
 }
 
-export function TaskFilterPopover({ area, priority, onArea, onPriority }: {
-  area: LifeArea | 'all'; priority: TaskPriority | 'all';
+export function TaskFilterPopover({ area, priority, onArea, onPriority, compact }: {
+  area: LifeArea | 'all'; priority: TaskPriority | 'all'; compact?: boolean;
   onArea: (a: LifeArea | 'all') => void; onPriority: (p: TaskPriority | 'all') => void;
 }) {
   const active = (area !== 'all' ? 1 : 0) + (priority !== 'all' ? 1 : 0);
@@ -94,8 +96,8 @@ export function TaskFilterPopover({ area, priority, onArea, onPriority }: {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className={cn('h-10 px-3.5 rounded-full border border-border bg-card text-[13px] font-semibold inline-flex items-center gap-1.5 hover:bg-secondary transition-colors', active && 'border-primary/40 text-primary')}>
-          <SlidersHorizontal className="h-4 w-4" />Lọc
+        <button aria-label="Lọc" className={cn(compact ? 'h-10 w-10 justify-center px-0' : 'h-10 px-3.5', 'rounded-full border border-border bg-card text-[13px] font-semibold inline-flex items-center gap-1.5 hover:bg-secondary transition-colors', active && 'border-primary/40 text-primary')}>
+          <SlidersHorizontal className="h-4 w-4" />{!compact && 'Lọc'}
           {active > 0 && <span className="h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[11px] grid place-items-center">{active}</span>}
         </button>
       </PopoverTrigger>
@@ -123,5 +125,22 @@ export function TaskFilterPopover({ area, priority, onArea, onPriority }: {
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Nút chọn chế độ xem gọn (mobile): 1 icon, chạm mở menu. */
+export function ViewMenu({ view, onView }: { view: TaskView; onView: (v: TaskView) => void }) {
+  const Cur = VIEWS.find((v) => v.id === view)!.Icon;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button aria-label="Chế độ xem" className="h-10 w-10 grid place-items-center rounded-full border border-border bg-card hover:bg-secondary transition-colors"><Cur className="h-4 w-4" /></button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44 rounded-2xl">
+        {VIEWS.map(({ id, label, Icon }) => (
+          <DropdownMenuItem key={id} onClick={() => onView(id)} className={cn(view === id && 'text-primary font-semibold')}><Icon className="h-4 w-4 mr-2" />{label}</DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

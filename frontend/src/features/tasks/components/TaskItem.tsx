@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Check, MoreHorizontal, Play, Repeat, Trash2, CalendarClock, ListChecks, ArrowRightCircle } from 'lucide-react';
+import { Check, ChevronDown, CornerDownRight, GitBranch, MoreHorizontal, Play, Repeat, Trash2, CalendarClock, ListChecks, ArrowRightCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PriorityIcon } from '@/components/icons/LifeIcon';
 import {
@@ -96,7 +96,15 @@ export function TaskMenu({ task, onStatus, onFocus, onDelete, onOpen }: { task: 
 }
 
 /** Desktop table row (List view). Grid columns must match TaskList header. */
-export const TaskRow = memo(function TaskRow({ task, ...a }: { task: Task } & TaskItemActions) {
+export interface TreeProps {
+  depth?: 0 | 1;
+  parentTitle?: string;
+  kids?: { done: number; total: number };
+  kidsOpen?: boolean;
+  onToggleKids?: () => void;
+}
+
+export const TaskRow = memo(function TaskRow({ task, depth = 0, parentTitle, kids, kidsOpen, onToggleKids, ...a }: { task: Task } & TreeProps & TaskItemActions) {
   const done = isDone(task);
   const overdue = isOverdue(task);
   const sp = subtaskProgress(task);
@@ -109,14 +117,21 @@ export const TaskRow = memo(function TaskRow({ task, ...a }: { task: Task } & Ta
       onKeyDown={(e) => e.key === 'Enter' && a.onOpen(task)}
       className="group grid grid-cols-[28px_minmax(0,1fr)_96px_120px_104px_36px] items-center gap-3 px-4 py-3 rounded-2xl hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 cursor-pointer transition-colors"
     >
-      <TaskCheck task={task} onToggle={() => a.onToggle(task)} />
-      <div className="min-w-0 flex items-center gap-2.5">
-        <PriorityIcon priority={task.priority} size={18} variant="filled" className="shrink-0" />
+      <TaskCheck task={task} onToggle={() => a.onToggle(task)} size={depth ? 'sm' : 'md'} />
+      <div className={cn('min-w-0 flex items-center gap-2.5', depth && 'pl-6 relative')}>
+        {depth ? <CornerDownRight className="absolute left-0 h-4 w-4 text-muted-foreground/50" /> : null}
+        <PriorityIcon priority={task.priority} size={depth ? 15 : 18} variant="filled" className="shrink-0" />
         <div className="min-w-0">
+          {parentTitle && <p className="text-[11px] text-muted-foreground truncate inline-flex items-center gap-1"><CornerDownRight className="h-3 w-3" />{parentTitle}</p>}
           <p className={cn('text-[14px] font-semibold text-foreground truncate', done && 'line-through text-muted-foreground')}>{task.title}</p>
           <div className="flex items-center gap-2 mt-0.5 text-[12px] text-muted-foreground">
             <AreaChip area={task.area} className="px-1.5 py-0 text-[10.5px]" />
-            {sp.total > 0 && <span className="inline-flex items-center gap-1"><ListChecks className="h-3 w-3" />{sp.done}/{sp.total}</span>}
+            {kids && (
+              <button type="button" onClick={(e) => { e.stopPropagation(); onToggleKids?.(); }} className="inline-flex items-center gap-1 rounded-full px-1.5 font-semibold text-foreground/70 hover:bg-secondary" title="Việc con">
+                <GitBranch className="h-3 w-3" />{kids.done}/{kids.total}{onToggleKids && <ChevronDown className={cn('h-3 w-3 transition-transform', !kidsOpen && '-rotate-90')} />}
+              </button>
+            )}
+            {sp.total > 0 && <span className="inline-flex items-center gap-1" title="Checklist"><ListChecks className="h-3 w-3" />{sp.done}/{sp.total}</span>}
             {task.recurring && <Repeat className="h-3 w-3" aria-label="Lặp lại" />}
           </div>
         </div>

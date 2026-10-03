@@ -15,6 +15,7 @@ export const AI_FEATURES: AiFeature[] = [
   { key: 'transcribe', label: 'Chép lời (dự phòng)', description: 'Chép lời ghi âm khi trình duyệt không hỗ trợ nhận dạng giọng nói', promptKey: 'transcribe.system', needs: ['audio'] },
   { key: 'templates', label: 'Tạo mẫu bằng AI', description: 'Gợi ý mẫu mục tiêu, thói quen, nhật ký, review', promptKey: 'templates.system', needs: ['json'] },
   { key: 'suggest', label: 'Gợi ý cải thiện', description: 'Gợi ý thói quen/việc cho lĩnh vực điểm thấp', promptKey: 'suggest.system', needs: ['json'] },
+  { key: 'task_breakdown', label: 'Chia nhỏ công việc', description: 'Tách một công việc thành các mục con (subtask) cụ thể', promptKey: 'task_breakdown.system', needs: ['json'] },
   { key: 'translate', label: 'Dịch thuật', description: 'Dịch giao diện / nội dung', promptKey: 'translate.system' },
   { key: 'vision', label: 'Tầm nhìn & giá trị', description: 'Gợi ý tầm nhìn, giá trị sống', promptKey: 'vision.system', needs: ['json'] },
   { key: 'theme', label: 'Gợi ý giao diện', description: 'AI tạo bảng màu/theme', promptKey: 'theme.system', needs: ['tools'] },
