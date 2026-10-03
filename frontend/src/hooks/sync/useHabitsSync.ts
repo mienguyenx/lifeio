@@ -29,7 +29,7 @@ function transformHabitFromDB(row: HabitRow, completions: HabitCompletionRow[]):
       notes: c.notes || undefined,
       time: c.completion_time || undefined,
     })),
-    reminderTime: row.reminder_time || undefined,
+    reminderTime: row.reminder_time ? String(row.reminder_time).slice(0, 5) : undefined,
     reminderEnabled: row.reminder_enabled || false,
     color: row.color || undefined,
     icon: row.icon || undefined,
