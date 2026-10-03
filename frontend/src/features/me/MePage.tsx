@@ -1,160 +1,245 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Camera, ChevronRight, LogOut, Mail, Pencil, User } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Camera, ChevronRight, LogOut, Pencil, Search, User, X } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { VisionValuesManager } from '@/components/profile/VisionValuesManager';
 import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
-import { ItemRow, MascotCard, Page, PageHeader, ProgressBar, SectionTitle, SegmentedTabs, StatTile, Surface, type Tint } from '@/components/lio';
+import { ItemRow, Page, PageHeader, ProgressBar, Surface, type Tint } from '@/components/lio';
 import { Field, FormActions, areaCls, fieldCls } from '@/components/lio/form';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useEnabledModules } from '@/hooks/useEnabledModules';
+import { useProfileSync } from '@/hooks/sync/useProfileSync';
 import { useLifeOSStore } from '@/stores/useLifeOSStore';
-import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { notificationService } from '@/services/notificationService';
+import { MODULES, type ModuleId } from '@/lib/modules';
+import { AI_TONES, ARCHETYPES } from '@/lib/personalizationOptions';
 
-type View = 'overview' | 'vision';
-const MENU: { path: string; label: string; meta: string; icon: LifeIconName | string; tint: Tint }[] = [
-  { path: '/modules', label: 'Tính năng', meta: 'Bật/tắt tính năng theo nhu cầu', icon: 'module/settings', tint: 'mint' },
-  { path: '/personalization', label: 'Cá nhân hóa', meta: 'Phong cách sống, giọng AI, ưu tiên', icon: 'module/profile', tint: 'violet' },
-  { path: '/ai-memory', label: 'AI Memory', meta: 'Những gì AI ghi nhớ về bạn', icon: 'module/ai-coach', tint: 'sky' },
-  { path: '/journey', label: 'Hành trình của tôi', meta: 'Nhiệm vụ & XP', icon: '🏆', tint: 'amber' },
-  { path: '/decisions', label: 'Nhật ký quyết định', meta: 'Ghi lại & review quyết định', icon: '⚖️', tint: 'mint' },
-  { path: '/area-dashboard', label: '10 lĩnh vực', meta: 'Tổng quan từng mảng cuộc sống', icon: 'module/life-areas', tint: 'orange' },
-  { path: '/settings', label: 'Cài đặt', meta: 'Tài khoản, thông báo, dữ liệu', icon: 'module/settings', tint: 'violet' },
-  { path: '/trash', label: 'Thùng rác', meta: 'Khôi phục mục đã xóa', icon: 'module/trash', tint: 'rose' },
-];
+interface Entry { id: string; label: string; meta: string; icon: LifeIconName | string; tint: Tint; to: string; value?: ReactNode; keywords?: string; module?: ModuleId; desktopOnly?: boolean }
+interface Group { title: string; items: Entry[] }
+
+/** Ảnh đại diện thu nhỏ còn 256px (JPEG) để lưu gọn lên máy chủ. */
+function resizeImage(file: File, size = 256): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(img.width, img.height);
+      const c = document.createElement('canvas');
+      c.width = size; c.height = size;
+      c.getContext('2d')!.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(img.src);
+      resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').toLowerCase();
 
 export default function MePage() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const view = params.get('view') === 'vision' ? 'vision' : 'hub';
   const { user: authUser, signOut } = useAuth();
+  const { theme } = useTheme();
+  const { loadProfile, updateProfile } = useProfileSync();
+  const { isOn, enabled } = useEnabledModules();
   const user = useLifeOSStore((s) => s.user);
   const setUser = useLifeOSStore((s) => s.setUser);
-  const pomodoroSettings = useLifeOSStore((s) => s.pomodoroSettings);
-  const pomodoroSessions = useLifeOSStore((s) => s.pomodoroSessions);
+  const prefs = useLifeOSStore((s) => s.userPreferences);
+  const pomodoro = useLifeOSStore((s) => s.pomodoroSettings);
+  const memories = useLifeOSStore((s) => s.aiMemories);
   const habits = useLifeOSStore((s) => s.habits);
-  const goals = useLifeOSStore((s) => s.goals);
   const tasks = useLifeOSStore((s) => s.tasks);
-  const startPomodoro = usePomodoroStore((s) => s.start);
+  const pushOn = useLifeOSStore((s) => s.pushNotificationsEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [view, setView] = useState<View>('overview');
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({ name: '', email: '', phone: '', birthday: '', bio: '' });
+  const [q, setQ] = useState('');
+  const [unread, setUnread] = useState(0);
+  const [draft, setDraft] = useState({ name: '', phone: '', birthday: '', bio: '' });
 
-  const totalPomodoros = pomodoroSessions.filter((s) => s.phase === 'work').length;
-  const totalMinutes = totalPomodoros * pomodoroSettings.workDuration;
+  // Hồ sơ trên máy chủ là nguồn chính (tên lúc đăng ký, ảnh, giới thiệu…).
+  useEffect(() => {
+    if (!authUser) return;
+    loadProfile().then((p) => {
+      if (!p) return;
+      const patch = Object.fromEntries(Object.entries(p).filter(([k, v]) => v && k !== 'email'));
+      if (Object.keys(patch).length) setUser(patch);
+    });
+  }, [authUser, loadProfile, setUser]);
+  useEffect(() => notificationService.subscribe((items) => setUnread(items.filter((n) => !n.read).length)), []);
+
   const activeHabits = habits.filter((h) => !h.archivedAt && !h.deletedAt);
   const bestStreak = activeHabits.reduce((m, h) => Math.max(m, h.streak || 0), 0);
   const doneTasks = tasks.filter((t) => t.status === 'done').length;
-  const openTasks = tasks.filter((t) => t.status !== 'done' && !t.archived).length;
-  const activeGoals = goals.filter((g) => g.status !== 'archived').length;
+  const name = user.name && user.name !== 'User' ? user.name : '';
+  const displayName = name || (authUser?.user_metadata?.name as string | undefined) || 'Bạn';
+  const email = authUser?.email || user.email;
 
-  const profileFields = [user.name, user.email, user.avatar, user.bio, user.vision, user.values?.length, user.roles?.length];
-  const profileCompletion = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
-  const missing = useMemo(() => [!user.email && 'email', !user.avatar && 'ảnh đại diện', !user.bio && 'giới thiệu', !user.vision && 'tầm nhìn'].filter(Boolean).join(', '), [user]);
-  const displayName = user.name || authUser?.user_metadata?.name || 'LifeOS User';
-  const displayEmail = user.email || authUser?.email;
+  const checklist = [
+    { ok: !!name, label: 'tên' }, { ok: !!user.avatar, label: 'ảnh đại diện' }, { ok: !!user.bio, label: 'giới thiệu' },
+    { ok: !!user.birthday, label: 'ngày sinh' }, { ok: !!(user.lifePurpose || user.visions?.length), label: 'tầm nhìn' }, { ok: !!user.personalValues?.length, label: 'giá trị sống' },
+  ];
+  const completion = Math.round((checklist.filter((c) => c.ok).length / checklist.length) * 100);
+  const missing = checklist.filter((c) => !c.ok).map((c) => c.label);
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const themeLabel = theme === 'dark' ? 'Tối' : theme === 'light' ? 'Sáng' : 'Hệ thống';
+  const archetype = ARCHETYPES.find((a) => a.value === prefs?.archetype);
+  const tone = AI_TONES.find((t) => t.value === prefs?.aiTone);
+  const modulesOn = enabled ? MODULES.filter((m) => isOn(m.id)).length : MODULES.length;
+  const acceptedMemories = memories.filter((m) => m.status === 'accepted' || m.status === 'edited').length;
+  const pendingMemories = memories.filter((m) => m.status === 'proposed').length;
+
+  const groups: Group[] = useMemo(() => [
+    { title: 'Cá nhân hoá', items: [
+      { id: 'style', label: 'Phong cách & AI Coach', meta: tone ? `Giọng AI: ${tone.label} · lịch trình, ưu tiên` : 'Lối sống, giọng AI, lịch trình, ưu tiên', icon: 'module/profile', tint: 'violet', to: '/personalization', value: archetype?.label, keywords: 'ca nhan hoa personalization giong ai tone lich trinh gio thuc day ngu uu tien linh vuc' },
+      { id: 'vision', label: 'Tầm nhìn & giá trị', meta: 'Mục đích sống, giá trị, vai trò', icon: 'module/goals', tint: 'rose', to: '/me?view=vision', value: user.personalValues?.length ? `${user.personalValues.length} giá trị` : undefined, keywords: 'tam nhin gia tri vai tro muc dich vision values' },
+      { id: 'memory', label: 'Bộ nhớ AI', meta: 'Những gì AI ghi nhớ về bạn', icon: 'module/ai-coach', tint: 'sky', to: '/ai-memory', value: pendingMemories ? `${pendingMemories} chờ duyệt` : acceptedMemories ? `${acceptedMemories} điều` : undefined, keywords: 'ai memory bo nho tri nho' },
+      { id: 'modules', label: 'Tính năng', meta: 'Bật/tắt mục theo nhu cầu', icon: 'module/settings', tint: 'mint', to: '/modules', value: `${modulesOn}/${MODULES.length}`, keywords: 'tinh nang module bat tat an hien menu' },
+    ] },
+    { title: 'Ứng dụng', items: [
+      { id: 'notif', label: 'Thông báo', meta: pushOn ? 'Thông báo đẩy đang bật' : 'Nhắc việc, thói quen, bản tin sáng', icon: 'module/notifications', tint: 'amber', to: '/notifications', value: unread ? <span className="rounded-full bg-primary text-primary-foreground text-[11px] px-2 py-0.5">{unread}</span> : undefined, keywords: 'thong bao notification push nhac nho' },
+      { id: 'theme', label: 'Giao diện', meta: 'Sáng, tối hoặc theo hệ thống', icon: theme === 'dark' ? '🌙' : '☀️', tint: 'violet', to: '/settings', value: themeLabel, keywords: 'giao dien theme dark toi sang' },
+      { id: 'pomodoro', label: 'Pomodoro', meta: 'Thời gian làm & nghỉ', icon: 'module/focus', tint: 'rose', to: '/settings', value: `${pomodoro.workDuration}/${pomodoro.breakDuration}′`, keywords: 'pomodoro tap trung focus hen gio', module: 'focus' },
+      { id: 'app', label: 'Cài app & thiết bị', meta: 'Thêm vào màn hình chính, thiết bị nhận thông báo', icon: '📱', tint: 'sky', to: '/settings?tab=app', keywords: 'cai app pwa thiet bi dien thoai install' },
+      { id: 'ext', label: 'Tiện ích trình duyệt', meta: 'LifeOS trong tab mới & widget', icon: '🧩', tint: 'mint', to: '/settings?tab=extension', keywords: 'extension tien ich chrome trinh duyet', desktopOnly: true },
+    ] },
+    { title: 'Công cụ', items: [
+      { id: 'journey', label: 'Hành trình của tôi', meta: 'Nhiệm vụ & XP', icon: '🏆', tint: 'amber', to: '/journey', module: 'insights', keywords: 'hanh trinh xp nhiem vu journey' },
+      { id: 'decisions', label: 'Nhật ký quyết định', meta: 'Ghi lại & review quyết định', icon: '⚖️', tint: 'mint', to: '/decisions', module: 'decisions', keywords: 'quyet dinh decisions' },
+      { id: 'areas', label: '10 lĩnh vực', meta: 'Tổng quan từng mảng cuộc sống', icon: 'module/life-areas', tint: 'orange', to: '/area-dashboard', module: 'life_areas', keywords: 'linh vuc banh xe life areas' },
+    ] },
+    { title: 'Dữ liệu & bảo mật', items: [
+      { id: 'security', label: 'Email & mật khẩu', meta: email || 'Đăng nhập & bảo mật', icon: '🔐', tint: 'violet', to: '/settings?tab=account', keywords: 'tai khoan mat khau email doi password bao mat account' },
+      { id: 'data', label: 'Sao lưu & xuất dữ liệu', meta: 'Xuất, nhập, đặt lại dữ liệu', icon: 'module/sync', tint: 'sky', to: '/settings?tab=data', keywords: 'du lieu xuat nhap backup export import xoa reset' },
+      { id: 'trash', label: 'Thùng rác', meta: 'Khôi phục mục đã xoá', icon: 'module/trash', tint: 'rose', to: '/trash', keywords: 'thung rac trash khoi phuc' },
+    ] },
+  ], [archetype, tone, user.personalValues, pendingMemories, acceptedMemories, modulesOn, pushOn, unread, theme, themeLabel, pomodoro, email]);
+
+  const visible = groups.map((g) => ({ ...g, items: g.items.filter((i) => (!i.module || isOn(i.module)) && !(i.desktopOnly && isMobile)) })).filter((g) => g.items.length);
+  const nq = norm(q.trim());
+  const shown = nq ? visible.map((g) => ({ ...g, items: g.items.filter((i) => norm(`${i.label} ${i.meta} ${i.keywords || ''}`).includes(nq)) })).filter((g) => g.items.length) : visible;
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast.error('Ảnh quá lớn (tối đa 2MB)'); return; }
-    const reader = new FileReader();
-    reader.onloadend = () => { setUser({ avatar: reader.result as string }); toast.success('Đã cập nhật ảnh đại diện'); };
-    reader.readAsDataURL(file);
+    if (file.size > 8 * 1024 * 1024) { toast.error('Ảnh quá lớn (tối đa 8MB)'); return; }
+    try {
+      const avatar = await resizeImage(file);
+      setUser({ avatar });
+      const ok = await updateProfile({ avatar });
+      toast.success(ok ? 'Đã cập nhật ảnh đại diện' : 'Đã đổi ảnh trên thiết bị này');
+    } catch { toast.error('Không đọc được ảnh'); }
   };
-  const openEdit = () => { setDraft({ name: user.name || '', email: user.email || '', phone: user.phone || '', birthday: user.birthday || '', bio: user.bio || '' }); setEditing(true); };
-  const save = (e: FormEvent) => { e.preventDefault(); setUser(draft); setEditing(false); toast.success('Đã lưu thông tin cá nhân!'); };
+  const openEdit = () => { setDraft({ name, phone: user.phone || '', birthday: user.birthday || '', bio: user.bio || '' }); setEditing(true); };
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    const next = { ...draft, name: draft.name.trim() };
+    setUser(next);
+    setEditing(false);
+    const ok = await updateProfile({ ...next, birthday: next.birthday || undefined });
+    toast[ok ? 'success' : 'warning'](ok ? 'Đã lưu hồ sơ' : 'Đã lưu trên thiết bị — chưa đồng bộ được');
+  };
+  const handleSignOut = async () => { await signOut(); toast.success('Đã đăng xuất'); navigate('/auth'); };
 
-  const side = (
-    <div className="space-y-4">
-      <Surface className="p-4">
-        <SectionTitle title="Pomodoro" />
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-2xl bg-secondary/50 p-3 text-center"><p className="text-[20px] font-extrabold">🍅 {totalPomodoros}</p><p className="text-[11.5px] text-muted-foreground">Tổng phiên</p></div>
-          <div className="rounded-2xl bg-secondary/50 p-3 text-center"><p className="text-[20px] font-extrabold text-primary">{Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m</p><p className="text-[11.5px] text-muted-foreground">Thời gian tập trung</p></div>
+  if (view === 'vision') {
+    return (
+      <Page>
+        <PageHeader title={<span className="inline-flex items-center gap-2"><button aria-label="Quay lại" onClick={() => setParams({})} className="h-9 w-9 -ml-1 rounded-full grid place-items-center hover:bg-secondary"><ArrowLeft className="h-5 w-5" /></button>Tầm nhìn & giá trị</span>} subtitle="Điều bạn muốn trở thành & những gì quan trọng nhất" />
+        <VisionValuesManager />
+      </Page>
+    );
+  }
+
+  const icon = (i: string) => (i.includes('/') ? <LifeIcon name={i as LifeIconName} size={20} variant="duotone" /> : i);
+
+  const profileCard = (
+    <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#EFEBFF] via-[#F6F1FF] to-[#FFEFF6] dark:from-primary/20 dark:via-primary/10 dark:to-[#F2557A]/10 border border-border/40 p-4 sm:p-5">
+      <div className="flex items-center gap-3.5">
+        <div className="relative shrink-0">
+          <div className="h-[68px] w-[68px] rounded-full bg-card border-[3px] border-card shadow-soft grid place-items-center overflow-hidden">
+            {user.avatar ? <img src={user.avatar} alt={displayName} className="h-full w-full object-cover" /> : <span className="text-[26px] font-extrabold text-primary">{name ? name[0].toUpperCase() : <User className="h-8 w-8 text-muted-foreground" />}</span>}
+          </div>
+          <button aria-label="Đổi ảnh đại diện" onClick={() => fileInputRef.current?.click()} className="absolute -bottom-0.5 -right-0.5 h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center shadow-soft border-2 border-card"><Camera className="h-3.5 w-3.5" /></button>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
         </div>
-        <Button variant="outline" className="w-full mt-3 rounded-full" onClick={() => startPomodoro()}>Bắt đầu tập trung</Button>
-      </Surface>
-      <Surface className="p-4">
-        <SectionTitle title="Đang theo dõi" />
-        <div className="space-y-1 -mx-2">
-          <ItemRow icon={<LifeIcon name="module/tasks" size={20} variant="duotone" />} tint="sky" title="Việc đang mở" value={openTasks} onClick={() => navigate('/tasks')} />
-          <ItemRow icon={<LifeIcon name="module/goals" size={20} variant="duotone" />} tint="rose" title="Mục tiêu" value={activeGoals} onClick={() => navigate('/goals')} />
+        <div className="flex-1 min-w-0">
+          <h2 className="text-[19px] font-extrabold tracking-tight truncate">{displayName}</h2>
+          {email && <p className="text-[12.5px] text-muted-foreground truncate">{email}</p>}
+          {user.bio && <p className="text-[12.5px] mt-0.5 line-clamp-2">{user.bio}</p>}
         </div>
-      </Surface>
-      <MascotCard mascot="lumi" pose="happy" title="Là chính bạn" quote="Hiểu rõ bản thân là bước đầu tiên để sống cuộc đời bạn muốn." />
+        <Button size="sm" variant="outline" className="rounded-full bg-card/80 shrink-0" onClick={openEdit}><Pencil className="h-3.5 w-3.5 mr-1" />Sửa</Button>
+      </div>
+      {completion < 100 && (
+        <button onClick={missing.every((m) => m === 'tầm nhìn' || m === 'giá trị sống') ? () => setParams({ view: 'vision' }) : openEdit} className="mt-3.5 w-full text-left rounded-2xl bg-card/80 px-3 py-2.5 hover:bg-card">
+          <div className="flex justify-between text-[12px] font-semibold mb-1.5"><span>Hoàn thiện hồ sơ</span><span className="text-primary">{completion}%</span></div>
+          <ProgressBar value={completion} />
+          <p className="text-[11.5px] text-muted-foreground mt-1.5 truncate">Còn thiếu: {missing.join(', ')} — giúp AI hiểu bạn hơn</p>
+        </button>
+      )}
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+        {[{ v: activeHabits.length, l: 'Thói quen', to: '/habits' }, { v: `${bestStreak}🔥`, l: 'Chuỗi tốt nhất', to: '/habits' }, { v: doneTasks, l: 'Việc đã xong', to: '/tasks' }].map((s) => (
+          <button key={s.l} onClick={() => navigate(s.to)} className="rounded-2xl bg-card/60 py-2 hover:bg-card">
+            <p className="text-[17px] font-extrabold tabular-nums leading-tight">{s.v}</p>
+            <p className="text-[11px] text-muted-foreground">{s.l}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const list = (
+    <div className="space-y-4 min-w-0">
+      <label className="flex items-center gap-2 h-11 rounded-full border border-border/70 bg-card px-4 focus-within:border-primary/50">
+        <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm cài đặt… (mật khẩu, thông báo, giao diện)" className="flex-1 min-w-0 bg-transparent text-[13.5px] outline-none" />
+        {q && <button aria-label="Xoá tìm kiếm" onClick={() => setQ('')}><X className="h-4 w-4 text-muted-foreground" /></button>}
+      </label>
+      {shown.map((g) => (
+        <section key={g.title}>
+          <p className="px-3 mb-1.5 text-[12px] font-bold uppercase tracking-wide text-muted-foreground">{g.title}</p>
+          <Surface className="p-1.5">
+            {g.items.map((i) => (
+              <ItemRow key={i.id} icon={icon(i.icon)} tint={i.tint} title={i.label} meta={i.meta} onClick={() => navigate(i.to)}
+                trailing={<span className="flex items-center gap-1 shrink-0 max-w-[38%]">{i.value && <span className="text-[12.5px] font-semibold text-muted-foreground truncate">{i.value}</span>}<ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" /></span>} />
+            ))}
+          </Surface>
+        </section>
+      ))}
+      {!shown.length && <Surface className="p-6 text-center text-[13px] text-muted-foreground">Không tìm thấy “{q}”. Thử “mật khẩu”, “thông báo”, “giao diện”…</Surface>}
+      {authUser && !nq && (
+        <Surface className="p-1.5">
+          <ItemRow icon={<LogOut className="h-4 w-4 text-destructive" />} tint="rose" title={<span className="text-destructive">Đăng xuất</span>} meta={email} onClick={handleSignOut} />
+        </Surface>
+      )}
+      {!nq && <p className="text-center text-[11.5px] text-muted-foreground pb-2">LifeOS · dữ liệu của bạn được đồng bộ an toàn</p>}
     </div>
   );
 
   return (
     <Page>
-      <PageHeader title="Hồ sơ" subtitle="Thông tin cá nhân, tầm nhìn & giá trị của bạn 🌱"
-        actions={!isMobile && <Button className="h-10 rounded-full px-5 shadow-soft" onClick={openEdit}><Pencil className="h-4 w-4 mr-1.5" />Sửa hồ sơ</Button>} />
-      <SegmentedTabs items={[{ id: 'overview', label: 'Tổng quan' }, { id: 'vision', label: 'Tầm nhìn & giá trị' }]} value={view} onChange={setView} full={isMobile} className="mb-5" />
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
-        <div className="space-y-4 min-w-0">
-          <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#EFEBFF] via-[#F6F1FF] to-[#FFEFF6] dark:from-primary/20 dark:via-primary/10 dark:to-[#F2557A]/10 border border-border/40 p-5 sm:p-6">
-            <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-              <div className="relative shrink-0">
-                <div className="h-24 w-24 rounded-full bg-card border-4 border-card shadow-soft grid place-items-center overflow-hidden">
-                  {user.avatar ? <img src={user.avatar} alt={displayName} className="h-full w-full object-cover" /> : <User className="h-11 w-11 text-muted-foreground" />}
-                </div>
-                <button aria-label="Đổi ảnh đại diện" onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground grid place-items-center shadow-soft hover:bg-primary/90"><Camera className="h-4 w-4" /></button>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-[22px] sm:text-[24px] font-extrabold tracking-tight">{displayName}</h2>
-                {user.bio && <p className="text-[13px] text-muted-foreground mt-1">{user.bio}</p>}
-                {displayEmail && <span className="inline-flex items-center gap-1 mt-2 rounded-full bg-card/80 px-2.5 py-1 text-[11.5px] font-semibold"><Mail className="h-3 w-3" />{displayEmail}</span>}
-                <div className="mt-3 max-w-sm mx-auto sm:mx-0">
-                  <div className="flex justify-between text-[12px] font-semibold mb-1"><span className="text-muted-foreground">Hoàn thành hồ sơ</span><span>{profileCompletion}%</span></div>
-                  <ProgressBar value={profileCompletion} />
-                  {profileCompletion < 100 && missing && <p className="text-[11.5px] text-muted-foreground mt-1">Thêm {missing} để hoàn thiện hồ sơ</p>}
-                </div>
-              </div>
-              {isMobile && <Button className="rounded-full" onClick={openEdit}><Pencil className="h-4 w-4 mr-1.5" />Sửa hồ sơ</Button>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatTile icon="module/habits" tint="mint" value={activeHabits.length} label="Thói quen" hint="đang theo dõi" onClick={() => navigate('/habits')} />
-            <StatTile icon={<span className="text-[22px]">🔥</span>} tint="orange" value={bestStreak} label="Chuỗi dài nhất" hint="ngày liên tiếp" onClick={() => navigate('/habits')} />
-            <StatTile icon="module/focus" tint="violet" value={`${Math.round(totalMinutes / 60)}h`} label="Tập trung" hint={`${totalPomodoros} phiên`} />
-            <StatTile icon="status/success" tint="sky" value={doneTasks} label="Việc hoàn thành" hint="tất cả thời gian" onClick={() => navigate('/tasks')} />
-          </div>
-
-          {view === 'overview' ? (
-            <Surface className="p-2 sm:p-3">
-              <div className="px-2 pt-1"><SectionTitle title="Tài khoản & tiện ích" /></div>
-              <div className="space-y-0.5">
-                {MENU.map((m) => (
-                  <ItemRow key={m.path} icon={m.icon.includes('/') ? <LifeIcon name={m.icon as LifeIconName} size={20} variant="duotone" /> : m.icon} tint={m.tint} title={m.label} meta={m.meta}
-                    trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => navigate(m.path)} />
-                ))}
-                {authUser && <ItemRow icon={<LogOut className="h-4 w-4 text-destructive" />} tint="rose" title={<span className="text-destructive">Đăng xuất</span>} onClick={async () => { await signOut(); toast.success('Đã đăng xuất'); navigate('/auth'); }} />}
-              </div>
-            </Surface>
-          ) : (
-            <VisionValuesManager />
-          )}
-          {isMobile && side}
-        </div>
-        {!isMobile && <aside className="hidden xl:block sticky top-4">{side}</aside>}
+      <PageHeader title="Tài khoản" subtitle="Hồ sơ, cá nhân hoá & cài đặt" />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_minmax(0,1fr)] items-start">
+        <div className="min-w-0 lg:sticky lg:top-4">{profileCard}</div>
+        {list}
       </div>
 
       <AdaptiveModal open={editing} onOpenChange={setEditing} title="Sửa hồ sơ">
         <form onSubmit={save} className="space-y-3.5 mt-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Họ tên"><input className={fieldCls} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Tên của bạn" /></Field>
-            <Field label="Email"><input type="email" className={fieldCls} value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="email@example.com" /></Field>
-            <Field label="Số điện thoại"><input className={fieldCls} value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} placeholder="0123 456 789" /></Field>
+          <Field label="Tên hiển thị"><input className={fieldCls} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="AI sẽ gọi bạn bằng tên này" autoFocus={!isMobile} /></Field>
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Ngày sinh"><input type="date" className={fieldCls} value={draft.birthday} onChange={(e) => setDraft({ ...draft, birthday: e.target.value })} /></Field>
+            <Field label="Số điện thoại"><input inputMode="tel" className={fieldCls} value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} placeholder="0123 456 789" /></Field>
           </div>
-          <Field label="Giới thiệu"><textarea className={areaCls} rows={3} value={draft.bio} onChange={(e) => setDraft({ ...draft, bio: e.target.value })} placeholder="Giới thiệu ngắn về bản thân..." /></Field>
-          <FormActions onCancel={() => setEditing(false)} submitLabel="Lưu thông tin" />
+          <Field label="Giới thiệu"><textarea className={areaCls} rows={3} value={draft.bio} onChange={(e) => setDraft({ ...draft, bio: e.target.value })} placeholder="Bạn đang làm gì, quan tâm điều gì…" /></Field>
+          <p className="text-[11.5px] text-muted-foreground">Email đăng nhập đổi trong <button type="button" className="text-primary font-semibold" onClick={() => { setEditing(false); navigate('/settings?tab=account'); }}>Email & mật khẩu</button>.</p>
+          <FormActions onCancel={() => setEditing(false)} submitLabel="Lưu hồ sơ" />
         </form>
       </AdaptiveModal>
     </Page>

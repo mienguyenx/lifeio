@@ -164,27 +164,27 @@ export function DataExportImport() {
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-secondary rounded-lg p-2">
             <p className="text-lg font-bold">{stats.habits}</p>
-            <p className="text-xs text-muted-foreground">Habits</p>
+            <p className="text-xs text-muted-foreground">Thói quen</p>
           </div>
           <div className="bg-secondary rounded-lg p-2">
             <p className="text-lg font-bold">{stats.tasks}</p>
-            <p className="text-xs text-muted-foreground">Tasks</p>
+            <p className="text-xs text-muted-foreground">Công việc</p>
           </div>
           <div className="bg-secondary rounded-lg p-2">
             <p className="text-lg font-bold">{stats.goals}</p>
-            <p className="text-xs text-muted-foreground">Goals</p>
+            <p className="text-xs text-muted-foreground">Mục tiêu</p>
           </div>
           <div className="bg-secondary rounded-lg p-2">
             <p className="text-lg font-bold">{stats.journals}</p>
-            <p className="text-xs text-muted-foreground">Journals</p>
+            <p className="text-xs text-muted-foreground">Nhật ký</p>
           </div>
           <div className="bg-secondary rounded-lg p-2">
             <p className="text-lg font-bold">{stats.reviews}</p>
-            <p className="text-xs text-muted-foreground">Reviews</p>
+            <p className="text-xs text-muted-foreground">Review</p>
           </div>
           <div className="bg-secondary rounded-lg p-2">
             <p className="text-lg font-bold">🍅 {stats.pomodoros}</p>
-            <p className="text-xs text-muted-foreground">Pomodoros</p>
+            <p className="text-xs text-muted-foreground">Pomodoro</p>
           </div>
         </div>
 
