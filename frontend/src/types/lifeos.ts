@@ -428,6 +428,8 @@ export interface LifeVision {
   id: string;
   statement: string;
   timeframe?: '1-year' | '5-year' | '10-year' | 'lifetime';
+  /** Ảnh minh hoạ (vision board) — data URL đã nén hoặc URL */
+  images?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -500,6 +502,7 @@ export interface UserProfile {
   roles?: string[];
   // Enhanced fields
   lifePurpose?: string; // Life motto/purpose statement
+  lifePurposeImages?: string[]; // Ảnh minh hoạ cho mục đích sống
   visions?: LifeVision[];
   personalValues?: PersonalValue[];
   lifeRoles?: LifeRole[];

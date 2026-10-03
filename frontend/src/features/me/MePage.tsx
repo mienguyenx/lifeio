@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
-import { VisionValuesManager } from '@/components/profile/VisionValuesManager';
+import { VisionBoard } from '@/features/vision/VisionBoard';
 import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
 import { ItemRow, Page, PageHeader, ProgressBar, Surface, type Tint } from '@/components/lio';
 import { Field, FormActions, areaCls, fieldCls } from '@/components/lio/form';
@@ -117,6 +117,7 @@ export default function MePage() {
     { title: 'Dữ liệu & bảo mật', items: [
       { id: 'security', label: 'Email & mật khẩu', meta: email || 'Đăng nhập & bảo mật', icon: '🔐', tint: 'violet', to: '/settings?tab=account', keywords: 'tai khoan mat khau email doi password bao mat account' },
       { id: 'data', label: 'Sao lưu & xuất dữ liệu', meta: 'Xuất, nhập, đặt lại dữ liệu', icon: 'module/sync', tint: 'sky', to: '/settings?tab=data', keywords: 'du lieu xuat nhap backup export import xoa reset' },
+      { id: 'activity', label: 'Lịch sử hoạt động', meta: 'Những gì bạn đã thêm, sửa, hoàn thành', icon: 'module/archive', tint: 'amber', to: '/activity', keywords: 'lich su hoat dong activity log history thay doi nhat ky thao tac' },
       { id: 'trash', label: 'Thùng rác', meta: 'Khôi phục mục đã xoá', icon: 'module/trash', tint: 'rose', to: '/trash', keywords: 'thung rac trash khoi phuc' },
     ] },
   ], [archetype, tone, user.personalValues, pendingMemories, acceptedMemories, modulesOn, pushOn, unread, theme, themeLabel, pomodoro, email]);
@@ -152,7 +153,7 @@ export default function MePage() {
     return (
       <Page>
         <PageHeader title={<span className="inline-flex items-center gap-2"><button aria-label="Quay lại" onClick={() => setParams({})} className="h-9 w-9 -ml-1 rounded-full grid place-items-center hover:bg-secondary"><ArrowLeft className="h-5 w-5" /></button>Tầm nhìn & giá trị</span>} subtitle="Điều bạn muốn trở thành & những gì quan trọng nhất" />
-        <VisionValuesManager />
+        <VisionBoard />
       </Page>
     );
   }

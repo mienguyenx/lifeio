@@ -56,6 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { path: '/decisions', label: 'Nhật ký quyết định', icon: 'module/journal', keywords: 'decisions' },
       { path: '/ai-memory', label: 'Bộ nhớ AI', icon: 'module/ai-coach', keywords: 'ai memory' },
       { path: '/personalization', label: 'Cá nhân hóa', icon: 'module/settings', keywords: 'personalization' },
+      { path: '/activity', label: 'Lịch sử hoạt động', icon: 'module/archive', keywords: 'activity log history lich su hoat dong' },
       { path: '/trash', label: 'Thùng rác', icon: 'module/trash', keywords: 'trash' },
     ],
   },

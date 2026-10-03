@@ -24,6 +24,8 @@ import taskRoutes from './routes/tasks';
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: env.NODE_ENV === 'production' ? 'info' : 'debug' },
+    // Nhật ký / tầm nhìn lưu ảnh dạng data URL (đã nén) — cần lớn hơn mặc định 1MB
+    bodyLimit: 12 * 1024 * 1024,
   });
 
   await app.register(cors, {

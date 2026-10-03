@@ -4,6 +4,9 @@ import { getColumns, isValidColumn } from '../lib/columnCache';
 import { getPolicy, isDeferredTable, type TablePolicy } from '../lib/dbRegistry';
 import { getUserId } from '../lib/context';
 import { badRequest, forbidden, notFound } from '../lib/errors';
+import { isLoggedTable, logDelete, logInsert, logUpdate, snapshotByIds } from '../lib/activityLog';
+
+const stripMeta = (rows: Record<string, unknown>[]) => rows.map(({ __inserted, ...r }) => r);
 
 type Op = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'is' | 'like' | 'ilike' | 'contains';
 
@@ -278,9 +281,14 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
             ? `UPDATE SET ${updateCols.map((c) => `${qi(c)} = EXCLUDED.${qi(c)}`).join(', ')}`
             : 'NOTHING');
       }
-      if (returning) sql += ' RETURNING *';
+      const logged = isLoggedTable(table);
+      const upsert = !!onConflict && onConflict.length > 0;
+      const before = logged && upsert ? await snapshotByIds(table, cleaned.map((r) => r.id)) : new Map();
+      if (logged && upsert) sql += ' RETURNING *, (xmax = 0) AS "__inserted"';
+      else if (returning || logged) sql += ' RETURNING *';
       const res = await pool.query(sql, params.all());
-      return reply.send({ data: returning ? res.rows : null, error: null });
+      if (logged) void logInsert(table, userId, res.rows, before, columns, (e) => request.log.warn({ err: e }, 'activity log failed'));
+      return reply.send({ data: returning ? stripMeta(res.rows) : null, error: null });
     },
   );
 
@@ -307,8 +315,16 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
       const setSql = entries.map(([k, v]) => `${qi(k)} = ${params.add(v)}`).join(', ');
       const where = buildWhere(table, policy, userId, filters, params, scoped);
       let sql = `UPDATE ${qi(table)} SET ${setSql} WHERE ${where}`;
-      if (returning) sql += ' RETURNING *';
+      const logged = isLoggedTable(table);
+      let before: Record<string, unknown>[] = [];
+      if (logged) {
+        const p2 = new ParamList();
+        const w2 = buildWhere(table, policy, userId, filters, p2, scoped);
+        before = (await pool.query(`SELECT * FROM ${qi(table)} WHERE ${w2} LIMIT 200`, p2.all())).rows;
+      }
+      if (returning || logged) sql += ' RETURNING *';
       const res = await pool.query(sql, params.all());
+      if (logged) void logUpdate(table, userId, before, res.rows, entries.map(([k]) => k), (e) => request.log.warn({ err: e }, 'activity log failed'));
       return reply.send({ data: returning ? res.rows : null, error: null });
     },
   );
@@ -326,8 +342,10 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
       const params = new ParamList();
       const where = buildWhere(table, policy, userId, filters, params, scoped);
       let sql = `DELETE FROM ${qi(table)} WHERE ${where}`;
-      if (returning) sql += ' RETURNING *';
+      const logged = isLoggedTable(table);
+      if (returning || logged) sql += ' RETURNING *';
       const res = await pool.query(sql, params.all());
+      if (logged) void logDelete(table, userId, res.rows, (e) => request.log.warn({ err: e }, 'activity log failed'));
       return reply.send({ data: returning ? res.rows : null, error: null });
     },
   );

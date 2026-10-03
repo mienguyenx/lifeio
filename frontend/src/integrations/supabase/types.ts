@@ -1165,6 +1165,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          images: string[] | null
           statement: string
           timeframe: Database["public"]["Enums"]["vision_timeframe"] | null
           updated_at: string | null
@@ -1173,6 +1174,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          images?: string[] | null
           statement: string
           timeframe?: Database["public"]["Enums"]["vision_timeframe"] | null
           updated_at?: string | null
@@ -1181,6 +1183,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          images?: string[] | null
           statement?: string
           timeframe?: Database["public"]["Enums"]["vision_timeframe"] | null
           updated_at?: string | null
@@ -1475,6 +1478,7 @@ export type Database = {
           email: string | null
           id: string
           life_purpose: string | null
+          life_purpose_images: string[] | null
           name: string | null
           phone: string | null
           timezone: string | null
@@ -1488,6 +1492,7 @@ export type Database = {
           email?: string | null
           id: string
           life_purpose?: string | null
+          life_purpose_images?: string[] | null
           name?: string | null
           phone?: string | null
           timezone?: string | null
@@ -1501,6 +1506,7 @@ export type Database = {
           email?: string | null
           id?: string
           life_purpose?: string | null
+          life_purpose_images?: string[] | null
           name?: string | null
           phone?: string | null
           timezone?: string | null
