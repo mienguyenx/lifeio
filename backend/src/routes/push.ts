@@ -6,8 +6,8 @@ import { getVapid, sendToUser } from '../lib/push';
 import { runPushTick } from '../lib/pushScheduler';
 
 interface Sub { endpoint?: string; keys?: { p256dh?: string; auth?: string } }
-const PREF_COLS = ['task_reminders', 'habit_reminders', 'overdue_alerts', 'daily_digest', 'digest_time', 'quiet_start', 'quiet_end', 'timezone'] as const;
-const DEFAULT_PREFS = { task_reminders: true, habit_reminders: true, overdue_alerts: true, daily_digest: true, digest_time: '08:00', quiet_start: null, quiet_end: null, timezone: null };
+const PREF_COLS = ['task_reminders', 'habit_reminders', 'overdue_alerts', 'daily_digest', 'checkin_reminders', 'digest_time', 'quiet_start', 'quiet_end', 'timezone'] as const;
+const DEFAULT_PREFS = { task_reminders: true, habit_reminders: true, overdue_alerts: true, daily_digest: true, checkin_reminders: true, digest_time: '08:00', quiet_start: null, quiet_end: null, timezone: null };
 const TIME = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 
 const pushRoutes: FastifyPluginAsync = async (fastify) => {
@@ -61,7 +61,7 @@ const pushRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.put<{ Body: Partial<Record<(typeof PREF_COLS)[number], unknown>> }>('/push/prefs', tag, async (request) => {
     const b = request.body ?? {};
     const v: Record<string, unknown> = {};
-    for (const k of ['task_reminders', 'habit_reminders', 'overdue_alerts', 'daily_digest'] as const) if (k in b) v[k] = !!b[k];
+    for (const k of ['task_reminders', 'habit_reminders', 'overdue_alerts', 'daily_digest', 'checkin_reminders'] as const) if (k in b) v[k] = !!b[k];
     for (const k of ['digest_time', 'quiet_start', 'quiet_end'] as const) if (k in b) {
       const t = b[k];
       if (t === null || t === '') { if (k === 'digest_time') throw badRequest('digest_time required'); v[k] = null; }
