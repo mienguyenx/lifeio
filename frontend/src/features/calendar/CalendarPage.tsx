@@ -6,6 +6,7 @@ import { Fab, Page, PageHeader, SearchToggle, SegmentedTabs } from '@/components
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { useTasks } from '@/features/tasks/hooks/useTasks';
@@ -27,6 +28,7 @@ import { EventDetail } from './components/EventDetail';
 import { EventRow } from './components/EventChip';
 
 const VIEW_KEY = 'lifeos.calendar.view';
+const GROUP_KEY = 'lifeos.calendar.groupHabits';
 const VIEWS: { id: CalendarView; label: string; short: string }[] = [
   { id: 'month', label: 'Tháng', short: 'Tháng' },
   { id: 'week', label: 'Tuần', short: 'Tuần' },
@@ -43,6 +45,8 @@ export default function CalendarPage() {
   const [anchor, setAnchor] = useState(() => fromKey(todayKey()));
   const [types, setTypes] = useState<CalendarItemType[]>(ALL_TYPES);
   const [search, setSearch] = useState('');
+  const [groupHabits, setGroupHabitsState] = useState(() => localStorage.getItem(GROUP_KEY) !== '0');
+  const setGroupHabits = (v: boolean) => { setGroupHabitsState(v); try { localStorage.setItem(GROUP_KEY, v ? '1' : '0'); } catch { /* ignore */ } };
   const [addInit, setAddInit] = useState<Partial<EventDraft> | null>(null);
   const [detail, setDetail] = useState<CalendarItem | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -73,9 +77,23 @@ export default function CalendarPage() {
   const byDate = useMemo(() => {
     const m: Record<string, CalendarItem[]> = {};
     filtered.forEach((i) => (m[i.date] ||= []).push(i));
+    if (groupHabits) {
+      // Gộp các thói quen đã làm trong ngày thành 1 mục để lịch gọn hơn
+      for (const [d, l] of Object.entries(m)) {
+        const hs = l.filter((x) => x.type === 'habit');
+        if (hs.length < 2) continue;
+        const rest = l.filter((x) => x.type !== 'habit');
+        rest.push({
+          id: `habits-${d}`, type: 'habit', refId: '', title: `${hs.length} thói quen`, date: d, completed: true,
+          meta: hs.map((h) => h.title).slice(0, 3).join(' · ') + (hs.length > 3 ? ` +${hs.length - 3}` : ''),
+          description: hs.map((h) => `✓ ${h.title}${h.start ? ` · ${h.start}` : ''}`).join('\n'), href: '/habits',
+        });
+        m[d] = rest;
+      }
+    }
     Object.values(m).forEach((l) => l.sort(sortItems));
     return m;
-  }, [filtered]);
+  }, [filtered, groupHabits]);
   const marks = useMemo(() => new Set(Object.keys(byDate)), [byDate]);
 
   const sel = key(anchor);
@@ -90,7 +108,7 @@ export default function CalendarPage() {
 
   const open = useCallback((i: CalendarItem) => {
     if (i.type === 'task') setTaskId(i.refId);
-    else if (i.type === 'habit') setHabitSel({ id: i.refId, date: i.date });
+    else if (i.type === 'habit' && i.refId) setHabitSel({ id: i.refId, date: i.date });
     else setDetail(i);
   }, []);
   const add = (k: string, time?: string) => setAddInit({ date: k, ...(time ? { time } : {}) });
@@ -159,7 +177,13 @@ export default function CalendarPage() {
         {!isMobile && <div className="ml-auto">{viewSwitch}</div>}
       </div>
       {isMobile && <div className="mb-3">{viewSwitch}</div>}
-      <CalendarFilters active={types} onToggle={toggleType} counts={cal.countBy} className="mb-4 -mx-1 px-1 pb-0.5" />
+      <div className="flex items-center gap-2 mb-4">
+        <CalendarFilters active={types} onToggle={toggleType} counts={cal.countBy} className="flex-1 min-w-0 -mx-1 px-1 pb-0.5" />
+        <label className="shrink-0 inline-flex items-center gap-2 h-8 pl-3 pr-1.5 rounded-full bg-card border border-border/70 text-[12.5px] font-semibold cursor-pointer" title="Gộp các thói quen trong ngày thành 1 mục">
+          {isMobile ? 'Gộp TQ' : 'Gộp thói quen'}
+          <Switch checked={groupHabits} onCheckedChange={setGroupHabits} className="scale-[0.8]" />
+        </label>
+      </div>
 
       {isMobile ? (
         <div className="space-y-4">

@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { CalendarItem } from '../types/calendar.types';
-import { TYPE_META, WEEKDAYS, fromMin, key, layoutDay, toMin } from '../utils/calendar.utils';
+import { tintBg, TYPE_META, WEEKDAYS, fromMin, key, layoutDay, toMin } from '../utils/calendar.utils';
 import { EventChip } from './EventChip';
+import { EventHover } from './EventHover';
 
 /** Lưới giờ cho chế độ Tuần (7 cột) và Ngày (1 cột). */
 export function TimeGridView({ days, byDate, onOpen, onAdd, onDropTask, compact }: {
@@ -22,6 +23,9 @@ export function TimeGridView({ days, byDate, onOpen, onAdd, onDropTask, compact 
   const allDay = useMemo(() => keys.map((k) => (byDate[k] || []).filter((i) => !i.start)), [keys.join(), byDate]); // eslint-disable-line react-hooks/exhaustive-deps
   const timed = useMemo(() => keys.map((k) => layoutDay(byDate[k] || [])), [keys.join(), byDate]); // eslint-disable-line react-hooks/exhaustive-deps
   const hasAllDay = allDay.some((l) => l.length);
+  const [allDayOpen, setAllDayOpen] = useState(false);
+  const CAP = compact ? 2 : 3;
+  const overflow = allDay.some((l) => l.length > CAP);
   const gutter = compact ? 'grid-cols-[34px_repeat(var(--n),minmax(0,1fr))]' : 'grid-cols-[56px_repeat(var(--n),minmax(0,1fr))]';
   const style = { ['--n' as string]: days.length } as React.CSSProperties;
   const slotTime = (e: React.MouseEvent | React.DragEvent) => {
@@ -48,10 +52,16 @@ export function TimeGridView({ days, byDate, onOpen, onAdd, onDropTask, compact 
       {/* All-day */}
       {hasAllDay && (
         <div className={cn('grid border-b border-border/60 bg-secondary/20', gutter)} style={style}>
-          <div className="text-[10px] text-muted-foreground px-1 py-1.5 text-right">{compact ? '' : 'Cả ngày'}</div>
+          <div className="text-[10px] text-muted-foreground px-1 py-1.5 text-right">
+            {compact ? '' : 'Cả ngày'}
+            {overflow && allDayOpen && <button type="button" onClick={() => setAllDayOpen(false)} className="block ml-auto mt-1 font-semibold text-primary">Thu gọn</button>}
+          </div>
           {allDay.map((list, i) => (
-            <div key={keys[i]} className="p-1 space-y-0.5 border-l border-border/40 max-h-[84px] overflow-y-auto no-scrollbar">
-              {list.map((it) => <EventChip key={it.id} item={it} compact onClick={() => onOpen(it)} draggable={it.type === 'task'} />)}
+            <div key={keys[i]} className="p-1 space-y-0.5 border-l border-border/40 min-w-0">
+              {(allDayOpen ? list : list.slice(0, CAP)).map((it) => <EventChip key={it.id} item={it} compact onClick={() => onOpen(it)} draggable={it.type === 'task'} />)}
+              {!allDayOpen && list.length > CAP && (
+                <button type="button" onClick={() => setAllDayOpen(true)} className="w-full text-left px-1.5 h-[18px] rounded-md text-[10.5px] font-semibold text-muted-foreground hover:bg-secondary">+{list.length - CAP} mục</button>
+              )}
             </div>
           ))}
         </div>
@@ -76,19 +86,22 @@ export function TimeGridView({ days, byDate, onOpen, onAdd, onDropTask, compact 
               {timed[i].map(({ item, s, e, lane, lanes }) => {
                 const m = TYPE_META[item.type];
                 const h = Math.max(((e - s) / 60) * H, 22);
+                const short = h < 34;
                 return (
+                  <EventHover key={item.id} item={item} onOpen={() => onOpen(item)}>
                   <button
-                    key={item.id}
                     draggable={item.type === 'task'}
                     onDragStart={(ev) => { ev.dataTransfer.setData('text/plain', item.refId); ev.dataTransfer.effectAllowed = 'move'; }}
                     onClick={(ev) => { ev.stopPropagation(); onOpen(item); }}
                     className={cn('absolute py-1 text-left overflow-hidden border-l-[3px] hover:brightness-[0.97] hover:shadow-soft transition-all', compact ? 'rounded-md px-1' : 'rounded-xl px-1.5')}
-                    style={{ top: (s / 60) * H + 1, height: h - 2, left: `calc(${(lane / lanes) * 100}% + 2px)`, width: `calc(${100 / lanes}% - 4px)`, background: m.tint, borderColor: m.color }}
-                    title={`${item.start}${item.end ? '–' + item.end : ''} · ${item.title}`}
+                    style={{ top: (s / 60) * H + 1, height: h - 2, left: `calc(${(lane / lanes) * 100}% + 2px)`, width: `calc(${100 / lanes}% - 4px)`, background: tintBg(m.color, 18), borderColor: m.color }}
                   >
-                    <p className={cn('font-semibold leading-tight text-foreground/85 truncate', compact ? 'text-[10px]' : 'text-[11.5px]', item.completed && item.type === 'task' && 'line-through opacity-70')}>{item.title}</p>
-                    {!compact && h > 34 && <p className="text-[10.5px] tabular-nums" style={{ color: m.color }}>{item.start}{item.end ? ` – ${item.end}` : ''}</p>}
+                    <p className={cn('font-semibold leading-tight text-foreground truncate', compact ? 'text-[10px]' : 'text-[11.5px]', item.completed && 'opacity-60', item.completed && item.type === 'task' && 'line-through')}>
+                      {short && !compact && <span className="tabular-nums font-bold mr-1" style={{ color: m.color }}>{item.start}</span>}{item.title}
+                    </p>
+                    {!compact && !short && <p className="text-[10.5px] tabular-nums font-semibold" style={{ color: m.color }}>{item.start}{item.end ? ` – ${item.end}` : ''}</p>}
                   </button>
+                  </EventHover>
                 );
               })}
               {k === today && (

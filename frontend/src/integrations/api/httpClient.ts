@@ -83,6 +83,12 @@ export function buildSession(tokens: {
 
 function loadSession(): ApiSession | null {
   if (typeof localStorage === 'undefined') return null;
+  // "Duy trì đăng nhập" tắt → phiên chỉ sống trong phiên trình duyệt (đóng app/tab là đăng xuất)
+  if (localStorage.getItem('lifeos.ephemeral') === '1' && !sessionStorage.getItem('lifeos.alive')) {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem('lifeos.ephemeral');
+    return null;
+  }
   const raw = localStorage.getItem(SESSION_KEY);
   if (!raw) return null;
   try {

@@ -26,6 +26,7 @@ function transformProfileFromDB(row: ProfileRow): Partial<UserProfile> {
     timezone: row.timezone || undefined,
     bio: row.bio || undefined,
     lifePurpose: row.life_purpose || undefined,
+    lifePurposeImages: row.life_purpose_images || undefined,
     avatar: row.avatar_url || undefined,
   };
 }
@@ -57,6 +58,7 @@ function transformLifeVisionFromDB(row: LifeVisionRow): LifeVision {
     id: row.id,
     statement: row.statement,
     timeframe: row.timeframe || undefined,
+    images: row.images || undefined,
     createdAt: row.created_at || new Date().toISOString(),
     updatedAt: row.updated_at || new Date().toISOString(),
   };
@@ -117,6 +119,7 @@ export function useProfileSync() {
     if ('timezone' in updates) data.timezone = updates.timezone;
     if ('bio' in updates) data.bio = updates.bio;
     if ('lifePurpose' in updates) data.life_purpose = updates.lifePurpose;
+    if ('lifePurposeImages' in updates) data.life_purpose_images = updates.lifePurposeImages?.length ? updates.lifePurposeImages : null;
     if ('avatar' in updates) data.avatar_url = updates.avatar;
 
     try {
@@ -282,6 +285,7 @@ export function useProfileSync() {
           user_id: user.id,
           statement: vision.statement,
           timeframe: vision.timeframe || null,
+          images: vision.images?.length ? vision.images : null,
           updated_at: new Date().toISOString(),
         });
 

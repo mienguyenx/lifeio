@@ -3,7 +3,10 @@ import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CalendarItem } from '../types/calendar.types';
 import { TYPE_META, WEEKDAYS, key, rangeOf } from '../utils/calendar.utils';
-import { EventChip } from './EventChip';
+import { EventChip, EventRow } from './EventChip';
+import { useState } from 'react';
+import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
+import { dayLabel } from '../utils/calendar.utils';
 
 export function MonthView({ anchor, selected, byDate, onSelect, onOpen, onAdd, onDropTask, mobile }: {
   anchor: Date; selected: string; byDate: Record<string, CalendarItem[]>;
@@ -12,7 +15,10 @@ export function MonthView({ anchor, selected, byDate, onSelect, onOpen, onAdd, o
 }) {
   const { days } = rangeOf('month', anchor);
   const today = key(new Date());
+  const [more, setMore] = useState<string | null>(null);
+  const moreList = more ? byDate[more] || [] : [];
   return (
+    <>
     <div className="rounded-[22px] bg-card border border-border/60 shadow-soft overflow-hidden">
       <div className="grid grid-cols-7 border-b border-border/60">
         {WEEKDAYS.map((d) => <div key={d} className="py-2.5 text-center text-[11.5px] font-semibold text-muted-foreground">{d}</div>)}
@@ -55,7 +61,9 @@ export function MonthView({ anchor, selected, byDate, onSelect, onOpen, onAdd, o
               ) : (
                 <div className="mt-1 space-y-0.5">
                   {list.slice(0, max).map((it) => <EventChip key={it.id} item={it} compact onClick={() => onOpen(it)} draggable={it.type === 'task'} />)}
-                  {list.length > max && <p className="text-[10.5px] font-semibold text-muted-foreground px-1">+{list.length - max} mục khác</p>}
+                  {list.length > max && (
+                    <button onClick={(e) => { e.stopPropagation(); setMore(k); }} className="w-full text-left text-[10.5px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/70 rounded-md px-1 py-0.5">+{list.length - max} mục khác</button>
+                  )}
                 </div>
               )}
             </div>
@@ -63,5 +71,11 @@ export function MonthView({ anchor, selected, byDate, onSelect, onOpen, onAdd, o
         })}
       </div>
     </div>
+    <AdaptiveModal open={!!more} onOpenChange={(o) => !o && setMore(null)} title={more ? `${dayLabel(more)} · ${moreList.length} mục` : ''} className="sm:max-w-[420px] rounded-[28px]">
+      <div className="space-y-1.5 max-h-[60vh] overflow-y-auto pr-0.5">
+        {moreList.map((it) => <EventRow key={it.id} item={it} onClick={() => { setMore(null); onOpen(it); }} />)}
+      </div>
+    </AdaptiveModal>
+    </>
   );
 }

@@ -57,6 +57,12 @@ export default function JournalPage() {
       && (!q || e.content.toLowerCase().includes(q) || e.gratitude?.some((g) => g.toLowerCase().includes(q))));
   }, [entries, search, mood, energy, area, tag]);
   const reading = entries.find((e) => e.id === readingId) || null;
+  const readIdx = reading ? list.findIndex((e) => e.id === reading.id) : -1;
+  const readList = readIdx >= 0 ? list : entries;
+  const ri = reading ? readList.findIndex((e) => e.id === reading.id) : -1;
+  const today = todayKey();
+  const onThisDay = useMemo(() => entries.filter((e) => e.date.slice(5) === today.slice(5) && e.date < today).slice(0, 3), [entries, today]);
+  const yearsAgo = (d: string) => { const n = Number(today.slice(0, 4)) - Number(d.slice(0, 4)); return n === 1 ? '1 năm trước' : `${n} năm trước`; };
   const filtered = mood !== 'all' || energy !== 'all' || area !== 'all' || tag !== 'all' || !!search;
   const avgMoodEmoji = MOODS[Math.max(0, Math.round(stats.avgMood) - 1)]?.emoji;
 
@@ -118,12 +124,24 @@ export default function JournalPage() {
                 {!isMobile && <span className="text-[12.5px] font-medium text-muted-foreground">{longDate(todayKey())}</span>}
               </div>} />
             <JournalOverview period={period} range={range} onRange={setRange} streak={stats.streak} onTag={(id) => { setTag(id); setView('list'); }}
-              recent={<Surface className="p-5">
+              recent={<>
+              {onThisDay.length > 0 && (
+                <Surface className="p-5">
+                  <SectionTitle title="Ngày này năm xưa" hint={`${onThisDay.length} bài`} />
+                  <div className="space-y-2.5">{onThisDay.map((e) => (
+                    <div key={e.id}>
+                      <p className="text-[11.5px] font-semibold text-primary mb-1 px-1">{yearsAgo(e.date)}</p>
+                      <JournalCard layout="row" entry={e} tagOf={tagOf} onOpen={() => setReadingId(e.id)} onEdit={() => openEdit(e)} onDelete={() => setToDelete(e)} />
+                    </div>
+                  ))}</div>
+                </Surface>
+              )}
+              <Surface className="p-5">
                 <SectionTitle title="Nhật ký gần đây" action={<button onClick={() => setView('list')} className="text-[12px] font-semibold text-primary">Xem tất cả</button>} />
                 {entries.length === 0
                   ? <EmptyState mascot="ori" pose="learn" compact title="Bắt đầu trang nhật ký đầu tiên" description="Mỗi trang nhật ký là một bước tiến đến phiên bản tốt hơn của bạn." />
                   : <div className="space-y-2.5">{entries.slice(0, 4).map((e) => <JournalCard key={e.id} layout="row" entry={e} tagOf={tagOf} onOpen={() => setReadingId(e.id)} onEdit={() => openEdit(e)} onDelete={() => setToDelete(e)} />)}</div>}
-              </Surface>} />
+              </Surface></>} />
             {isMobile && <JournalSidePanel period={period} stats={stats} />}
           </div>
           {!isMobile && <aside className="hidden xl:block sticky top-4"><JournalSidePanel period={period} stats={stats} /></aside>}
@@ -136,7 +154,8 @@ export default function JournalPage() {
 
       <JournalEditor open={!!editor} onOpenChange={(o) => !o && setEditor(null)} mode={editor?.mode ?? 'create'} initial={editor?.initial} tags={tags} onManageTags={() => setTagsOpen(true)}
         onSubmit={(d) => { if (editor?.entry) api.edit(editor.entry, d); else api.create(d); }} />
-      <JournalReader entry={reading} onOpenChange={(o) => !o && setReadingId(null)} tagOf={tagOf} onEdit={() => reading && openEdit(reading)} onDelete={() => reading && setToDelete(reading)} />
+      <JournalReader entry={reading} onOpenChange={(o) => !o && setReadingId(null)} tagOf={tagOf} onEdit={() => reading && openEdit(reading)} onDelete={() => reading && setToDelete(reading)}
+        onPrev={ri > 0 ? () => setReadingId(readList[ri - 1].id) : undefined} onNext={ri >= 0 && ri < readList.length - 1 ? () => setReadingId(readList[ri + 1].id) : undefined} />
       <JournalHistoryModal entries={entries} journalTags={tags} open={historyOpen} onOpenChange={setHistoryOpen} onSelectEntry={(e) => { setHistoryOpen(false); setReadingId(e.id); }} />
       <JournalTagsManager open={tagsOpen} onOpenChange={setTagsOpen} tags={tags} onAddTag={api.addTag} onUpdateTag={api.updateTag} onDeleteTag={api.deleteTag} />
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>

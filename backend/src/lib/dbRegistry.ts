@@ -65,6 +65,7 @@ export const TABLE_REGISTRY: Record<string, TablePolicy> = {
   yearly_plannings: own(),
   life_wheel_scores: own(),
   life_visions: own(),
+  activity_log: own({ writeAdminOnly: true }),
   life_visions_history: own(),
   life_milestones: own(),
   life_milestones_history: own(),

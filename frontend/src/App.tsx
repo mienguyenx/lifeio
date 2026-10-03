@@ -45,6 +45,7 @@ import TrashPage from "./features/trash/TrashPage";
 import ModulesPage from "./features/modules/ModulesPage";
 import LegacyMePage from "./pages/MePage";
 import MePage from "./features/me/MePage";
+import ActivityPage from "./features/activity/ActivityPage";
 import LegacySettingsPage from "./pages/SettingsPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import HealthPage from "./features/health/HealthPage";
@@ -160,6 +161,7 @@ function MainApp() {
         <Route path="/modules" element={<ModulesPage />} />
         <Route path="/trash/classic" element={<LegacyTrashPage />} />
         <Route path="/me" element={<MePage />} />
+        <Route path="/activity" element={<ActivityPage />} />
         <Route path="/me/classic" element={<LegacyMePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/classic" element={<LegacySettingsPage />} />
