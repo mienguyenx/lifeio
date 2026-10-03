@@ -19,8 +19,7 @@ import { TodayAddTaskModal } from '@/components/today/TodayAddTaskModal';
 import { TodayAddHabitModal } from '@/components/today/TodayAddHabitModal';
 import { TodayAddJournalModal } from '@/components/today/TodayAddJournalModal';
 import { TodayFocusCard } from '@/components/today/TodayFocusCard';
-import { MorningCheckin } from '@/components/today/MorningCheckin';
-import { EveningReview } from '@/components/today/EveningReview';
+import { DailyCheckin } from '@/components/today/DailyCheckin';
 import { HabitRescueCard } from '@/components/today/HabitRescueCard';
 import { AIDailyBriefing } from '@/components/today/AIDailyBriefing';
 import { RecommendationsCard } from '@/components/today/RecommendationsCard';
@@ -355,6 +354,13 @@ export default function TodayPage() {
     );
   };
 
+  const checkin = (
+    <DailyCheckin
+      summary={{ tasksDone: completedTasksToday.length, tasksTotal: todayTasks.length + completedTasksToday.length, habitsDone: completedHabitsToday.length, habitsTotal: todayHabits.length }}
+      suggestions={[...overdueTasks, ...todayTasks].filter((t) => t.status !== 'done').sort((a, b) => (a.priority === 'high' ? -1 : 0) - (b.priority === 'high' ? -1 : 0)).map((t) => t.title)}
+    />
+  );
+
   if (isMobile) return (
     <Page>
       {onboardingChecked && userPreferences?.onboardingCompleted === false && <OnboardingWizard onComplete={() => {}} />}
@@ -377,7 +383,10 @@ export default function TodayPage() {
           </div>
         </section>
 
-        {/* 2. Tiếp theo */}
+        {/* 2. Check-in đúng lúc (sáng/tối theo giờ dậy–ngủ) */}
+        {checkin}
+
+        {/* 3. Tiếp theo */}
         <section className="rounded-[24px] bg-primary text-primary-foreground p-4 shadow-soft relative overflow-hidden">
           <span className="absolute -right-6 -top-8 h-28 w-28 rounded-full bg-white/10" />
           <p className="text-[11.5px] font-bold uppercase tracking-wide opacity-80">{todayIntention && !todayIntention.completed ? 'Điều quan trọng nhất' : 'Tiếp theo'}</p>
@@ -448,8 +457,6 @@ export default function TodayPage() {
         </Surface>
 
         {/* 5. Đúng lúc: sáng check-in, tối review, Chủ nhật review tuần */}
-        {hour < 12 && userPreferences?.morningCheckinEnabled !== false && <MorningCheckin />}
-        {userPreferences?.eveningReviewEnabled !== false && <EveningReview />}
         {isSunday && isOn('reviews') && !currentWeekReview && (
           <Link to="/weekly-review?add" className="flex items-center gap-3 rounded-[22px] border border-border/60 bg-card p-3.5">
             <span className="h-10 w-10 rounded-[13px] bg-lavender dark:bg-primary/15 grid place-items-center text-[18px]">🗓️</span>
@@ -580,8 +587,7 @@ export default function TodayPage() {
           </Surface>
 
           <AIDailyBriefing />
-          {userPreferences?.morningCheckinEnabled !== false && <MorningCheckin />}
-          {userPreferences?.eveningReviewEnabled !== false && <EveningReview />}
+          {checkin}
           {!isMobile && userPreferences?.showTodayFocus !== false && <TodayFocusCard />}
 
           <div className="grid gap-4 md:grid-cols-2">{habitsCard}{tasksCard}</div>

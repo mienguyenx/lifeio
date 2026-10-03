@@ -149,9 +149,9 @@ export default function PersonalizationPage() {
             <Surface className="p-4 sm:p-5">
               <SectionTitle title="Thông báo & hiển thị" />
               <div className="divide-y divide-border/50">
-                <ToggleRow title="Check-in buổi sáng" desc="Hiện form check-in mỗi sáng" checked={localPrefs.morningCheckinEnabled} onChange={(v) => update({ morningCheckinEnabled: v })}
+                <ToggleRow title="Check-in buổi sáng" desc="Hiện từ giờ dậy đến 11:00, nếu chưa làm" checked={localPrefs.morningCheckinEnabled} onChange={(v) => update({ morningCheckinEnabled: v })}
                   extra={<input type="time" className={cn(fieldCls, 'h-9 w-[104px] text-[13px]')} value={localPrefs.morningCheckinTime || '07:00'} onChange={(e) => update({ morningCheckinTime: e.target.value })} />} />
-                <ToggleRow title="Review buổi tối" desc="Hiện form review mỗi tối" checked={localPrefs.eveningReviewEnabled} onChange={(v) => update({ eveningReviewEnabled: v })}
+                <ToggleRow title="Review buổi tối" desc="Hiện từ 3 giờ trước giờ ngủ, nếu chưa làm" checked={localPrefs.eveningReviewEnabled} onChange={(v) => update({ eveningReviewEnabled: v })}
                   extra={<input type="time" className={cn(fieldCls, 'h-9 w-[104px] text-[13px]')} value={localPrefs.eveningReviewTime || '21:00'} onChange={(e) => update({ eveningReviewTime: e.target.value })} />} />
                 <ToggleRow title="Thẻ trọng tâm hôm nay" desc="Hiện phần tóm tắt trọng tâm" checked={localPrefs.showTodayFocus} onChange={(v) => update({ showTodayFocus: v })} />
                 <ToggleRow title="Gợi ý AI" desc="Hiện gợi ý AI trên trang Hôm nay" checked={localPrefs.showAISuggestions} onChange={(v) => update({ showAISuggestions: v })} />

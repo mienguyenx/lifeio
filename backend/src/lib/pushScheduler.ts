@@ -11,6 +11,7 @@ interface UserRow {
   user_id: string; tz: string; local_date: string; local_min: number;
   task_reminders: boolean; habit_reminders: boolean; overdue_alerts: boolean; daily_digest: boolean;
   digest_min: number; quiet_start: number | null; quiet_end: number | null;
+  checkin_reminders: boolean; wake: string | null; sleep: string | null; morning_on: string | null; evening_on: string | null; evening_date: string;
 }
 
 const inQuiet = (u: UserRow) => {
@@ -24,13 +25,19 @@ async function users(): Promise<UserRow[]> {
       SELECT DISTINCT s.user_id, COALESCE(np.timezone, p.timezone, 'Asia/Ho_Chi_Minh') AS tz,
         COALESCE(np.task_reminders, true) AS task_reminders, COALESCE(np.habit_reminders, true) AS habit_reminders,
         COALESCE(np.overdue_alerts, true) AS overdue_alerts, COALESCE(np.daily_digest, true) AS daily_digest,
-        COALESCE(np.digest_time, '08:00'::time) AS digest_time, np.quiet_start, np.quiet_end
+        COALESCE(np.digest_time, '08:00'::time) AS digest_time, np.quiet_start, np.quiet_end,
+        COALESCE(np.checkin_reminders, true) AS checkin_reminders,
+        COALESCE(us.preferences->>'wakeUpTime', us.preferences->>'wake_up_time') AS wake,
+        COALESCE(us.preferences->>'sleepTime', us.preferences->>'sleep_time') AS sleep,
+        us.preferences->>'morningCheckinEnabled' AS morning_on, us.preferences->>'eveningReviewEnabled' AS evening_on
       FROM "push_subscriptions" s
       LEFT JOIN "notification_prefs" np ON np.user_id = s.user_id
       LEFT JOIN "profiles" p ON p.id = s.user_id
+      LEFT JOIN "user_settings" us ON us.user_id = s.user_id
     )
-    SELECT user_id, tz, task_reminders, habit_reminders, overdue_alerts, daily_digest,
+    SELECT user_id, tz, task_reminders, habit_reminders, overdue_alerts, daily_digest, checkin_reminders, wake, sleep, morning_on, evening_on,
       to_char(now() AT TIME ZONE tz, 'YYYY-MM-DD') AS local_date,
+      to_char((now() AT TIME ZONE tz) - interval '4 hours', 'YYYY-MM-DD') AS evening_date,
       (EXTRACT(HOUR FROM now() AT TIME ZONE tz) * 60 + EXTRACT(MINUTE FROM now() AT TIME ZONE tz))::int AS local_min,
       (EXTRACT(HOUR FROM digest_time) * 60 + EXTRACT(MINUTE FROM digest_time))::int AS digest_min,
       CASE WHEN quiet_start IS NULL THEN NULL ELSE (EXTRACT(HOUR FROM quiet_start) * 60 + EXTRACT(MINUTE FROM quiet_start))::int END AS quiet_start,
@@ -83,6 +90,30 @@ async function dailyDigest(u: UserRow) {
   await sendToUser(u.user_id, { type: 'info', title: '☀️ Chào buổi sáng!', body: `Hôm nay: ${parts.join(' · ')}. Bắt đầu thôi!`, url: '/', tag: 'daily-digest', dedupeKey: `digest:${u.user_id}:${u.local_date}` });
 }
 
+const toMin = (t: string | null, d: number) => {
+  const m = /^(\d{1,2}):(\d{2})/.exec(t || '');
+  return m ? (+m[1] % 24) * 60 + +m[2] : d;
+};
+/** Phút trôi qua kể từ mốc `at` (vòng 24h) — dùng để nhắc trong 20 phút sau mốc. */
+const since = (now: number, at: number) => (now - at + 1440) % 1440;
+
+async function checkinReminders(u: UserRow) {
+  const wake = toMin(u.wake, 7 * 60);
+  const sleep = toMin(u.sleep, 23 * 60);
+  const slots: { kind: 'morning' | 'evening'; at: number; date: string; on: boolean }[] = [
+    { kind: 'morning', at: (wake + 30) % 1440, date: u.local_date, on: u.morning_on !== 'false' },
+    { kind: 'evening', at: (sleep - 120 + 1440) % 1440, date: u.evening_date, on: u.evening_on !== 'false' },
+  ];
+  for (const s of slots) {
+    if (!s.on || since(u.local_min, s.at) > 20) continue;
+    const { rows } = await pool.query(`SELECT 1 FROM "daily_checkins" WHERE user_id = $1 AND date = $2::date AND kind = $3 LIMIT 1`, [u.user_id, s.date, s.kind]);
+    if (rows.length) continue;
+    await sendToUser(u.user_id, s.kind === 'morning'
+      ? { type: 'info', title: '☀️ Check-in buổi sáng', body: 'Năng lượng hôm nay thế nào? 1 chạm để định hướng ngày mới.', url: '/?checkin=morning', tag: 'checkin-morning', dedupeKey: `checkin:morning:${u.user_id}:${s.date}` }
+      : { type: 'info', title: '🌙 Nhìn lại hôm nay', body: '2 phút ghi lại điều làm tốt & điều biết ơn trước khi ngủ.', url: '/?checkin=evening', tag: 'checkin-evening', dedupeKey: `checkin:evening:${u.user_id}:${s.date}` });
+  }
+}
+
 export async function runPushTick() {
   if (running) return;
   running = true;
@@ -100,6 +131,7 @@ export async function runPushTick() {
           if (u.task_reminders) await taskReminders(u);
           if (u.habit_reminders) await habitReminders(u);
           if (u.daily_digest) await dailyDigest(u);
+          if (u.checkin_reminders) await checkinReminders(u);
         } catch (e) { console.warn('[push] user tick failed', u.user_id, (e as Error).message); }
       }
     } finally { if (client) await client.query(`SELECT pg_advisory_unlock($1)`, [LOCK_ID]); }

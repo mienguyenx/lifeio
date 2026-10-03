@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getTodayDateString } from '@/utils/dateUtils';
 import type { Habit, Task, Subtask, TaskTag, PomodoroSettings, PomodoroSession, UserProfile, Goal, JournalEntry, JournalTag, LifeWheelScore, WeeklyReview, MonthlyReview, YearlyPlanning, YearlyReview, ChatMessage, AISettings, LifeArea, HabitCompetition, Note, NoteTag, DailyIntention, SavedConversation, TrashSettings, UserPreferences, MorningCheckinEntry, EveningReviewEntry, AIMemoryEvent, DecisionLog } from '@/types/lifeos';
 import { sampleHabits, sampleTasks, samplePomodoroSessions, sampleUser } from '@/data/sampleData';
 import { sampleGoals, sampleJournalEntries, sampleLifeWheelScores, sampleWeeklyReviews, sampleChatMessages, sampleNotes, sampleDailyIntentions } from '@/data/sampleDataExtended';
@@ -991,7 +992,7 @@ export const useLifeOSStore = create<LifeOSStore>()(
       // Daily Intentions
       dailyIntentions: [],
       addDailyIntention: (intention) => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDateString(); // ngày theo GMT+7 — khớp với Hôm nay (trước 7h sáng UTC còn là hôm qua)
         set((state) => ({
           dailyIntentions: [
             ...state.dailyIntentions.filter((i) => i.date !== today),

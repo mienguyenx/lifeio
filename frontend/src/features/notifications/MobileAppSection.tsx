@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { Pill } from '@/features/admin/shared';
 import { disablePush, enablePush, isIOS, isStandalone, usePushState, useInstallState, type PushState } from '@/lib/pwa';
 
-interface Prefs { task_reminders: boolean; habit_reminders: boolean; overdue_alerts: boolean; daily_digest: boolean; digest_time: string; quiet_start: string | null; quiet_end: string | null; timezone: string | null }
+interface Prefs { task_reminders: boolean; habit_reminders: boolean; overdue_alerts: boolean; daily_digest: boolean; checkin_reminders?: boolean; digest_time: string; quiet_start: string | null; quiet_end: string | null; timezone: string | null }
 interface Device { id: string; device_label: string | null; platform: string | null; created_at: string; last_used_at: string | null; failure_count: number; last_error: string | null; endpoint: string }
 
 const Step = ({ n, children }: { n: number; children: React.ReactNode }) => (
@@ -128,6 +128,7 @@ export function NotificationPrefsCard() {
     { k: 'habit_reminders', title: 'Nhắc thói quen', hint: 'Đúng giờ nhắc của thói quen, nếu hôm nay chưa làm' },
     { k: 'overdue_alerts', title: 'Cảnh báo quá hạn', hint: 'Báo khi có việc trễ hạn' },
     { k: 'daily_digest', title: 'Bản tin buổi sáng', hint: 'Tóm tắt việc & thói quen trong ngày' },
+    { k: 'checkin_reminders', title: 'Nhắc check-in sáng & tối', hint: 'Theo giờ dậy/giờ ngủ trong Cá nhân hoá, chỉ khi bạn chưa check-in' },
   ];
   return (
     <Surface className="p-4 sm:p-5">

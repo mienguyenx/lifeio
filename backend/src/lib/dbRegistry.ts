@@ -57,6 +57,7 @@ export const TABLE_REGISTRY: Record<string, TablePolicy> = {
   // Personal modules
   chat_messages: own(),
   daily_intentions: own(),
+  daily_checkins: own(),
   pomodoro_sessions: own(),
   weekly_reviews: own(),
   monthly_reviews: own(),
