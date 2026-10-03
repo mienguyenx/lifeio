@@ -3,7 +3,8 @@
  * Quy tắc: mọi trang dùng <Page> + <PageHeader>; điều hướng mục chính dùng <SegmentedTabs>;
  * lọc nhanh dùng <FilterChips>; thẻ dùng <Surface>; số liệu dùng <StatTile>; nút thêm trên mobile dùng <Fab>.
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { usePageAction } from '@/stores/usePageAction';
 import { ChevronLeft, ChevronRight, MessageCircle, Plus, Search, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -117,12 +118,19 @@ export function IconButton({ children, label, onClick, active, className }: { ch
   );
 }
 
+/**
+ * Nút thêm của trang trên mobile. Không vẽ nút nổi riêng nữa (tránh 2 dấu ＋ cạnh nút ＋ giữa thanh điều hướng):
+ * đăng ký hành động cho trang, nút ＋ giữa sẽ hiện nó lên đầu sheet "Thêm nhanh".
+ */
 export function Fab({ onClick, label }: { onClick: () => void; label: string }) {
-  return (
-    <button onClick={onClick} aria-label={label} className="fixed bottom-24 right-5 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-fab grid place-items-center active:scale-95 transition-transform">
-      <Plus className="h-6 w-6" />
-    </button>
-  );
+  const ref = useRef(onClick);
+  ref.current = onClick;
+  useEffect(() => {
+    const set = usePageAction.getState().set;
+    set({ label, onClick: () => ref.current() });
+    return () => set(null);
+  }, [label]);
+  return null;
 }
 
 /* ───────── Data display ───────── */

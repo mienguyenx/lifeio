@@ -94,3 +94,14 @@ export function habitFromForm(f: HabitFormValue) {
     minimumVersion: f.minimumVersion.trim() || undefined,
   };
 }
+
+/** Gợi ý emoji theo tên thói quen (để "Uống nước" không bị gán 💪 của lĩnh vực Sức khỏe). */
+const EMOJI_HINTS: [RegExp, string][] = [
+  [/nước|water|uống/i, '💧'], [/đọc|sách|read|book/i, '📚'], [/chạy|run|jog/i, '🏃'], [/thiền|meditat|hít thở|thở/i, '🧘'],
+  [/nhật ký|journal|viết|write/i, '✍️'], [/ngủ|sleep|dậy sớm|thức dậy/i, '😴'], [/tập|gym|workout|thể dục|hít đất|plank/i, '💪'],
+  [/đi bộ|walk|bước/i, '🚶'], [/đạp xe|bike|cycl/i, '🚴'], [/ăn|rau|trái cây|salad|healthy|eat/i, '🥗'], [/thuốc|vitamin|pill/i, '💊'],
+  [/học|tiếng|english|learn|study|từ vựng/i, '🧠'], [/tiết kiệm|tiền|chi tiêu|save|money/i, '💰'], [/dọn|clean|nhà/i, '🧹'],
+  [/gọi|mẹ|bố|gia đình|family|call/i, '❤️'], [/cầu nguyện|biết ơn|grateful|pray/i, '🙏'], [/nhạc|đàn|guitar|piano|music/i, '🎵'],
+  [/điện thoại|mạng xã hội|screen|phone/i, '📵'], [/nắng|sun/i, '☀️'],
+];
+export const suggestEmoji = (name: string) => EMOJI_HINTS.find(([re]) => re.test(name))?.[1];

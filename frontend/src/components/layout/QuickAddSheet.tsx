@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { AudioLines, Mic, X } from 'lucide-react';
+import { AudioLines, Mic, Plus, X } from 'lucide-react';
 import { openVoiceChat } from '@/features/ai-coach/components/GlobalVoiceChat';
 import { toast } from 'sonner';
 import { LifeIcon } from '@/components/icons/LifeIcon';
 import { TINTS } from '@/components/lio';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
+import { usePageAction } from '@/stores/usePageAction';
 import { QUICK_ACTIONS, type QuickAction } from './navigationConfig';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +52,7 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
   const navigate = useNavigate();
 
   const startPomodoro = usePomodoroStore((s) => s.start);
+  const pageAction = usePageAction((s) => s.action);
   // Sửa lỗi: trước đây điều hướng `?action=add` nhưng các trang chỉ lắng nghe `?add` → form không mở.
   const handleAction = (action: QuickAction) => {
     onOpenChange(false);
@@ -95,6 +97,20 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
+
+            {/* Hành động chính của trang đang mở (vd. "Thêm thói quen") */}
+            {pageAction && (
+              <div className="px-5 pb-3">
+                <button onClick={() => { onOpenChange(false); setTimeout(pageAction.onClick, 150); }}
+                  className="w-full flex items-center gap-3 rounded-[20px] border-2 border-primary/30 bg-lavender dark:bg-primary/15 px-4 py-3 text-left active:scale-[0.98] transition-transform">
+                  <span className="h-10 w-10 rounded-full bg-primary text-primary-foreground grid place-items-center shrink-0"><Plus className="h-5 w-5" strokeWidth={2.5} /></span>
+                  <span className="min-w-0">
+                    <span className="block text-[14.5px] font-bold text-foreground">{pageAction.label}</span>
+                    <span className="block text-[12px] text-muted-foreground">Trên trang này</span>
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Voice: nói để tạo task, thói quen, nhật ký… */}
             <div className="px-5 pb-3 flex gap-2.5">

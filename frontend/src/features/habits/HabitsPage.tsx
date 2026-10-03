@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownAZ, ArrowUpAZ, Flame, History, LayoutList, Plus } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Flame, History, LayoutList, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Fab, IconButton, Page, PageHeader, SearchToggle, SegmentedTabs } from '@/components/lio';
@@ -59,6 +59,20 @@ const chip = (on: boolean) => cn(
 const scheduledOn = (h: Habit, date: string) =>
   h.frequency === 'daily' || !h.customDays?.length || h.customDays.includes(weekdayOf(date));
 
+/** Nhóm theo buổi dựa trên giờ nhắc — giống Streaks/Habitify: làm gì lúc nào nhìn là thấy. */
+const SLOTS = [
+  { id: 'morning', label: 'Buổi sáng', emoji: '🌅' },
+  { id: 'afternoon', label: 'Buổi chiều', emoji: '☀️' },
+  { id: 'evening', label: 'Buổi tối', emoji: '🌙' },
+  { id: 'any', label: 'Bất kỳ lúc nào', emoji: '✨' },
+] as const;
+type SlotId = (typeof SLOTS)[number]['id'];
+const slotOf = (h: Habit): SlotId => {
+  if (!h.reminderTime) return 'any';
+  const hr = Number(h.reminderTime.slice(0, 2));
+  return hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
+};
+
 export default function HabitsPage() {
   const isMobile = useIsMobile();
   const api = useHabits();
@@ -79,6 +93,7 @@ export default function HabitsPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Habit | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showDone, setShowDone] = useState(true);
 
   const detail = useMemo(() => api.habits.find((h) => h.id === detailId) ?? null, [api.habits, detailId]);
   const goalTitle = useCallback((h: Habit) => goals.find((g) => g.id === h.goalId)?.title, [goals]);
@@ -111,6 +126,24 @@ export default function HabitsPage() {
     if (!groupByArea) return null;
     return LIFE_AREAS.map((a) => ({ area: a, items: list.filter((h) => h.area === a.id) })).filter((g) => g.items.length);
   }, [list, groupByArea]);
+
+  // Chưa xong → theo buổi; đã xong dồn xuống cuối; không có lịch ngày này để riêng.
+  const { slots, doneList, offDay } = useMemo(() => {
+    const open = list.filter((h) => !isDoneOn(h, date) && scheduledOn(h, date));
+    const byTime = (a: Habit, b: Habit) => (a.reminderTime || '99').localeCompare(b.reminderTime || '99');
+    return {
+      slots: SLOTS.map((sl) => ({ ...sl, items: open.filter((h) => slotOf(h) === sl.id).sort(sortBy === 'created' ? byTime : () => 0) })).filter((g) => g.items.length),
+      doneList: list.filter((h) => isDoneOn(h, date)),
+      offDay: list.filter((h) => !isDoneOn(h, date) && !scheduledOn(h, date)),
+    };
+  }, [list, date, sortBy]);
+
+  // Hero chỉ tính thói quen có lịch hôm nay (không phạt ngày nghỉ của thói quen theo tuần/tùy chỉnh).
+  const heroStats = useMemo(() => {
+    const sch = active.filter((h) => scheduledOn(h, today));
+    const done = sch.filter((h) => isDoneOn(h, today)).length;
+    return { ...stats, total: sch.length, completedToday: done, pctToday: sch.length ? Math.round((done / sch.length) * 100) : 0 };
+  }, [active, stats, today]);
 
   const doneRatio = useCallback((d: string) => {
     const s = active.filter((h) => scheduledOn(h, d));
@@ -155,7 +188,7 @@ export default function HabitsPage() {
 
   const listBlock = (
     <section className="space-y-3">
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-0.5">
+      {!isMobile && <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-0.5">
         {FREQS.map((f) => <button key={f.id} className={chip(freq === f.id)} onClick={() => setFreq(f.id)}>{f.label}</button>)}
         {!isMobile && (
           <div className="ml-auto flex items-center gap-2 shrink-0">
@@ -178,11 +211,11 @@ export default function HabitsPage() {
             </Button>
           </div>
         )}
-      </div>
+      </div>}
 
       <div className="flex items-baseline justify-between px-1">
         <h2 className="text-[15px] font-bold">Thói quen · {dateLabel}</h2>
-        <span className="text-[12.5px] text-muted-foreground">{list.filter((h) => isDoneOn(h, date)).length}/{list.length} hoàn thành</span>
+        <span className="text-[12.5px] text-muted-foreground">{doneList.length}/{list.length - offDay.length} hoàn thành</span>
       </div>
 
       {list.length === 0 ? (
@@ -197,7 +230,29 @@ export default function HabitsPage() {
           ))}
         </div>
       ) : (
-        <div className="space-y-2.5">{list.map(row)}</div>
+        <div className="space-y-5">
+          {slots.map((g) => (
+            <div key={g.id} className="space-y-2.5">
+              <p className="px-1 text-[13px] font-bold text-muted-foreground">{g.emoji} {g.label} <span className="font-medium">· {g.items.length}</span></p>
+              {g.items.map(row)}
+            </div>
+          ))}
+          {offDay.length > 0 && (
+            <div className="space-y-2.5">
+              <p className="px-1 text-[13px] font-bold text-muted-foreground">💤 Không có lịch hôm nay <span className="font-medium">· {offDay.length}</span></p>
+              {offDay.map(row)}
+            </div>
+          )}
+          {doneList.length > 0 && (
+            <div className="space-y-2.5">
+              <button onClick={() => setShowDone((v) => !v)} className="w-full flex items-center gap-1.5 px-1 text-[13px] font-bold text-[#22B07D]">
+                ✅ Đã xong <span className="font-medium">· {doneList.length}</span>
+                <ChevronDown className={cn('h-4 w-4 ml-auto text-muted-foreground transition-transform', !showDone && '-rotate-90')} />
+              </button>
+              {showDone && doneList.map(row)}
+            </div>
+          )}
+        </div>
       )}
     </section>
   );
@@ -208,8 +263,8 @@ export default function HabitsPage() {
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-5 min-w-0">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          <HabitTodayHero stats={stats} compact={isMobile} />
-          <HabitStatTiles stats={stats} />
+          <HabitTodayHero stats={heroStats} compact={isMobile} />
+          {!isMobile && <HabitStatTiles stats={stats} />}
         </div>
         <div className="rounded-[22px] bg-card border border-border/60 shadow-soft p-3">
           <WeekStrip selected={date} today={today} onSelect={setDate} doneRatio={doneRatio} />

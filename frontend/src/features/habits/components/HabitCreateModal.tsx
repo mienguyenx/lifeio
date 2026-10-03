@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, ChevronLeft, Lightbulb, Minus, Plus, Target } from 'lucide-react';
 import { AdaptiveModal } from '@/components/mobile/AdaptiveModal';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { useAdminTemplates, useUpdateTemplate } from '@/hooks/useAdminData';
 import { cn } from '@/lib/utils';
 import { LIFE_AREAS, type Goal, type LifeArea } from '@/types/lifeos';
 import type { HabitFormValue } from '../types/habit.types';
-import { EMPTY_FORM, WEEKDAY_SHORT } from '../utils/habit.utils';
+import { EMPTY_FORM, WEEKDAY_SHORT, suggestEmoji } from '../utils/habit.utils';
 
 const ICONS = ['💧', '📚', '🏃', '🧘', '🗣️', '🥗', '😴', '💪', '✍️', '🎯', '🌿', '☀️', '🍎', '🚴', '🎵', '💊', '🧠', '💰', '❤️', '🙏'];
 const COLORS = ['', '#6D5DF2', '#5B9CF6', '#57D3AE', '#FFC63D', '#FF9B63', '#FF6B78', '#F472B6'];
@@ -29,18 +29,19 @@ export function HabitCreateModal({ open, onOpenChange, initial, mode = 'create',
 }) {
   const [f, setF] = useState<HabitFormValue>(EMPTY_FORM);
   const [step, setStep] = useState<'form' | 'templates'>('form');
+  const iconPicked = useRef(false);
   const { data: templates = [], isLoading } = useAdminTemplates('habits');
   const updateTemplate = useUpdateTemplate();
   const activeTemplates = useMemo(() => templates.filter((t) => t.is_active), [templates]);
   const activeGoals = useMemo(() => goals.filter((g) => !g.deletedAt && !g.completedAt), [goals]);
 
-  useEffect(() => { if (open) { setF(initial ?? EMPTY_FORM); setStep('form'); } }, [open, initial]);
+  useEffect(() => { if (open) { setF(initial ?? EMPTY_FORM); setStep('form'); iconPicked.current = !!initial; } }, [open, initial]);
   const set = <K extends keyof HabitFormValue>(k: K, v: HabitFormValue[K]) => setF((p) => ({ ...p, [k]: v }));
 
   const applyTemplate = (t: (typeof templates)[number]) => {
     const c = t.content as { name?: string; description?: string; area?: LifeArea; frequency?: HabitFormValue['frequency']; target_per_day?: number; target_unit?: string };
     const area = c.area || 'health';
-    setF({ ...EMPTY_FORM, name: c.name || t.name, description: c.description || t.description || '', area, icon: LIFE_AREAS.find((a) => a.id === area)?.icon ?? '✨', frequency: c.frequency || 'daily', targetPerDay: c.target_per_day || 1, targetUnit: c.target_unit || '' });
+    setF({ ...EMPTY_FORM, name: c.name || t.name, description: c.description || t.description || '', area, icon: suggestEmoji(c.name || t.name) ?? LIFE_AREAS.find((a) => a.id === area)?.icon ?? '✨', frequency: c.frequency || 'daily', targetPerDay: c.target_per_day || 1, targetUnit: c.target_unit || '' });
     setStep('form');
     updateTemplate.mutate({ id: t.id, usage_count: (t.usage_count || 0) + 1 });
   };
@@ -81,14 +82,14 @@ export function HabitCreateModal({ open, onOpenChange, initial, mode = 'create',
 
           <div>
             <Label>Tên thói quen</Label>
-            <input autoFocus value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="VD: Uống nước" className={input} />
+            <input autoFocus value={f.name} onChange={(e) => { const name = e.target.value; setF((p) => { const auto = !iconPicked.current && suggestEmoji(name); return { ...p, name, ...(auto ? { icon: auto } : {}) }; }); }} placeholder="VD: Uống nước" className={input} />
           </div>
 
           <div>
             <Label>Biểu tượng & màu sắc</Label>
             <div className="flex flex-wrap gap-2">
               {ICONS.map((ic) => (
-                <button key={ic} type="button" onClick={() => set('icon', ic)} className={cn('h-11 w-11 shrink-0 rounded-[14px] text-[20px] grid place-items-center border-2 transition-all', f.icon === ic ? 'border-primary bg-lavender dark:bg-primary/15' : 'border-transparent bg-secondary/70 hover:bg-secondary')}>{ic}</button>
+                <button key={ic} type="button" onClick={() => { iconPicked.current = true; set('icon', ic); }} className={cn('h-11 w-11 shrink-0 rounded-[14px] text-[20px] grid place-items-center border-2 transition-all', f.icon === ic ? 'border-primary bg-lavender dark:bg-primary/15' : 'border-transparent bg-secondary/70 hover:bg-secondary')}>{ic}</button>
               ))}
             </div>
             <div className="flex gap-2.5 mt-3">

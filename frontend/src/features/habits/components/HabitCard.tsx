@@ -1,8 +1,15 @@
 import { memo } from 'react';
-import { Check, Flame, Plus, Target } from 'lucide-react';
+import { AlarmClock, Check, Flame, Plus, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Habit } from '@/types/lifeos';
-import { areaInfo, countOn, habitColor, habitTint, progressLabel, targetOf } from '../utils/habit.utils';
+import { areaInfo, countOn, FREQUENCY_LABEL, habitColor, habitTint, suggestEmoji, targetOf } from '../utils/habit.utils';
+
+/** Icon hiển thị: nếu đang là icon mặc định của lĩnh vực (vd. 💪 cho "Uống nước") thì đoán lại theo tên. */
+export const iconOf = (h: Habit) => {
+  const areaIc = areaInfo(h)?.icon;
+  if (h.icon && h.icon !== areaIc) return h.icon;
+  return suggestEmoji(h.name) ?? h.icon ?? areaIc;
+};
 
 export function HabitIcon({ habit, size = 48, className }: { habit: Habit; size?: number; className?: string }) {
   return (
@@ -11,7 +18,7 @@ export function HabitIcon({ habit, size = 48, className }: { habit: Habit; size?
       style={{ width: size, height: size, fontSize: size * 0.48, background: habitTint(habit) }}
       aria-hidden
     >
-      {habit.icon || areaInfo(habit)?.icon}
+      {iconOf(habit)}
     </span>
   );
 }
@@ -22,7 +29,7 @@ export function CheckCircle({ habit, date, onCheck }: { habit: Habit; date: stri
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); onCheck(); }}
+      onClick={(e) => { e.stopPropagation(); navigator.vibrate?.(done ? 5 : 12); onCheck(); }}
       aria-pressed={done}
       aria-label={done ? 'Đã hoàn thành' : t > 1 ? `Thêm 1 (${n}/${t})` : 'Đánh dấu hoàn thành'}
       className={cn(
@@ -53,21 +60,25 @@ export const HabitCard = memo(function HabitCard({ habit, date, goalTitle, onOpe
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => e.key === 'Enter' && onOpen()}
-      className="group flex items-center gap-3.5 rounded-[22px] bg-card border border-border/60 shadow-soft px-3.5 py-3 cursor-pointer transition-all hover:shadow-card hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      className={cn("group flex items-center gap-3.5 rounded-[22px] bg-card border border-border/60 shadow-soft px-3.5 py-3 cursor-pointer transition-all hover:shadow-card hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40", done && 'opacity-70')}
     >
       <HabitIcon habit={habit} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
-          <p className="text-[14.5px] font-semibold truncate">{habit.name}</p>
+          <p className={cn('text-[14.5px] font-semibold truncate', done && 'line-through decoration-foreground/30')}>{habit.name}</p>
           {habit.streak > 0 && (
             <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#FF7A45] shrink-0"><Flame className="h-3 w-3" />{habit.streak}</span>
           )}
         </div>
-        <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0">
-          <span className="truncate">{progressLabel(habit, date)}</span>
-          {goalTitle && <span className="inline-flex items-center gap-0.5 shrink-0 truncate max-w-[140px]"><Target className="h-3 w-3" />{goalTitle}</span>}
+        <div className="flex items-center gap-2 text-[12px] text-muted-foreground min-w-0">
+          {t > 1 && <span className={cn('shrink-0 font-semibold tabular-nums', done ? 'text-[#22B07D]' : 'text-foreground/80')}>{n}/{t} {habit.targetUnit || 'lần'}</span>}
+          {t === 1 && done && <span className="shrink-0 font-semibold text-[#22B07D]">Đã xong</span>}
+          {habit.reminderEnabled && habit.reminderTime && <span className="inline-flex items-center gap-0.5 shrink-0"><AlarmClock className="h-3 w-3" />{habit.reminderTime.slice(0, 5)}</span>}
+          {goalTitle ? <span className="inline-flex items-center gap-0.5 min-w-0 truncate"><Target className="h-3 w-3 shrink-0" /><span className="truncate">{goalTitle}</span></span>
+            : !done && habit.minimumVersion ? <span className="truncate">Tối thiểu: {habit.minimumVersion}</span>
+            : !(habit.reminderEnabled && habit.reminderTime) && t === 1 && !done ? <span className="truncate">{habit.frequency === 'daily' ? areaInfo(habit)?.name : FREQUENCY_LABEL[habit.frequency]}</span> : null}
         </div>
-        {(t > 1 || done) && (
+        {t > 1 && (
           <div className="mt-2 h-[6px] rounded-full bg-[#EEF0F5] dark:bg-white/10 overflow-hidden max-w-[220px]">
             <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: done ? '#22C38E' : habitColor(habit) }} />
           </div>
