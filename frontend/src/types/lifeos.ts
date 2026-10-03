@@ -585,6 +585,11 @@ export interface UserPreferences {
   showAISuggestions: boolean;
   showStreaks: boolean;
   
+  // Tính năng đã bật (undefined = tất cả). Xem lib/modules.ts
+  enabledModules?: string[];
+  onboardingNeed?: string; // Nhu cầu người dùng kể lúc onboarding
+  onboardingFocus?: string; // Trọng tâm AI gợi ý
+
   // Timestamps
   onboardingCompleted?: boolean;
   createdAt: string;

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, Shield } from 'lucide-react';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { NAV_GROUPS, ACCOUNT_ITEMS, isActivePath, type BadgeKey } from './navigationConfig';
+import { useEnabledModules } from '@/hooks/useEnabledModules';
 import { cn } from '@/lib/utils';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { useNotificationBadges, GoalsBadge, TasksBadge, HabitsBadge } from '@/hooks/useNotificationBadges';
@@ -158,7 +159,7 @@ function GoalsBadgeInline({ goals }: { goals: GoalsBadge }) {
 function DotIndicator({ badgeKey, badges }: { badgeKey: 'habits' | 'tasks' | 'goals'; badges: ReturnType<typeof useNotificationBadges> }) {
   const getCount = () => {
     if (badgeKey === 'goals') return badges.goals.total;
-    if (badgeKey === 'tasks') return badges.tasks.total;
+    if (badgeKey === 'tasks') return badges.tasks.due;
     return badges.habits.total;
   };
 
@@ -212,7 +213,7 @@ function MenuItem({ path, icon, label, badgeKey = null, isCollapsed, badges }: M
   const getBadgeCount = () => {
     if (!badgeKey) return 0;
     if (badgeKey === 'goals') return badges.goals.total;
-    if (badgeKey === 'tasks') return badges.tasks.total;
+    if (badgeKey === 'tasks') return badges.tasks.due;
     return badges.habits.total;
   };
 
@@ -271,6 +272,7 @@ export function AppSidebar() {
   const [unreadCount, setUnreadCount] = useState(0);
   
   const { isAdmin } = useAdminRole();
+  const { compactGroups: navGroups } = useEnabledModules();
   const moreGroup = NAV_GROUPS.find((g) => g.collapsible);
   const isMoreActive = !!moreGroup?.items.some((item) => isActivePath(location.pathname, item.path));
   const [overviewOpen, setOverviewOpen] = useState(isMoreActive);
@@ -313,7 +315,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {NAV_GROUPS.map((group) => {
+        {navGroups.map((group) => {
           const items = (
             <SidebarGroupContent>
               <SidebarMenu>

@@ -42,6 +42,7 @@ import LegacyNotesPage from "./pages/NotesPage";
 import NotesPage from "./features/notes/NotesPage";
 import LegacyTrashPage from "./pages/TrashPage";
 import TrashPage from "./features/trash/TrashPage";
+import ModulesPage from "./features/modules/ModulesPage";
 import LegacyMePage from "./pages/MePage";
 import MePage from "./features/me/MePage";
 import LegacySettingsPage from "./pages/SettingsPage";
@@ -156,6 +157,7 @@ function MainApp() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/calendar/classic" element={<CalendarPageLegacy />} />
         <Route path="/trash" element={<TrashPage />} />
+        <Route path="/modules" element={<ModulesPage />} />
         <Route path="/trash/classic" element={<LegacyTrashPage />} />
         <Route path="/me" element={<MePage />} />
         <Route path="/me/classic" element={<LegacyMePage />} />

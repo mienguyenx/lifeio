@@ -18,6 +18,14 @@ export function usePreferencesSync() {
   /** Called on app load — pull onboarding state from Supabase */
   const loadOnboardingState = useCallback(async (): Promise<boolean | null> => {
     if (!user) return null;
+    // Tên hiển thị: lấy từ hồ sơ (đã nhập lúc đăng ký) nếu store chưa có — không hỏi lại trong onboarding.
+    if (!useLifeOSStore.getState().user?.name) {
+      supabase.from('profiles').select('name').eq('id', user.id).maybeSingle()
+        .then(({ data: p }) => {
+          const n = ((p as { name?: string } | null)?.name || '').trim();
+          if (n) useLifeOSStore.getState().setUser({ name: n });
+        }, () => {});
+    }
     try {
       const { data, error } = await supabase
         .from('user_settings')
@@ -31,7 +39,16 @@ export function usePreferencesSync() {
       const completed = data.onboarding_completed ?? false;
 
       // Merge remote preferences into local store (remote wins)
-      const remotePrefs = (data.preferences || {}) as Partial<UserPreferences>;
+      const raw = (data.preferences || {}) as Record<string, unknown>;
+      const remotePrefs = { ...raw } as Partial<UserPreferences>;
+      if (raw.ai_tone) remotePrefs.aiTone = raw.ai_tone as UserPreferences['aiTone'];
+      if (raw.planning_style) remotePrefs.planningStyle = raw.planning_style as UserPreferences['planningStyle'];
+      if (raw.wake_up_time) remotePrefs.wakeUpTime = raw.wake_up_time as string;
+      if (raw.sleep_time) remotePrefs.sleepTime = raw.sleep_time as string;
+      if (Array.isArray(raw.life_area_priorities)) remotePrefs.lifeAreaPriorities = raw.life_area_priorities as UserPreferences['lifeAreaPriorities'];
+      remotePrefs.enabledModules = Array.isArray(raw.enabled_modules) ? (raw.enabled_modules as string[]) : undefined;
+      if (raw.onboarding_need) remotePrefs.onboardingNeed = raw.onboarding_need as string;
+      if (raw.onboarding_focus) remotePrefs.onboardingFocus = raw.onboarding_focus as string;
       setUserPreferences({ ...remotePrefs, onboardingCompleted: completed });
 
       return completed;
@@ -53,6 +70,9 @@ export function usePreferencesSync() {
       if (prefs.wakeUpTime) payload.wake_up_time = prefs.wakeUpTime;
       if (prefs.sleepTime) payload.sleep_time = prefs.sleepTime;
       if (prefs.lifeAreaPriorities) payload.life_area_priorities = prefs.lifeAreaPriorities;
+      if (prefs.enabledModules) payload.enabled_modules = prefs.enabledModules;
+      if (prefs.onboardingNeed) payload.onboarding_need = prefs.onboardingNeed;
+      if (prefs.onboardingFocus) payload.onboarding_focus = prefs.onboardingFocus;
 
       const { error } = await supabase
         .from('user_settings')
@@ -69,6 +89,25 @@ export function usePreferencesSync() {
       console.error('[PreferencesSync] saveOnboardingCompleted error:', err);
     }
   }, [user]);
+
+  /** Bật/tắt tính năng — gộp vào preferences hiện có trên server. */
+  const saveEnabledModules = useCallback(async (modules: string[]) => {
+    setUserPreferences({ enabledModules: modules });
+    if (!user) return;
+    try {
+      const { data } = await supabase.from('user_settings').select('preferences, onboarding_completed').eq('user_id', user.id).maybeSingle();
+      const preferences = { ...((data?.preferences as Record<string, unknown>) || {}), enabled_modules: modules };
+      const { error } = await supabase.from('user_settings').upsert({
+        user_id: user.id,
+        onboarding_completed: data?.onboarding_completed ?? true,
+        preferences,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+      if (error) throw error;
+    } catch (err) {
+      console.error('[PreferencesSync] saveEnabledModules error:', err);
+    }
+  }, [user, setUserPreferences]);
 
   /** Admin: reset onboarding for a specific user ID */
   const resetOnboardingForUser = useCallback(async (targetUserId: string) => {
@@ -87,6 +126,7 @@ export function usePreferencesSync() {
   return {
     loadOnboardingState,
     saveOnboardingCompleted,
+    saveEnabledModules,
     resetOnboardingForUser,
   };
 }

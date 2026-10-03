@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { usePreferencesSync } from '@/hooks/sync/usePreferencesSync';
 import { ReactNode, CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -41,6 +43,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { loadOnboardingState } = usePreferencesSync();
+  // Tải tuỳ chọn (tính năng đã bật…) từ server một lần cho mọi trang, không chỉ trang Hôm nay.
+  useEffect(() => { if (user) void loadOnboardingState(); }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const { isAdmin } = useAdminRole();
   
   // Enable overdue notification sounds

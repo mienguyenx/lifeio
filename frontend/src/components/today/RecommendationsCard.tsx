@@ -23,7 +23,7 @@ export function RecommendationsCard() {
         <div className="flex items-center gap-2">
           <Lightbulb className="w-4 h-4 text-mint" />
           <span className="text-sm font-semibold">Gợi ý cho bạn</span>
-          <span className="text-[10px] text-muted-foreground ml-auto">{recommendations.length} items</span>
+          <span className="text-[10px] text-muted-foreground ml-auto">{recommendations.length} gợi ý</span>
         </div>
         <div className="space-y-1.5">
           {recommendations.slice(0, 4).map((rec) => {

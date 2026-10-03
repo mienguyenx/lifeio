@@ -40,8 +40,10 @@ const ERRORS: Record<string, string> = {
  * Nghe một câu nói. `silenceMs` = tự dừng khi im lặng; `maxMs` = giới hạn.
  * onFinal nhận toàn bộ văn bản khi kết thúc (rỗng nếu không nghe thấy gì).
  */
-export function useVoiceInput({ lang = 'vi-VN', silenceMs = 1600, maxMs = 60000, onFinal, onError }: {
+export function useVoiceInput({ lang = 'vi-VN', silenceMs = 1600, maxMs = 60000, keepAlive = false, onFinal, onError }: {
   lang?: string; silenceMs?: number; maxMs?: number;
+  /** Nói dài (VD onboarding): trình duyệt tự ngắt thì nghe tiếp, chỉ dừng khi bấm dừng / im lặng lâu / hết giờ. */
+  keepAlive?: boolean;
   onFinal: (text: string) => void; onError?: (message: string) => void;
 }) {
   const [state, setState] = useState<VoiceState>('idle');
@@ -51,6 +53,7 @@ export function useVoiceInput({ lang = 'vi-VN', silenceMs = 1600, maxMs = 60000,
   const media = useRef<{ recorder: MediaRecorder; stream: MediaStream; chunks: Blob[] } | null>(null);
   const timers = useRef<{ silence?: number; max?: number }>({});
   const text = useRef('');
+  const stopReq = useRef(false);
   const cb = useRef({ onFinal, onError });
   cb.current = { onFinal, onError };
 
@@ -63,12 +66,14 @@ export function useVoiceInput({ lang = 'vi-VN', silenceMs = 1600, maxMs = 60000,
 
   const stop = useCallback(() => {
     clearTimers();
+    stopReq.current = true;
     if (rec.current) { try { rec.current.stop(); } catch { finish(text.current); } return; }
     if (media.current && media.current.recorder.state !== 'inactive') media.current.recorder.stop();
   }, [finish]);
 
   const cancel = useCallback(() => {
     clearTimers();
+    stopReq.current = true;
     if (rec.current) { rec.current.onend = null; try { rec.current.abort(); } catch { /* noop */ } rec.current = null; }
     if (media.current) { media.current.recorder.onstop = null; try { media.current.recorder.stop(); } catch { /* noop */ } media.current.stream.getTracks().forEach((t) => t.stop()); media.current = null; }
     setInterim(''); setStartedAt(null); setState('idle');
@@ -96,7 +101,7 @@ export function useVoiceInput({ lang = 'vi-VN', silenceMs = 1600, maxMs = 60000,
 
   const start = useCallback(async () => {
     if (state !== 'idle') return;
-    text.current = ''; setInterim('');
+    text.current = ''; setInterim(''); stopReq.current = false;
     const Ctor = recognitionCtor();
     if (!Ctor) {
       if (voiceSupport().recorder) return startRecorder();
@@ -105,15 +110,20 @@ export function useVoiceInput({ lang = 'vi-VN', silenceMs = 1600, maxMs = 60000,
     }
     const r = new Ctor();
     r.lang = lang; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
-    let finalText = '';
-    const armSilence = () => { window.clearTimeout(timers.current.silence); timers.current.silence = window.setTimeout(() => { try { r.stop(); } catch { /* noop */ } }, silenceMs); };
+    let committed = ''; // văn bản của các phiên trước (khi trình duyệt tự ngắt và mình nghe tiếp)
+    const began = Date.now();
+    const hardStop = () => { stopReq.current = true; try { r.stop(); } catch { /* noop */ } };
+    const armSilence = () => { window.clearTimeout(timers.current.silence); timers.current.silence = window.setTimeout(hardStop, silenceMs); };
     r.onresult = (e) => {
-      let live = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i];
-        if (res.isFinal) finalText += res[0].transcript + ' '; else live += res[0].transcript;
+      // Dựng lại toàn bộ phiên từ results (không cộng dồn) để tránh lặp chữ — Chrome Android hay trả kết quả tích luỹ.
+      const parts: string[] = [];
+      for (let i = 0; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript.trim();
+        if (!t) continue;
+        const prev = parts[parts.length - 1];
+        if (prev && t.toLowerCase().startsWith(prev.toLowerCase())) parts[parts.length - 1] = t; else parts.push(t);
       }
-      text.current = (finalText + live).replace(/\s+/g, ' ');
+      text.current = `${committed} ${parts.join(' ')}`.replace(/\s+/g, ' ').trim();
       setInterim(text.current);
       armSilence();
     };
@@ -125,15 +135,21 @@ export function useVoiceInput({ lang = 'vi-VN', silenceMs = 1600, maxMs = 60000,
       }
       cb.current.onError?.(ERRORS[e.error] ?? 'Không nhận dạng được giọng nói, thử lại nhé.');
     };
-    r.onend = () => finish(text.current);
+    r.onend = () => {
+      if (keepAlive && !stopReq.current && Date.now() - began < maxMs) {
+        committed = text.current;
+        try { r.start(); return; } catch { /* rơi xuống kết thúc */ }
+      }
+      finish(text.current);
+    };
     rec.current = r;
     try { r.start(); } catch { rec.current = null; return; }
     setState('listening'); setStartedAt(Date.now());
     armSilence();
     window.clearTimeout(timers.current.silence);
-    timers.current.silence = window.setTimeout(() => { try { r.stop(); } catch { /* noop */ } }, silenceMs + 4000); // chờ lâu hơn cho câu đầu
-    timers.current.max = window.setTimeout(() => { try { r.stop(); } catch { /* noop */ } }, maxMs);
-  }, [finish, lang, maxMs, silenceMs, startRecorder, state]);
+    timers.current.silence = window.setTimeout(hardStop, silenceMs + 4000); // chờ lâu hơn cho câu đầu
+    timers.current.max = window.setTimeout(hardStop, maxMs);
+  }, [finish, keepAlive, lang, maxMs, silenceMs, startRecorder, state]);
 
   useEffect(() => () => cancel(), [cancel]);
 

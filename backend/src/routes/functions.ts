@@ -334,6 +334,103 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // ----------------------- ai-onboarding-analyze -------------------------
+  // Bước 1: AI đọc nhu cầu → phân tích (vấn đề, mong muốn, cách giúp) + 1–2 câu hỏi làm rõ.
+  fastify.post<{ Body: { text?: string } }>(
+    '/functions/ai-onboarding-analyze',
+    { schema: { tags: ['ai'], summary: 'Analyze a new user need before planning', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      const text = request.body?.text?.trim();
+      if (!text) throw badRequest('Missing text');
+      const base = `Bạn là LIO — huấn luyện viên cuộc sống của app LifeOS. Người dùng mới vừa kể họ cần gì. Hãy cho thấy bạn THẬT SỰ hiểu họ: phân tích ngắn, ấm áp, cụ thể theo đúng lời họ (không chung chung, không bịa chi tiết). Tiếng Việt, xưng "mình", gọi "bạn".
+Chỉ trả về JSON:
+{"summary":"1–2 câu phản chiếu lại tình huống của họ, đồng cảm","painPoints":[{"icon":"1 emoji","title":"≤40 ký tự","detail":"≤90 ký tự: vì sao đây là vấn đề / gốc rễ"}],"goals":["≤50 ký tự — điều họ thật sự muốn đạt"],"approach":["≤80 ký tự — bước LIO sẽ giúp, cụ thể"],"questions":[{"id":"q1","question":"≤60 ký tự","options":["≤25 ký tự", "..."]}]}
+Quy tắc: 2–3 painPoints, 1–3 goals, đúng 3 approach (bước nhỏ → lớn), 1–2 questions giúp lên kế hoạch sát hơn (VD thời gian rảnh, mức độ thử thách, hạn chót), mỗi câu 3–4 lựa chọn ngắn.`;
+      const { content } = await chatCompletion({
+        feature: 'onboarding_plan',
+        messages: [
+          { role: 'system', content: withExtra(base, await getSystemPrompt('onboarding_analyze.system')) },
+          { role: 'user', content: text.slice(0, 2000) },
+        ],
+        temperature: 0.6,
+      });
+      type A = { summary?: string; painPoints?: Record<string, unknown>[]; goals?: unknown[]; approach?: unknown[]; questions?: Record<string, unknown>[] };
+      const a = parseJsonFromContent<A | null>(content, null) ?? {};
+      const str = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+      const painPoints = (Array.isArray(a.painPoints) ? a.painPoints : []).map((x) => ({ icon: str(x?.icon, 8) || '•', title: str(x?.title, 60), detail: str(x?.detail, 140) })).filter((x) => x.title).slice(0, 3);
+      const goals = (Array.isArray(a.goals) ? a.goals : []).map((g) => str(g, 70)).filter(Boolean).slice(0, 3);
+      const approach = (Array.isArray(a.approach) ? a.approach : []).map((g) => str(g, 110)).filter(Boolean).slice(0, 3);
+      const questions = (Array.isArray(a.questions) ? a.questions : [])
+        .map((q, i) => ({ id: str(q?.id, 10) || `q${i + 1}`, question: str(q?.question, 90), options: (Array.isArray(q?.options) ? q.options : []).map((o) => str(o, 40)).filter(Boolean).slice(0, 4) }))
+        .filter((q) => q.question && q.options.length >= 2).slice(0, 2);
+      if (!painPoints.length && !a.summary) throw badRequest('AI không trả về phân tích hợp lệ');
+      return reply.send({ summary: str(a.summary, 260), painPoints, goals, approach, questions });
+    },
+  );
+
+  // ------------------------- ai-onboarding-plan --------------------------
+  // Người dùng mới kể nhu cầu → AI gợi ý tính năng (module), việc, thói quen, trọng tâm.
+  fastify.post<{ Body: { text?: string; areas?: string[]; analysis?: string; answers?: { question?: string; answer?: string }[] } }>(
+    '/functions/ai-onboarding-plan',
+    { schema: { tags: ['ai'], summary: 'Personalized onboarding plan from user needs', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      const { text, areas = [], analysis, answers = [] } = request.body ?? {};
+      if (!text?.trim()) throw badRequest('Missing text');
+      const answered = (Array.isArray(answers) ? answers : []).filter((x) => x?.question && x?.answer).slice(0, 4)
+        .map((x) => `- ${String(x.question).slice(0, 90)} → ${String(x.answer).slice(0, 60)}`).join('\n');
+      const MODULES: Record<string, string> = {
+        calendar: 'Lịch — sự kiện, lịch hẹn, xem lịch tuần',
+        goals: 'Mục tiêu — mục tiêu dài hạn, OKR, theo dõi tiến độ',
+        journal: 'Nhật ký — viết nhật ký, cảm xúc, biết ơn',
+        notes: 'Ghi chú — ghi chú nhanh, ý tưởng, ghi âm',
+        health: 'Sức khỏe — ngủ, nước, cân nặng, vận động',
+        finance: 'Tài chính — thu chi, ngân sách, tiết kiệm',
+        learning: 'Học tập — khoá học, sách, kỹ năng',
+        relationships: 'Quan hệ — gia đình, bạn bè, nhắc liên lạc',
+        reviews: 'Review — tổng kết tuần/tháng/năm',
+        life_areas: 'Bánh xe cuộc sống — cân bằng 10 lĩnh vực',
+        insights: 'Tổng quan — thống kê, hành trình, thành tích',
+        decisions: 'Nhật ký quyết định — cân nhắc lựa chọn lớn',
+        focus: 'Pomodoro — hẹn giờ tập trung',
+      };
+      const AREAS = ['health', 'relationships', 'career', 'finance', 'personal', 'fun', 'environment', 'spirituality', 'learning', 'contribution'];
+      const base = `Bạn là LIO — trợ lý onboarding của app LifeOS (quản lý cuộc sống). Người dùng mới kể họ đang cần gì. Hãy đề xuất một không gian GỌN, đúng nhu cầu, hành động được ngay. Viết tiếng Việt thân thiện, ngắn.
+Tính năng luôn có sẵn (KHÔNG đề xuất): Hôm nay, Công việc, Thói quen, AI Coach.
+Tính năng có thể bật thêm (id — mô tả):
+${Object.entries(MODULES).map(([k, v]) => `- ${k} — ${v}`).join('\n')}
+Lĩnh vực (area): ${AREAS.join(', ')}.
+Quy tắc: chỉ chọn 1–4 tính năng thật sự liên quan; 3–5 việc cụ thể (bắt đầu bằng động từ, ≤60 ký tự), việc đầu tiên làm được ngay hôm nay trong ≤15 phút; 1–3 thói quen nhỏ, dễ duy trì; target = số lượng MỖI NGÀY: mặc định 1 lần; chỉ >1 khi đếm được trong ngày (VD 8 cốc nước, 20 phút học) — không dùng target cho tần suất tuần. 1 trọng tâm ngắn (≤50 ký tự). Không bịa thông tin người dùng không nói.
+Chỉ trả về JSON:
+{"summary":"1 câu tóm tắt nhu cầu","focus":"...","modules":[{"id":"finance","reason":"≤60 ký tự"}],"tasks":[{"title":"...","when":"today|tomorrow|week|none","priority":"high|medium|low","area":"career"}],"habits":[{"name":"...","icon":"1 emoji","area":"health","timeOfDay":"morning|afternoon|evening|anytime","target":1,"unit":"lần"}]}`;
+      const { content } = await chatCompletion({
+        feature: 'onboarding_plan',
+        messages: [
+          { role: 'system', content: withExtra(base, await getSystemPrompt('onboarding_plan.system')) },
+          { role: 'user', content: `Nhu cầu: ${text.trim().slice(0, 2000)}${analysis ? `\nPhân tích đã thống nhất: ${String(analysis).slice(0, 800)}` : ''}${answered ? `\nNgười dùng trả lời thêm (hãy dùng để chọn hạn, giờ, mức độ thói quen):\n${answered}` : ''}${areas.length ? `\nLĩnh vực quan tâm: ${areas.slice(0, 10).join(', ')}` : ''}` },
+        ],
+        temperature: 0.5,
+      });
+      type P = { summary?: string; focus?: string; modules?: { id?: string; reason?: string }[]; tasks?: Record<string, unknown>[]; habits?: Record<string, unknown>[] };
+      const p = parseJsonFromContent<P | null>(content, null) ?? {};
+      const str = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+      const pick = <T extends string>(v: unknown, ok: readonly T[], d: T): T => (ok.includes(v as T) ? (v as T) : d);
+      const area = (v: unknown) => pick(v, AREAS as readonly string[], 'personal');
+      const seen = new Set<string>();
+      const modules = (Array.isArray(p.modules) ? p.modules : [])
+        .map((m) => ({ id: str(m?.id, 30), reason: str(m?.reason, 90) }))
+        .filter((m) => MODULES[m.id] && !seen.has(m.id) && seen.add(m.id)).slice(0, 5);
+      const tasks = (Array.isArray(p.tasks) ? p.tasks : [])
+        .map((t) => ({ title: str(t?.title, 90), when: pick(t?.when, ['today', 'tomorrow', 'week', 'none'] as const, 'today'), priority: pick(t?.priority, ['high', 'medium', 'low'] as const, 'medium'), area: area(t?.area) }))
+        .filter((t) => t.title).slice(0, 6);
+      const habits = (Array.isArray(p.habits) ? p.habits : [])
+        .map((h) => (h && String(h.unit ?? 'lần').trim() === 'lần' && Number(h.target) > 3 ? { ...h, target: 1 } : h))
+        .map((h) => ({ name: str(h?.name, 60), icon: str(h?.icon, 8), area: area(h?.area), timeOfDay: pick(h?.timeOfDay, ['morning', 'afternoon', 'evening', 'anytime'] as const, 'anytime'), target: Math.min(Math.max(Math.round(Number(h?.target) || 1), 1), 100), unit: str(h?.unit, 20) || 'lần' }))
+        .filter((h) => h.name).slice(0, 4);
+      if (!tasks.length && !habits.length && !modules.length) throw badRequest('AI không trả về gợi ý hợp lệ');
+      return reply.send({ summary: str(p.summary, 200), focus: str(p.focus, 80), modules, tasks, habits });
+    },
+  );
+
   // ----------------------------- ai-translate -----------------------------
   fastify.post<{ Body: { title?: string; description?: string; existing?: string[]; count?: number } }>(
     '/functions/ai-task-breakdown',

@@ -15,6 +15,7 @@ import { usePomodoroStore } from '@/stores/usePomodoroStore';
 
 type View = 'overview' | 'vision';
 const MENU: { path: string; label: string; meta: string; icon: LifeIconName | string; tint: Tint }[] = [
+  { path: '/modules', label: 'Tính năng', meta: 'Bật/tắt tính năng theo nhu cầu', icon: 'module/settings', tint: 'mint' },
   { path: '/personalization', label: 'Cá nhân hóa', meta: 'Phong cách sống, giọng AI, ưu tiên', icon: 'module/profile', tint: 'violet' },
   { path: '/ai-memory', label: 'AI Memory', meta: 'Những gì AI ghi nhớ về bạn', icon: 'module/ai-coach', tint: 'sky' },
   { path: '/journey', label: 'Hành trình của tôi', meta: 'Nhiệm vụ & XP', icon: '🏆', tint: 'amber' },

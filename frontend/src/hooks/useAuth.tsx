@@ -62,28 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Import onboarding data khi user mới đăng ký
-        if (event === 'SIGNED_UP' && session?.user) {
-          try {
-            // Kiểm tra xem user có phải admin không (admin không cần onboarding data)
-            const { data: roleData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.user.id)
-              .single();
+        // Người dùng mới không còn nhận dữ liệu mẫu — onboarding AI tạo việc/thói quen theo nhu cầu.
 
-            // Chỉ import onboarding data cho user thường, không phải admin
-            if (roleData?.role !== 'admin') {
-              const { importOnboardingData } = await import('@/data/onboardingData');
-              await importOnboardingData(session.user.id, supabase);
-              console.log('[Auth] Onboarding data imported for new user');
-            }
-          } catch (error) {
-            console.error('[Auth] Error importing onboarding data:', error);
-            // Không throw error để không ảnh hưởng đến quá trình đăng ký
-          }
-        }
-        
         // Sync session lên chrome.storage khi có thay đổi
         if (session && typeof chrome !== 'undefined' && chrome.storage) {
           try {

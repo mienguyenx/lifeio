@@ -83,16 +83,17 @@ export function AIDailyBriefing() {
     if (avgEnergy !== null && avgEnergy < 3) {
       insight = 'Năng lượng tuần qua thấp — ưu tiên ngủ sớm và task nhẹ.';
     } else if (avgMood !== null && avgMood >= 4) {
-      insight = 'Mood tuần qua rất tốt — tận dụng đà này cho task khó!';
+      insight = 'Tâm trạng tuần qua rất tốt — tận dụng đà này cho việc khó!';
     } else if (priorityHabit && priorityHabit.streak >= 7) {
       insight = `Streak ${priorityHabit.name}: ${priorityHabit.streak} ngày — giữ vững!`;
     }
 
     // Determine tone
     const tone = userPreferences?.aiTone || 'gentle';
-    let greeting = 'Chào buổi sáng!';
+    const hr = new Date().getHours();
+    let greeting = hr < 11 ? 'Chào buổi sáng!' : hr < 18 ? 'Tóm tắt hôm nay' : 'Cuối ngày rồi!';
     if (tone === 'direct') greeting = 'Hôm nay cần làm:';
-    else if (tone === 'strategic') greeting = 'Briefing hôm nay:';
+    else if (tone === 'strategic') greeting = 'Tóm tắt hôm nay:';
     else if (tone === 'concise') greeting = 'Tóm tắt:';
 
     return {
@@ -181,13 +182,13 @@ export function AIDailyBriefing() {
         )}
 
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-0.5">
-          <span>{briefing.completedHabits}/{briefing.totalHabits} habits</span>
+          <span>{briefing.completedHabits}/{briefing.totalHabits} thói quen</span>
           <span className="w-px h-3 bg-border" />
-          <span>{briefing.totalTasks} tasks</span>
+          <span>{briefing.totalTasks} việc</span>
           {briefing.overdueCount > 0 && (
             <>
               <span className="w-px h-3 bg-border" />
-              <span className="text-destructive">{briefing.overdueCount} overdue</span>
+              <span className="text-destructive">{briefing.overdueCount} quá hạn</span>
             </>
           )}
         </div>

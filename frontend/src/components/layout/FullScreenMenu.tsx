@@ -4,7 +4,9 @@ import { X, User, LogOut, Shield, Bell } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { notificationService } from '@/services/notificationService';
 import { LifeIcon } from '@/components/icons/LifeIcon';
-import { NAV_GROUPS, ACCOUNT_ITEMS, isActivePath } from './navigationConfig';
+import { ACCOUNT_ITEMS, isActivePath } from './navigationConfig';
+import { useEnabledModules } from '@/hooks/useEnabledModules';
+import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminRole } from '@/hooks/useAdminRole';
@@ -17,7 +19,6 @@ interface FullScreenMenuProps {
 }
 
 // Module 18: dùng chung cấu hình với Sidebar desktop → mobile có đủ mọi trang (trước đây thiếu Nhật ký, 10 lĩnh vực, Quyết định, Bộ nhớ AI, Cá nhân hóa).
-const menuGroups = [...NAV_GROUPS.map((g) => ({ label: g.label, items: g.items })), { label: 'Tài khoản', items: ACCOUNT_ITEMS }];
 
 const overlayVariants: Variants = {
   hidden: { opacity: 0 },
@@ -51,6 +52,8 @@ export function FullScreenMenu({ open, onOpenChange }: FullScreenMenuProps) {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminRole();
+  const { compactGroups, hiddenCount } = useEnabledModules();
+  const menuGroups = [...compactGroups.map((g) => ({ label: g.label, items: g.items })), { label: 'Tài khoản', items: ACCOUNT_ITEMS.filter((i) => i.path !== '/modules') }];
   const [unread, setUnread] = useState(0);
   useEffect(() => notificationService.subscribe((n) => setUnread(n.filter((x) => !x.read).length)), []);
 
@@ -100,7 +103,7 @@ export function FullScreenMenu({ open, onOpenChange }: FullScreenMenuProps) {
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 shrink-0">
-              <h2 className="text-[20px] font-extrabold">Khám phá LifeOS</h2>
+              <h2 className="text-[20px] font-extrabold">Menu</h2>
               <span className="ml-auto" />
               <button onClick={() => handleNavigate('/notifications')} aria-label="Thông báo" className="relative p-2 mr-1 rounded-full hover:bg-muted tap-transparent active:scale-95 transition-transform">
                 <Bell className="w-5 h-5" />
@@ -116,7 +119,7 @@ export function FullScreenMenu({ open, onOpenChange }: FullScreenMenuProps) {
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
-              {menuGroups.map((group) => (
+              {menuGroups.map((group, gi) => (
                 <div key={group.label} className="mb-5">
                   <p className="text-[12px] font-semibold text-muted-foreground mb-2 px-1">
                     {group.label}
@@ -146,6 +149,15 @@ export function FullScreenMenu({ open, onOpenChange }: FullScreenMenuProps) {
                       );
                     })}
                   </div>
+                  {gi === 0 && (
+                    <div className="mt-3">
+              <button onClick={() => handleNavigate('/modules')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-dashed border-primary/40 bg-primary/[0.04] text-left tap-transparent active:scale-[0.98] transition-transform">
+                <span className="h-10 w-10 rounded-[13px] bg-primary/10 text-primary grid place-items-center shrink-0"><Plus className="h-5 w-5" /></span>
+                <span className="flex-1 min-w-0"><span className="block text-[13.5px] font-semibold">Tính năng</span><span className="block text-[11.5px] text-muted-foreground">{hiddenCount ? `Mở thêm ${hiddenCount} tính năng khi bạn cần` : 'Bật/tắt tính năng hiển thị trong menu'}</span></span>
+              </button>
+
+                    </div>
+                  )}
                 </div>
               ))}
 
