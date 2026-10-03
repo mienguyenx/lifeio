@@ -207,11 +207,13 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
       const params = new ParamList();
       const where = buildWhere(table, policy, userId, filters, params, scoped);
 
+      // count:'exact' (không head) = trả CẢ dữ liệu lẫn tổng số, như Supabase. Trước đây chỉ trả count → nhật ký không bao giờ tải về.
+      let total: number | undefined;
       if (count || head) {
         const countSql = `SELECT count(*)::int AS count FROM ${qi(table)} WHERE ${where}`;
         const res = await pool.query<{ count: number }>(countSql, params.all());
-        const total = res.rows[0]?.count ?? 0;
-        return reply.send({ data: head ? [] : undefined, count: total, error: null });
+        total = res.rows[0]?.count ?? 0;
+        if (head) return reply.send({ data: [], count: total, error: null });
       }
 
       const cols = validateSelect(table, request.body.select);
@@ -230,9 +232,9 @@ const dataGatewayRoutes: FastifyPluginAsync = async (fastify) => {
         if (res.rows.length !== 1) {
           return reply.send({ data: null, error: { message: 'Expected a single row', code: 'PGRST116' } });
         }
-        return reply.send({ data: res.rows[0], error: null });
+        return reply.send({ data: res.rows[0], error: null, ...(total !== undefined ? { count: total } : {}) });
       }
-      return reply.send({ data: res.rows, error: null });
+      return reply.send({ data: res.rows, error: null, ...(total !== undefined ? { count: total } : {}) });
     },
   );
 
