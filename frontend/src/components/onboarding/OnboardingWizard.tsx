@@ -70,7 +70,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   }, [step, text, plan, mods, taskSel, habitSel, focus]);
 
   const [base, setBase] = useState('');
-  const voice = useVoiceInput({ onFinal: (t) => setText(`${base} ${t}`.trim()), onError: (m) => toast.error(m) });
+  const voice = useVoiceInput({ keepAlive: true, silenceMs: 6000, maxMs: 180000, onFinal: (t) => setText(`${base} ${t}`.trim()), onError: (m) => toast.error(m) });
   const canVoice = voiceSupport().native || voiceSupport().recorder;
   const shownText = voice.listening ? `${base} ${voice.interim}`.trim() : text;
   const toggleMic = () => { if (voice.listening) return voice.stop(); setBase(text.trim()); void voice.start(); };
@@ -156,6 +156,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 </button>
               )}
             </div>
+            {voice.listening && <p className="mt-2 text-[12px] text-primary font-medium flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />Đang nghe… cứ nói thoải mái, bấm ■ khi xong</p>}
             <p className="mt-4 mb-2 text-[12px] font-semibold text-muted-foreground">Hoặc chọn nhanh</p>
             <div className="flex flex-wrap gap-2">
               {EXAMPLES.map((e) => (
