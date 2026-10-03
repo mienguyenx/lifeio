@@ -39,7 +39,7 @@ function transformTaskFromDB(row: TaskRow, subtasks: SubtaskRow[]): Task {
       endDate: row.recurring_end_date || undefined,
     } : undefined,
     reminderMinutes: row.reminder_minutes || undefined,
-    reminderTime: row.reminder_time || undefined, // Specific time (HH:mm) for reminder
+    reminderTime: row.reminder_time ? String(row.reminder_time).slice(0, 5) : undefined, // Specific time (HH:mm) for reminder
     lastReminded: row.last_reminded || undefined,
     archived: row.archived || false,
     archivedAt: row.archived_at || undefined,
