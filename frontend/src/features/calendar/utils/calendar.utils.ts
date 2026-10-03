@@ -16,6 +16,9 @@ export const TYPE_META: Record<CalendarItemType, { label: string; color: string;
   review: { label: 'Review', color: '#3D8BFD', tint: '#E8F1FF', icon: CalendarCheck, module: 'Review' },
   goal: { label: 'Mục tiêu', color: '#12A594', tint: '#E0F6F3', icon: Target, module: 'Mục tiêu' },
 };
+/** Nền nhạt theo màu loại, tự hợp cả sáng & tối (trộn với màu thẻ của theme). */
+export const tintBg = (color: string, pct = 16) => `color-mix(in srgb, ${color} ${pct}%, hsl(var(--card)))`;
+
 export const ALL_TYPES = Object.keys(TYPE_META) as CalendarItemType[];
 
 export const toMin = (hm: string) => { const [h, m] = hm.split(':').map(Number); return h * 60 + (m || 0); };
