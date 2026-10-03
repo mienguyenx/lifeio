@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
 import { format, isToday, isYesterday, parseISO, subDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { activeSupabase as supabase } from '@/integrations/supabase/externalClient';
+import { activeSupabase as supabase, ensureValidSession } from '@/integrations/supabase/externalClient';
 import { FilterChips, IconButton, Page, PageHeader, SearchToggle, Surface, TINTS, type Tint } from '@/components/lio';
 import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
 import { EmptyState } from '@/components/brand/EmptyState';
@@ -78,9 +78,14 @@ export default function ActivityPage() {
 
   const load = useCallback(async (offset: number, module: string) => {
     setLoading(true); setError(false);
-    let query = supabase.from('activity_log').select('*').order('created_at', { ascending: false }).range(offset, offset + PAGE - 1);
-    if (module !== 'all') query = query.eq('module', module);
-    const { data, error: err } = await query;
+    await ensureValidSession().catch(() => false);
+    const run = () => {
+      let query = supabase.from('activity_log').select('*').order('created_at', { ascending: false }).range(offset, offset + PAGE - 1);
+      if (module !== 'all') query = query.eq('module', module);
+      return query;
+    };
+    let { data, error: err } = await run();
+    if (err) { await new Promise((r) => setTimeout(r, 800)); ({ data, error: err } = await run()); } // thử lại 1 lần (phiên vừa làm mới)
     setLoading(false);
     if (err) { setError(true); return; }
     const list = (data || []) as ActivityRow[];
