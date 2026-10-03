@@ -7,7 +7,8 @@ import { useLifeOSStore } from '@/stores/useLifeOSStore';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
 import { getTodayDateString } from '@/utils/dateUtils';
 import { toast } from 'sonner';
-import { LIFE_AREAS } from '@/types/lifeos';
+import { LIFE_AREAS, type Habit } from '@/types/lifeos';
+import { format, differenceInCalendarDays, parseISO } from 'date-fns';
 
 export function HabitRescueCard() {
   const habits = useLifeOSStore((s) => s.habits);
@@ -18,39 +19,23 @@ export function HabitRescueCard() {
 
   const rescueHabits = useMemo(() => {
     const today = new Date();
+    // Đếm số ngày bỏ lỡ liên tiếp, chỉ tính từ ngày tạo thói quen (thói quen mới tạo không bị báo "cần cứu").
+    const missedOf = (h: Habit, max: number) => {
+      const age = h.createdAt ? Math.max(differenceInCalendarDays(today, parseISO(h.createdAt)), 0) : max;
+      let missed = 0;
+      for (let i = 1; i <= Math.min(max, age); i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        if (h.completedDates.includes(format(d, 'yyyy-MM-dd'))) break;
+        missed++;
+      }
+      return missed;
+    };
     return habits
       .filter((h) => !h.archivedAt && !h.deletedAt && h.frequency === 'daily')
-      .filter((h) => {
-        // Check if missed 2-3+ consecutive days
-        let missedDays = 0;
-        for (let i = 1; i <= 4; i++) {
-          const d = new Date(today);
-          d.setDate(d.getDate() - i);
-          const dateStr = d.toISOString().split('T')[0];
-          if (!h.completedDates.includes(dateStr)) {
-            missedDays++;
-          } else {
-            break;
-          }
-        }
-        return missedDays >= 2 && !h.completedDates.includes(todayStr);
-      })
-      .filter((h) => !dismissed.includes(h.id))
-      .map((h) => {
-        // Count consecutive missed days
-        let missedDays = 0;
-        for (let i = 1; i <= 30; i++) {
-          const d = new Date(today);
-          d.setDate(d.getDate() - i);
-          const dateStr = d.toISOString().split('T')[0];
-          if (!h.completedDates.includes(dateStr)) {
-            missedDays++;
-          } else {
-            break;
-          }
-        }
-        return { ...h, missedDays };
-      })
+      .filter((h) => !h.completedDates.includes(todayStr) && !dismissed.includes(h.id))
+      .map((h) => ({ ...h, missedDays: missedOf(h, 30) }))
+      .filter((h) => h.missedDays >= 2)
       .sort((a, b) => b.missedDays - a.missedDays);
   }, [habits, todayStr, dismissed]);
 
@@ -66,7 +51,7 @@ export function HabitRescueCard() {
             <Heart className="w-3.5 h-3.5 text-rose-500" />
           </div>
           <div className="flex-1">
-            <span className="text-sm font-semibold">Habit cần cứu</span>
+            <span className="text-sm font-semibold">Thói quen cần cứu</span>
             <p className="text-[10px] text-muted-foreground">Thử phiên bản nhỏ nhất hôm nay?</p>
           </div>
         </div>
@@ -80,7 +65,7 @@ export function HabitRescueCard() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">{habit.name}</p>
                   <p className="text-[10px] text-destructive">
-                    Miss {habit.missedDays} ngày
+                    Bỏ lỡ {habit.missedDays} ngày
                     {habit.minimumVersion && (
                       <span className="text-muted-foreground"> · Min: {habit.minimumVersion}</span>
                     )}
@@ -108,7 +93,7 @@ export function HabitRescueCard() {
                     }}
                   >
                     <CheckCircle2 className="w-3 h-3 mr-0.5" />
-                    {habit.minimumVersion ? 'Min' : 'Done'}
+                    {habit.minimumVersion ? 'Bản nhỏ' : 'Xong'}
                   </Button>
                 </div>
               </div>

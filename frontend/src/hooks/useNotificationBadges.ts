@@ -18,6 +18,8 @@ export interface TasksBadge {
   medium: number;
   low: number;
   total: number;
+  /** Việc chưa xong hạn hôm nay hoặc quá hạn — dùng cho chấm đỏ menu. */
+  due: number;
   completedToday: number;
   totalTasks: number;
 }
@@ -60,6 +62,7 @@ export function useNotificationBadges() {
       medium: incompleteTasks.filter(t => t.priority === 'medium').length,
       low: incompleteTasks.filter(t => t.priority === 'low').length,
       total: incompleteTasks.length,
+      due: incompleteTasks.filter(t => !!t.dueDate && t.dueDate.slice(0, 10) <= today).length,
       completedToday: completedTodayTasks,
       totalTasks: activeTasks.length,
     };

@@ -25,6 +25,8 @@ import { HabitRescueCard } from '@/components/today/HabitRescueCard';
 import { AIDailyBriefing } from '@/components/today/AIDailyBriefing';
 import { RecommendationsCard } from '@/components/today/RecommendationsCard';
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
+import { useEnabledModules } from '@/hooks/useEnabledModules';
+import { useAuth } from '@/hooks/useAuth';
 import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
 import { Empty, Fab, HeroBanner, MascotCard, Page, PageHeader, ProgressBar, ProgressRing, SectionTitle, StatTile, Surface, TINTS, type Tint } from '@/components/lio';
 import { useHealth } from '@/features/health/hooks/useHealth';
@@ -41,7 +43,7 @@ const QUOTES = [
   { text: "Hành trình ngàn dặm bắt đầu từ một bước chân", author: "Lão Tử" },
   { text: "Thành công là tổng của những nỗ lực nhỏ, lặp đi lặp lại ngày này qua ngày khác", author: "Robert Collier" },
   { text: "Bạn không cần phải tuyệt vời để bắt đầu, nhưng bạn cần bắt đầu để trở nên tuyệt vời", author: "Zig Ziglar" },
-  { text: "Mỗi ngày mới là một cơ hội mới để trở thành phiên bản tốt hơn của chính mình", author: "Unknown" },
+  { text: "Mỗi ngày mới là một cơ hội mới để trở thành phiên bản tốt hơn của chính mình", author: "Khuyết danh" },
   { text: "Kỷ luật là cầu nối giữa mục tiêu và thành tựu", author: "Jim Rohn" },
 ];
 
@@ -64,6 +66,9 @@ export default function TodayPage() {
   const navigate = useNavigate();
   const health = useHealth();
   const user = useLifeOSStore((s) => s.user);
+  const { user: authUser } = useAuth();
+  const meta = (authUser?.user_metadata ?? {}) as { name?: string; full_name?: string };
+  const displayName = (user.name || meta.name || meta.full_name || '').trim().split(/\s+/).pop() ?? '';
   const habits = useLifeOSStore((s) => s.habits);
   const tasks = useLifeOSStore((s) => s.tasks);
   const pomodoroSessions = useLifeOSStore((s) => s.pomodoroSessions);
@@ -75,6 +80,7 @@ export default function TodayPage() {
   const monthlyReviews = useLifeOSStore((s) => s.monthlyReviews);
   const userPreferences = useLifeOSStore((s) => s.userPreferences);
   const { loadOnboardingState } = usePreferencesSync();
+  const { isOn } = useEnabledModules();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   // On mount: check Supabase for onboarding state (fixes new-browser-profile issue)
@@ -202,7 +208,9 @@ export default function TodayPage() {
   const QUICK: { label: string; icon: LifeIconName; tint: Tint; onClick: () => void }[] = [
     { label: 'Công việc', icon: 'module/tasks', tint: 'violet', onClick: () => setShowTaskModal(true) },
     { label: 'Thói quen', icon: 'module/habits', tint: 'mint', onClick: () => setShowHabitModal(true) },
-    { label: 'Nhật ký', icon: 'module/journal', tint: 'sky', onClick: () => setShowJournalModal(true) },
+    isOn('journal') ? { label: 'Nhật ký', icon: 'module/journal', tint: 'sky', onClick: () => setShowJournalModal(true) }
+      : isOn('notes') ? { label: 'Ghi chú', icon: 'module/notes', tint: 'amber', onClick: () => navigate('/notes?add') }
+      : { label: 'AI Coach', icon: 'module/ai-coach', tint: 'sky', onClick: () => navigate('/ai-chat') },
     { label: 'Tập trung', icon: 'module/focus', tint: 'rose', onClick: () => startPomodoro() },
   ];
 
@@ -277,15 +285,15 @@ export default function TodayPage() {
         <span><span className="block text-[24px] font-extrabold text-streak leading-none tabular-nums">{bestStreak}</span><span className="block text-[12px] text-muted-foreground mt-1">Chuỗi ngày cao nhất</span></span>
       </Surface>
       <Surface className="p-4">
-        <SectionTitle title="Tuần này" action={<Link to="/weekly-review" className="text-[12px] font-semibold text-primary">Review</Link>} />
+        <SectionTitle title="Tuần này" action={isOn('reviews') ? <Link to="/weekly-review" className="text-[12px] font-semibold text-primary">Review</Link> : undefined} />
         <div className="grid grid-cols-2 gap-2 text-center">
           <div className="rounded-2xl bg-secondary/50 py-2.5"><p className="text-[18px] font-extrabold tabular-nums">{weeklyCompletedHabits}</p><p className="text-[11px] text-muted-foreground">Lượt thói quen</p></div>
           <div className="rounded-2xl bg-secondary/50 py-2.5"><p className="text-[18px] font-extrabold tabular-nums">{weeklyCompletedTasks.length}</p><p className="text-[11px] text-muted-foreground">Việc xong</p></div>
         </div>
-        {currentWeekReview
+        {!isOn('reviews') ? null : currentWeekReview
           ? <p className="mt-3 text-center text-[12.5px] font-semibold text-[#22B07D]">✓ Đã review tuần này</p>
           : <Button variant="outline" className="mt-3 w-full h-9 rounded-full text-[12.5px]" asChild><Link to="/weekly-review?add">Viết Weekly Review</Link></Button>}
-        {isNearMonthEnd && (
+        {isOn('reviews') && isNearMonthEnd && (
           <div className={cn('mt-2 flex items-center justify-between rounded-2xl px-3 py-2 text-[12px]', currentMonthReview ? 'bg-[#E8FBF4] dark:bg-success/10' : 'bg-[#FFF6E0] dark:bg-amber-500/10')}>
             <span className="font-semibold">{currentMonthReview ? `Review tháng ✓ (${currentMonthReview.overallRating}/5)` : 'Chưa review tháng này'}</span>
             <Link to={currentMonthReview ? '/monthly-review' : '/monthly-review?add'} className="font-semibold text-primary">{currentMonthReview ? 'Xem' : 'Viết'}</Link>
@@ -295,7 +303,7 @@ export default function TodayPage() {
       <HabitRescueCard />
       {userPreferences?.showAISuggestions !== false && <AISuggestionsCard compact />}
       <RecommendationsCard />
-      <Surface className="p-4">
+      {isOn('life_areas') && <Surface className="p-4">
         <SectionTitle title="Lĩnh vực cuộc sống" action={<Link to="/life-wheel" className="text-[12px] font-semibold text-primary">Bánh xe</Link>} />
         <div className="grid grid-cols-5 gap-1.5">
           {LIFE_AREAS.slice(0, 10).map((area) => {
@@ -307,7 +315,7 @@ export default function TodayPage() {
             );
           })}
         </div>
-      </Surface>
+      </Surface>}
       <MascotCard mascot="lumi" pose="happy" quote={`“${todayQuote.text}” — ${todayQuote.author}`} />
     </div>
   );
@@ -324,8 +332,8 @@ export default function TodayPage() {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
         <div className="space-y-4 min-w-0">
-          <HeroBanner mascot="lumi" pose={dayProgress >= 80 ? 'happy' : 'default'} title={<>{greeting}, {user.name}! 👋</>}
-            subtitle={<span className="italic">“{todayQuote.text}”</span>}
+          <HeroBanner mascot="lumi" pose={dayProgress >= 80 ? 'happy' : 'default'} title={<>{greeting}{displayName ? `, ${displayName}` : ''}! 👋</>}
+            subtitle={userPreferences?.onboardingFocus ? <span>🎯 Trọng tâm: <b>{userPreferences.onboardingFocus}</b></span> : <span className="italic">“{todayQuote.text}”</span>}
             action={<div className="flex flex-wrap gap-1.5 text-[12px] font-semibold">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-card/80 px-3 py-1 shadow-soft"><i className="h-1.5 w-1.5 rounded-full bg-mint" />{completedHabitsToday.length}/{todayHabits.length} thói quen</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-card/80 px-3 py-1 shadow-soft"><i className="h-1.5 w-1.5 rounded-full bg-peach" />{remaining} việc còn lại</span>
@@ -352,13 +360,20 @@ export default function TodayPage() {
             </Surface>
           )}
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatTile icon={<span className="text-[22px]">💧</span>} tint="sky" value={<>{water ?? 0}<span className="text-[14px] text-muted-foreground">/{waterM.target} ly</span></>} label="Nước uống" hint={<span className="text-primary">Chạm để +1 ly</span>}
-              onClick={() => { health.add('water', 1, todayStr); }} />
-            <StatTile icon={<span className="text-[22px]">🌙</span>} tint="violet" value={sleep !== null ? <>{+sleep.toFixed(1)}<span className="text-[14px] text-muted-foreground"> giờ</span></> : '–'} label="Giấc ngủ" onClick={() => navigate('/health?add')} />
-            <StatTile icon={<span className="text-[22px]">🏃</span>} tint="mint" value={<>{exercise ?? 0}<span className="text-[14px] text-muted-foreground">/{exM.target}</span></>} label="Vận động" hint="phút hôm nay" onClick={() => navigate('/health?add')} />
-            <StatTile icon="module/focus" tint="rose" value={<>{todayPomodoros.length}<span className="text-[14px] text-muted-foreground"> phiên</span></>} label="Tập trung" hint={focusMin ? `${focusMin} phút` : undefined} onClick={() => startPomodoro(topPriorityTask?.id)} />
-          </div>
+          {isOn('health') ? (
+  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatTile icon={<span className="text-[22px]">💧</span>} tint="sky" value={<>{water ?? 0}<span className="text-[14px] text-muted-foreground">/{waterM.target} ly</span></>} label="Nước uống" hint={<span className="text-primary">Chạm để +1 ly</span>}
+                onClick={() => { health.add('water', 1, todayStr); }} />
+              <StatTile icon={<span className="text-[22px]">🌙</span>} tint="violet" value={sleep !== null ? <>{+sleep.toFixed(1)}<span className="text-[14px] text-muted-foreground"> giờ</span></> : '–'} label="Giấc ngủ" onClick={() => navigate('/health?add')} />
+              <StatTile icon={<span className="text-[22px]">🏃</span>} tint="mint" value={<>{exercise ?? 0}<span className="text-[14px] text-muted-foreground">/{exM.target}</span></>} label="Vận động" hint="phút hôm nay" onClick={() => navigate('/health?add')} />
+              <StatTile icon="module/focus" tint="rose" value={<>{todayPomodoros.length}<span className="text-[14px] text-muted-foreground"> phiên</span></>} label="Tập trung" hint={focusMin ? `${focusMin} phút` : undefined} onClick={() => startPomodoro(topPriorityTask?.id)} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <StatTile icon="module/tasks" tint="violet" value={<>{completedTasksToday.length}<span className="text-[14px] text-muted-foreground">/{completedTasksToday.length + todayTasks.length} việc</span></>} label="Xong hôm nay" onClick={() => navigate('/tasks')} />
+              <StatTile icon="module/focus" tint="rose" value={<>{todayPomodoros.length}<span className="text-[14px] text-muted-foreground"> phiên</span></>} label="Tập trung" hint={focusMin ? `${focusMin} phút` : undefined} onClick={() => startPomodoro(topPriorityTask?.id)} />
+            </div>
+          )}
 
           <div className="grid grid-cols-4 gap-2.5">
             {QUICK.map((a) => (
@@ -397,7 +412,7 @@ export default function TodayPage() {
           <AIDailyBriefing />
           {userPreferences?.morningCheckinEnabled !== false && <MorningCheckin />}
           {userPreferences?.eveningReviewEnabled !== false && <EveningReview />}
-          {userPreferences?.showTodayFocus !== false && <TodayFocusCard />}
+          {!isMobile && userPreferences?.showTodayFocus !== false && <TodayFocusCard />}
 
           <div className="grid gap-4 md:grid-cols-2">{habitsCard}{tasksCard}</div>
           {isMobile && side}

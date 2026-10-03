@@ -63,6 +63,7 @@ export const NAV_GROUPS: NavGroup[] = [
 
 export const ACCOUNT_ITEMS: NavItem[] = [
   { path: '/me', label: 'Hồ sơ', icon: 'module/profile', keywords: 'profile me' },
+  { path: '/modules', label: 'Tính năng', icon: 'module/settings', keywords: 'modules features tinh nang bat tat' },
   { path: '/notifications', label: 'Thông báo', icon: 'module/notifications', keywords: 'notifications thong bao push nhac nho' },
   { path: '/settings', label: 'Cài đặt', icon: 'module/settings', keywords: 'settings' },
 ];

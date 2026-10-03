@@ -112,7 +112,7 @@ export function BottomNav() {
             icon={CheckSquare}
             label="Công việc"
             isActive={isActivePath(location.pathname, '/tasks')}
-            badge={badges.tasks.total}
+            badge={badges.tasks.due}
             badgeUrgent={badges.tasks.overdue > 0 || badges.tasks.high > 0}
           />
 

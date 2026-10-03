@@ -7,7 +7,8 @@ import { LifeIcon } from '@/components/icons/LifeIcon';
 import { TINTS } from '@/components/lio';
 import { usePomodoroStore } from '@/stores/usePomodoroStore';
 import { usePageAction } from '@/stores/usePageAction';
-import { QUICK_ACTIONS, type QuickAction } from './navigationConfig';
+import { type QuickAction } from './navigationConfig';
+import { useEnabledModules } from '@/hooks/useEnabledModules';
 import { cn } from '@/lib/utils';
 
 interface QuickAddSheetProps {
@@ -50,6 +51,7 @@ const itemVariants: Variants = {
 
 export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
   const navigate = useNavigate();
+  const { quickActions } = useEnabledModules();
 
   const startPomodoro = usePomodoroStore((s) => s.start);
   const pageAction = usePageAction((s) => s.action);
@@ -131,7 +133,7 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
 
             {/* Actions Grid */}
             <div className="px-5 pb-6 grid grid-cols-3 gap-2.5">
-              {QUICK_ACTIONS.map((action, i) => (
+              {quickActions.map((action, i) => (
                 <motion.button
                   key={action.id}
                   custom={i}

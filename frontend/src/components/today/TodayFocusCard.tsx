@@ -86,7 +86,7 @@ export function TodayFocusCard() {
           <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
             <Zap className="w-3.5 h-3.5 text-primary" />
           </div>
-          <span className="text-sm font-semibold">Today Focus</span>
+          <span className="text-sm font-semibold">Trọng tâm hôm nay</span>
           {focusData.overdueCount > 0 && (
             <Badge variant="destructive" className="text-[10px] px-1.5 py-0 ml-auto">
               <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
@@ -150,9 +150,9 @@ export function TodayFocusCard() {
 
         {/* Progress Summary */}
         <div className="flex items-center gap-3 pt-1 text-[10px] text-muted-foreground">
-          <span>{focusData.completedHabits}/{focusData.totalHabits} habits</span>
+          <span>{focusData.completedHabits}/{focusData.totalHabits} thói quen</span>
           <span className="w-px h-3 bg-border" />
-          <span>{focusData.totalTodayTasks} tasks hôm nay</span>
+          <span>{focusData.totalTodayTasks} việc hôm nay</span>
         </div>
       </CardContent>
     </Card>
