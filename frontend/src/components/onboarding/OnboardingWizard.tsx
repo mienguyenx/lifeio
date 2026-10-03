@@ -13,7 +13,7 @@ import { usePreferencesSync } from '@/hooks/sync/usePreferencesSync';
 import { useVoiceInput, voiceSupport } from '@/features/ai-coach/voice/speech';
 import { MODULES, type ModuleId } from '@/lib/modules';
 import type { LifeArea, UserPreferences } from '@/types/lifeos';
-import { fetchOnboardingPlan, type OnboardingPlan, type PlanHabit, type PlanTask, type When } from './onboardingPlan';
+import { fetchAnalysis, fetchOnboardingPlan, type Analysis, type Answers, type OnboardingPlan, type PlanHabit, type PlanTask, type When } from './onboardingPlan';
 
 /**
  * Onboarding AI — người dùng kể nhu cầu (gõ hoặc nói) → LIO gợi ý tính năng, việc, thói quen,
@@ -34,8 +34,8 @@ const WHEN_LABEL: Record<When, string> = { today: 'Hôm nay', tomorrow: 'Ngày m
 const TOD_LABEL: Record<PlanHabit['timeOfDay'], string> = { morning: 'Buổi sáng', afternoon: 'Buổi chiều', evening: 'Buổi tối', anytime: 'Bất kỳ lúc nào' };
 const TOD_TIME: Record<PlanHabit['timeOfDay'], string | undefined> = { morning: '07:30', afternoon: '13:00', evening: '21:00', anytime: undefined };
 
-type Step = 'need' | 'thinking' | 'pick' | 'creating' | 'done';
-interface Draft { step: Step; text: string; plan: OnboardingPlan | null; mods: ModuleId[]; tasks: number[]; habits: number[]; focus: string }
+type Step = 'need' | 'analyzing' | 'analysis' | 'thinking' | 'pick' | 'creating' | 'done';
+interface Draft { step: Step; text: string; analysis?: Analysis | null; answers?: Answers; plan: OnboardingPlan | null; mods: ModuleId[]; tasks: number[]; habits: number[]; focus: string }
 const loadDraft = (): Draft | null => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { return null; } };
 
 const dueOf = (w: When) => {
@@ -53,8 +53,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const { saveOnboardingCompleted } = usePreferencesSync();
 
   const draft = useMemo(loadDraft, []);
-  const [step, setStep] = useState<Step>(draft?.step === 'pick' && draft.plan ? 'pick' : 'need');
+  const [step, setStep] = useState<Step>(draft?.step === 'pick' && draft.plan ? 'pick' : draft?.step === 'analysis' && draft.analysis ? 'analysis' : 'need');
   const [text, setText] = useState(draft?.text ?? '');
+  const [analysis, setAnalysis] = useState<Analysis | null>(draft?.analysis ?? null);
+  const [answers, setAnswers] = useState<Answers>(draft?.answers ?? {});
   const [plan, setPlan] = useState<OnboardingPlan | null>(draft?.plan ?? null);
   const [mods, setMods] = useState<ModuleId[]>(draft?.mods ?? []);
   const [taskSel, setTaskSel] = useState<number[]>(draft?.tasks ?? []);
@@ -66,8 +68,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
   useEffect(() => {
     if (step === 'creating' || step === 'done') return localStorage.removeItem(DRAFT_KEY);
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, text, plan, mods, tasks: taskSel, habits: habitSel, focus } satisfies Draft));
-  }, [step, text, plan, mods, taskSel, habitSel, focus]);
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, text, analysis, answers, plan, mods, tasks: taskSel, habits: habitSel, focus } satisfies Draft));
+  }, [step, text, analysis, answers, plan, mods, taskSel, habitSel, focus]);
 
   const [base, setBase] = useState('');
   const voice = useVoiceInput({ keepAlive: true, silenceMs: 6000, maxMs: 180000, onFinal: (t) => setText(`${base} ${t}`.trim()), onError: (m) => toast.error(m) });
@@ -75,10 +77,19 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const shownText = voice.listening ? `${base} ${voice.interim}`.trim() : text;
   const toggleMic = () => { if (voice.listening) return voice.stop(); setBase(text.trim()); void voice.start(); };
 
+  const analyze = async () => {
+    if (!text.trim()) return;
+    setStep('analyzing');
+    const a = await fetchAnalysis(text.trim());
+    setAnalysis(a);
+    setAnswers({});
+    setStep('analysis');
+  };
+
   const suggest = async () => {
     if (!text.trim()) return;
     setStep('thinking');
-    const p = await fetchOnboardingPlan(text.trim());
+    const p = await fetchOnboardingPlan(text.trim(), analysis, answers);
     setPlan(p);
     setMods(p.modules.map((m) => m.id));
     setTaskSel(p.tasks.map((_, i) => i));
@@ -163,16 +174,80 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <button key={e} onClick={() => setText((t) => (t.includes(e) ? t : `${t.trim()}${t.trim() ? '. ' : ''}${e}`))} className="px-3 py-2 rounded-2xl bg-lavender dark:bg-primary/15 text-primary text-[12.5px] font-medium text-left leading-snug">{e}</button>
               ))}
             </div>
-            <Button onClick={suggest} disabled={!text.trim() || voice.listening} className="mt-6 w-full h-12 rounded-full shadow-soft text-[14.5px] gap-1.5"><Sparkles className="w-4 h-4" />Gợi ý cho tôi</Button>
+            <Button onClick={analyze} disabled={!text.trim() || voice.listening} className="mt-6 w-full h-12 rounded-full shadow-soft text-[14.5px] gap-1.5"><Sparkles className="w-4 h-4" />Phân tích giúp tôi</Button>
             <button onClick={() => void finish(true)} className="mt-3 w-full text-[13px] text-muted-foreground font-medium py-2">Bỏ qua, tôi tự khám phá</button>
           </div>
         )}
 
-        {(step === 'thinking' || step === 'creating') && (
+        {step === 'analysis' && analysis && (
+          <div className={card}>
+            <div className="flex items-start gap-3">
+              <button onClick={() => setStep('need')} aria-label="Quay lại" className="h-9 w-9 rounded-full bg-secondary grid place-items-center shrink-0"><ChevronLeft className="h-4 w-4" /></button>
+              <div className="min-w-0">
+                <h2 className="text-[19px] font-extrabold leading-tight">LIO hiểu bạn thế này</h2>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">Xem có đúng không trước khi lên kế hoạch nhé</p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-start gap-3 rounded-[20px] bg-gradient-to-br from-primary/10 to-primary/[0.03] border border-primary/15 p-3.5">
+              <Mascot name="ori" pose="idea" size={52} className="shrink-0 -my-1" />
+              <p className="text-[13.5px] leading-relaxed font-medium">{analysis.summary}</p>
+            </div>
+
+            {analysis.painPoints.length > 0 && (
+              <section className="mt-5">
+                <p className="text-[13px] font-bold mb-2">Điều đang làm bạn vướng</p>
+                <div className="space-y-1.5">
+                  {analysis.painPoints.map((x, i) => (
+                    <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-2xl border border-border/60 bg-card">
+                      <span className="h-9 w-9 rounded-[12px] bg-[#FFF1E8] dark:bg-[#FF9B63]/15 grid place-items-center text-[18px] shrink-0">{x.icon}</span>
+                      <span className="min-w-0"><span className="block text-[13.5px] font-semibold leading-snug">{x.title}</span><span className="block text-[12px] text-muted-foreground leading-snug mt-0.5">{x.detail}</span></span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {analysis.goals.length > 0 && (
+              <section className="mt-5">
+                <p className="text-[13px] font-bold mb-2">Điều bạn thật sự muốn</p>
+                <div className="flex flex-wrap gap-1.5">{analysis.goals.map((g) => <span key={g} className="px-3 py-1.5 rounded-full bg-[#E6F8F1] dark:bg-[#57D3AE]/15 text-[#16865F] dark:text-[#57D3AE] text-[12.5px] font-semibold">🎯 {g}</span>)}</div>
+              </section>
+            )}
+
+            {analysis.approach.length > 0 && (
+              <section className="mt-5">
+                <p className="text-[13px] font-bold mb-2">LIO sẽ giúp bạn</p>
+                <ol className="space-y-2">
+                  {analysis.approach.map((a, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-[13px] leading-snug"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground text-[11.5px] font-bold grid place-items-center shrink-0">{i + 1}</span><span className="pt-0.5">{a}</span></li>
+                  ))}
+                </ol>
+              </section>
+            )}
+
+            {analysis.questions.map((q) => (
+              <section key={q.id} className="mt-5">
+                <p className="text-[13px] font-bold mb-2">{q.question}</p>
+                <div className="flex flex-wrap gap-2">
+                  {q.options.map((o) => {
+                    const on = answers[q.id] === o;
+                    return <button key={o} onClick={() => setAnswers((s) => ({ ...s, [q.id]: on ? '' : o }))} className={cn('px-3.5 h-10 rounded-full border text-[13px] font-medium transition-all', on ? 'border-primary bg-primary/10 text-primary ring-4 ring-primary/10' : 'border-border/70')}>{o}</button>;
+                  })}
+                </div>
+              </section>
+            ))}
+
+            <Button onClick={() => void suggest()} className="mt-6 w-full h-12 rounded-full shadow-soft text-[14.5px] gap-1.5"><Check className="w-4 h-4" />Đúng rồi, lên kế hoạch cho mình</Button>
+            <button onClick={() => setStep('need')} className="mt-2 w-full text-[13px] text-muted-foreground font-medium py-2">Chưa đúng lắm, mình kể thêm</button>
+          </div>
+        )}
+
+        {(step === 'analyzing' || step === 'thinking' || step === 'creating') && (
           <div className={cn(card, 'text-center py-10')}>
-            <Mascot name="ori" pose={step === 'thinking' ? 'idea' : 'explore'} size={130} float className="mx-auto" />
-            <h2 className="mt-4 text-[19px] font-extrabold">{step === 'thinking' ? 'LIO đang thiết kế không gian cho bạn…' : 'Đang tạo không gian của bạn…'}</h2>
-            <p className="mt-1.5 text-[13px] text-muted-foreground">{step === 'thinking' ? 'Chọn việc, thói quen và tính năng phù hợp' : 'Thêm việc, thói quen và bật tính năng'}</p>
+            <Mascot name="ori" pose={step === 'creating' ? 'explore' : 'idea'} size={130} float className="mx-auto" />
+            <h2 className="mt-4 text-[19px] font-extrabold">{step === 'analyzing' ? 'LIO đang lắng nghe câu chuyện của bạn…' : step === 'thinking' ? 'LIO đang lên kế hoạch riêng cho bạn…' : 'Đang tạo không gian của bạn…'}</h2>
+            <p className="mt-1.5 text-[13px] text-muted-foreground">{step === 'analyzing' ? 'Tìm điều đang làm bạn vướng và điều bạn thật sự muốn' : step === 'thinking' ? 'Chọn việc, thói quen và tính năng phù hợp' : 'Thêm việc, thói quen và bật tính năng'}</p>
             <div className="mt-5 flex justify-center gap-1.5">{[0, 1, 2].map((i) => <span key={i} className="h-2.5 w-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}</div>
           </div>
         )}
@@ -180,9 +255,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step === 'pick' && plan && (
           <div className={card}>
             <div className="flex items-start gap-3">
-              <button onClick={() => setStep('need')} aria-label="Quay lại" className="h-9 w-9 rounded-full bg-secondary grid place-items-center shrink-0"><ChevronLeft className="h-4 w-4" /></button>
+              <button onClick={() => setStep(analysis ? 'analysis' : 'need')} aria-label="Quay lại" className="h-9 w-9 rounded-full bg-secondary grid place-items-center shrink-0"><ChevronLeft className="h-4 w-4" /></button>
               <div className="min-w-0">
-                <h2 className="text-[19px] font-extrabold leading-tight">Gợi ý dành cho bạn</h2>
+                <h2 className="text-[19px] font-extrabold leading-tight">Kế hoạch dành cho bạn</h2>
                 <p className="mt-1 text-[12.5px] text-muted-foreground leading-snug">{plan.summary || 'Bỏ chọn những gì bạn chưa cần — có thể thêm lại bất cứ lúc nào.'}</p>
               </div>
             </div>

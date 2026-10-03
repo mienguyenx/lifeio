@@ -334,14 +334,50 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // ----------------------- ai-onboarding-analyze -------------------------
+  // Bước 1: AI đọc nhu cầu → phân tích (vấn đề, mong muốn, cách giúp) + 1–2 câu hỏi làm rõ.
+  fastify.post<{ Body: { text?: string } }>(
+    '/functions/ai-onboarding-analyze',
+    { schema: { tags: ['ai'], summary: 'Analyze a new user need before planning', security: [{ bearerAuth: [] }] } },
+    async (request, reply) => {
+      const text = request.body?.text?.trim();
+      if (!text) throw badRequest('Missing text');
+      const base = `Bạn là LIO — huấn luyện viên cuộc sống của app LifeOS. Người dùng mới vừa kể họ cần gì. Hãy cho thấy bạn THẬT SỰ hiểu họ: phân tích ngắn, ấm áp, cụ thể theo đúng lời họ (không chung chung, không bịa chi tiết). Tiếng Việt, xưng "mình", gọi "bạn".
+Chỉ trả về JSON:
+{"summary":"1–2 câu phản chiếu lại tình huống của họ, đồng cảm","painPoints":[{"icon":"1 emoji","title":"≤40 ký tự","detail":"≤90 ký tự: vì sao đây là vấn đề / gốc rễ"}],"goals":["≤50 ký tự — điều họ thật sự muốn đạt"],"approach":["≤80 ký tự — bước LIO sẽ giúp, cụ thể"],"questions":[{"id":"q1","question":"≤60 ký tự","options":["≤25 ký tự", "..."]}]}
+Quy tắc: 2–3 painPoints, 1–3 goals, đúng 3 approach (bước nhỏ → lớn), 1–2 questions giúp lên kế hoạch sát hơn (VD thời gian rảnh, mức độ thử thách, hạn chót), mỗi câu 3–4 lựa chọn ngắn.`;
+      const { content } = await chatCompletion({
+        feature: 'onboarding_plan',
+        messages: [
+          { role: 'system', content: withExtra(base, await getSystemPrompt('onboarding_analyze.system')) },
+          { role: 'user', content: text.slice(0, 2000) },
+        ],
+        temperature: 0.6,
+      });
+      type A = { summary?: string; painPoints?: Record<string, unknown>[]; goals?: unknown[]; approach?: unknown[]; questions?: Record<string, unknown>[] };
+      const a = parseJsonFromContent<A | null>(content, null) ?? {};
+      const str = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+      const painPoints = (Array.isArray(a.painPoints) ? a.painPoints : []).map((x) => ({ icon: str(x?.icon, 8) || '•', title: str(x?.title, 60), detail: str(x?.detail, 140) })).filter((x) => x.title).slice(0, 3);
+      const goals = (Array.isArray(a.goals) ? a.goals : []).map((g) => str(g, 70)).filter(Boolean).slice(0, 3);
+      const approach = (Array.isArray(a.approach) ? a.approach : []).map((g) => str(g, 110)).filter(Boolean).slice(0, 3);
+      const questions = (Array.isArray(a.questions) ? a.questions : [])
+        .map((q, i) => ({ id: str(q?.id, 10) || `q${i + 1}`, question: str(q?.question, 90), options: (Array.isArray(q?.options) ? q.options : []).map((o) => str(o, 40)).filter(Boolean).slice(0, 4) }))
+        .filter((q) => q.question && q.options.length >= 2).slice(0, 2);
+      if (!painPoints.length && !a.summary) throw badRequest('AI không trả về phân tích hợp lệ');
+      return reply.send({ summary: str(a.summary, 260), painPoints, goals, approach, questions });
+    },
+  );
+
   // ------------------------- ai-onboarding-plan --------------------------
   // Người dùng mới kể nhu cầu → AI gợi ý tính năng (module), việc, thói quen, trọng tâm.
-  fastify.post<{ Body: { text?: string; areas?: string[] } }>(
+  fastify.post<{ Body: { text?: string; areas?: string[]; analysis?: string; answers?: { question?: string; answer?: string }[] } }>(
     '/functions/ai-onboarding-plan',
     { schema: { tags: ['ai'], summary: 'Personalized onboarding plan from user needs', security: [{ bearerAuth: [] }] } },
     async (request, reply) => {
-      const { text, areas = [] } = request.body ?? {};
+      const { text, areas = [], analysis, answers = [] } = request.body ?? {};
       if (!text?.trim()) throw badRequest('Missing text');
+      const answered = (Array.isArray(answers) ? answers : []).filter((x) => x?.question && x?.answer).slice(0, 4)
+        .map((x) => `- ${String(x.question).slice(0, 90)} → ${String(x.answer).slice(0, 60)}`).join('\n');
       const MODULES: Record<string, string> = {
         calendar: 'Lịch — sự kiện, lịch hẹn, xem lịch tuần',
         goals: 'Mục tiêu — mục tiêu dài hạn, OKR, theo dõi tiến độ',
@@ -370,7 +406,7 @@ Chỉ trả về JSON:
         feature: 'onboarding_plan',
         messages: [
           { role: 'system', content: withExtra(base, await getSystemPrompt('onboarding_plan.system')) },
-          { role: 'user', content: `Nhu cầu: ${text.trim().slice(0, 2000)}${areas.length ? `\nLĩnh vực quan tâm: ${areas.slice(0, 10).join(', ')}` : ''}` },
+          { role: 'user', content: `Nhu cầu: ${text.trim().slice(0, 2000)}${analysis ? `\nPhân tích đã thống nhất: ${String(analysis).slice(0, 800)}` : ''}${answered ? `\nNgười dùng trả lời thêm (hãy dùng để chọn hạn, giờ, mức độ thói quen):\n${answered}` : ''}${areas.length ? `\nLĩnh vực quan tâm: ${areas.slice(0, 10).join(', ')}` : ''}` },
         ],
         temperature: 0.5,
       });
