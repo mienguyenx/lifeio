@@ -59,6 +59,7 @@ const CASES: Case[] = [
   { text: 'Hoàn thành việc gửi báo giá', sim: [['complete_task', { taskId: 'Gửi báo giá khách A' }]], expect: [{ type: 'complete_task', taskId: 't-quote' }] },
   { text: 'Đánh dấu xong việc đi chợ', sim: [['complete_task', { taskTitle: 'đi chợ' }]], expect: 'unresolved' },
   { text: 'Gợi ý cách ngủ ngon hơn', sim: [], expect: 'chat' },
+  { text: 'Hôm nay xong dự án rồi, vui quá', sim: [['complete_task', { taskId: 't-slide' }]], expect: [{ type: 'complete_task', confidence: 0.6 }] },
 ];
 
 type Got = { mode: string; actions: { type: string; args: Record<string, unknown>; confidence?: number }[] };
@@ -81,7 +82,7 @@ function check(c: Case, got: Got): string[] {
     const a = got.actions[i];
     if (!a) return;
     if (a.type !== e.type) { errs.push(`${a.type} ≠ ${e.type}`); return; }
-    for (const [k, v] of Object.entries(e)) if (k !== 'type' && JSON.stringify(a.args[k]) !== JSON.stringify(v)) errs.push(`${k}=${JSON.stringify(a.args[k])} ≠ ${JSON.stringify(v)}`);
+    for (const [k, v] of Object.entries(e)) if (k !== 'type' && JSON.stringify(k === 'confidence' ? a.confidence : a.args[k]) !== JSON.stringify(v)) errs.push(`${k}=${JSON.stringify(k === 'confidence' ? a.confidence : a.args[k])} ≠ ${JSON.stringify(v)}`);
   });
   return errs;
 }
