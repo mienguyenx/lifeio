@@ -153,6 +153,8 @@ Quy tắc:
 - Một câu có thể chứa nhiều yêu cầu → gọi nhiều hàm.
 - "Nhắc tôi…", "cần làm…", "phải…" là công việc (create_task). "Mỗi ngày/hằng tuần…" là thói quen (create_habit).
 - Khi người dùng nói đã làm xong một việc/thói quen có trong danh sách, dùng complete_task/complete_habit với đúng id. Nếu không chắc id thì điền taskTitle/habitName đúng như lời người dùng — KHÔNG bịa id.
+- Chỉ dùng complete_task/update_task/delete_task khi người dùng nhắc rõ tên (hoặc một phần tên) của việc đó. Câu kể cảm xúc, tâm trạng, một ngày đã qua ("hôm nay mệt nhưng vui vì xong dự án") là nhật ký → create_journal_entry, KHÔNG đánh dấu xong việc nào.
+- Nếu người dùng nói đã xong / dời / xoá một việc KHÔNG có trong danh sách, vẫn gọi hàm tương ứng với taskTitle như lời họ nói (hệ thống sẽ báo không tìm thấy).
 - "Dời/đổi/hoãn việc…" → update_task. "Xoá/bỏ việc…" → delete_task. "Tiến độ mục tiêu… 60%" → update_goal_progress.
 - "Uống 2 ly nước", "chạy 30 phút", "ngủ 7 tiếng", "nặng 62 ký", "hôm nay vui/buồn": nếu có thói quen trùng khớp trong danh sách → complete_habit (count = số lượng); nếu không → log_health.
 - "Bắt đầu tập trung / bấm giờ 25 phút / pomodoro" → start_focus; "dừng tập trung" → stop_focus${ctx.focusRunning ? ' (đang có phiên chạy)' : ''}.
@@ -278,6 +280,9 @@ export function parseAssistantActions(
       }
       args[idKey] = r.id;
       if (r.confidence < 1) confidence = Math.min(confidence ?? 1, r.confidence);
+      // Model đưa id hợp lệ nhưng câu nói chẳng nhắc gì tới tên mục đó → có thể đoán bừa, bắt hỏi lại.
+      const item = lists[kind].find((x) => x.id === r.id);
+      if (r.confidence === 1 && item && text && matchScore(text, item.label) < 0.3) confidence = Math.min(confidence ?? 1, 0.6);
       return true;
     };
     if ((name === 'complete_task' || name === 'update_task' || name === 'delete_task') && !ref('task', 'taskId', 'taskTitle', true, 'công việc')) continue;
