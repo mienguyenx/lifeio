@@ -7,7 +7,7 @@ import { functionUrl, getAccessToken } from '@/integrations/api/httpClient';
 import { LIFE_AREAS } from '@/types/lifeos';
 import { exportChatPdf, readSSE } from '../utils/coach.utils';
 import { useSyncedStore } from '@/hooks/useSyncedStore';
-import { askAssistant, looksLikeCommand, useApplyAction, type AssistantAction, type ActionStatus } from '../voice/assistant';
+import { askAssistant, looksLikeCommand, useExecuteAction, type AssistantAction, type ActionStatus } from '../voice/assistant';
 
 export interface SendResult { reply: string; actions?: AssistantAction[] }
 
@@ -25,7 +25,7 @@ export function useCoach() {
   const wheel = s((x) => x.lifeWheelScores);
   const [loading, setLoading] = useState(false);
   const synced = useSyncedStore();
-  const applyAction = useApplyAction();
+  const applyAction = useExecuteAction();
 
   /** Số liệu hôm nay — cùng công thức với AICoachButton (useAICoachState), gửi kèm dailyStats mà backend đã hỗ trợ. */
   const today = useMemo(() => {
@@ -85,6 +85,12 @@ export function useCoach() {
           s.getState().addChatMessage({ role: 'assistant', content: reply, actions: r.actions });
           setLoading(false);
           return { reply, actions: r.actions };
+        }
+        if (r.mode === 'unresolved') {
+          const reply = `${r.message}. Bạn nói lại tên giúp mình nhé.`;
+          s.getState().addChatMessage({ role: 'assistant', content: reply });
+          setLoading(false);
+          return { reply };
         }
       } catch (e) {
         if ((e as { status?: number }).status === 503) {
@@ -153,9 +159,9 @@ export function useCoach() {
     const a = findAction(actionId);
     if (!a || a.status !== 'pending') return '';
     try {
-      const msg = await applyAction(a);
+      const { message: msg, undo } = await applyAction(a);
       setActionStatus(actionId, 'done');
-      if (!silent) toast.success(msg);
+      if (!silent) toast.success(msg, undo ? { action: { label: 'Hoàn tác', onClick: () => { void undo().then(() => setActionStatus(actionId, 'undone')); } } } : undefined);
       return msg;
     } catch (e) {
       console.error('Apply action failed', e);

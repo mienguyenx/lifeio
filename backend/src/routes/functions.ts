@@ -135,7 +135,7 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
       const ctx = request.body?.context ?? {};
       const { content, raw } = await chatCompletion({
         messages: [
-          { role: 'system', content: withExtra(buildAssistantSystemPrompt(ctx), await getSystemPrompt('assistant.system')) },
+          { role: 'system', content: withExtra(buildAssistantSystemPrompt(ctx, text), await getSystemPrompt('assistant.system')) },
           { role: 'user', content: text },
         ],
         tools: ASSISTANT_TOOLS,
@@ -143,8 +143,10 @@ const functionRoutes: FastifyPluginAsync = async (fastify) => {
         temperature: 0.2,
         feature: 'assistant',
       });
-      const actions = parseAssistantActions(raw.choices?.[0]?.message?.tool_calls, ctx);
-      return reply.send({ mode: actions.length ? 'actions' : 'chat', actions, message: actions.length ? content || '' : '' });
+      const { actions, issues } = parseAssistantActions(raw.choices?.[0]?.message?.tool_calls, ctx, text);
+      // 'unresolved' = có ý định thao tác nhưng không tìm thấy đối tượng (công việc/thói quen…).
+      const mode = actions.length ? 'actions' : issues.length ? 'unresolved' : 'chat';
+      return reply.send({ mode, actions, issues, message: actions.length ? content || '' : issues.join('. ') });
     },
   );
 

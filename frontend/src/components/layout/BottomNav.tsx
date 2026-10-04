@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { notificationService } from '@/services/notificationService';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Target, CheckSquare, Plus, MoreHorizontal } from 'lucide-react';
@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useNotificationBadges } from '@/hooks/useNotificationBadges';
 import { Badge } from '@/components/ui/badge';
 import { QuickAddSheet } from './QuickAddSheet';
+import { openVoiceCommand, releaseVoiceCommand } from '@/features/ai-coach/components/VoiceCommand';
 import { FullScreenMenu } from './FullScreenMenu';
 import { LifeIcon, ROUTE_ICON } from '@/components/icons/LifeIcon';
 import { ALL_NAV_ITEMS, isActivePath } from './navigationConfig';
@@ -88,8 +89,24 @@ export function BottomNav() {
 
   const isMoreActive = MORE_PATHS.some((p) => p !== '/' && isActivePath(location.pathname, p));
 
-  // Vibrate on quick add open (haptic feedback)
+  // Chạm = Thêm nhanh; nhấn giữ = nói lệnh (thả tay để gửi).
+  const holdTimer = useRef<number>();
+  const holding = useRef(false);
+  const pressDown = () => {
+    holding.current = false;
+    window.clearTimeout(holdTimer.current);
+    holdTimer.current = window.setTimeout(() => {
+      holding.current = true;
+      if (navigator.vibrate) navigator.vibrate(20);
+      openVoiceCommand({ hold: true });
+    }, 350);
+  };
+  const pressUp = () => {
+    window.clearTimeout(holdTimer.current);
+    if (holding.current) releaseVoiceCommand();
+  };
   const handleQuickAdd = () => {
+    if (holding.current) { holding.current = false; return; }
     if (navigator.vibrate) navigator.vibrate(10);
     setQuickAddOpen(true);
   };
@@ -120,11 +137,16 @@ export function BottomNav() {
           <div className="flex-1 flex items-center justify-center -mt-5">
             <button
               onClick={handleQuickAdd}
-              aria-label="Thêm nhanh"
+              onPointerDown={pressDown}
+              onPointerUp={pressUp}
+              onPointerCancel={pressUp}
+              onPointerLeave={pressUp}
+              onContextMenu={(e) => e.preventDefault()}
+              aria-label="Thêm nhanh (nhấn giữ để nói lệnh)"
               className={cn(
                 'w-14 h-14 rounded-full flex items-center justify-center',
                 'bg-gradient-to-br from-[#8B7CF6] to-primary shadow-fab ring-4 ring-background',
-                'tap-transparent active:scale-90 transition-transform',
+                'tap-transparent active:scale-90 transition-transform select-none touch-none [-webkit-touch-callout:none]',
               )}
             >
               <Plus className="w-7 h-7 text-primary-foreground" strokeWidth={2.5} />

@@ -18,7 +18,7 @@ export function ActionCards({ actions, onConfirm, onDismiss, onConfirmAll, compa
     <div className={cn('space-y-2 min-w-0', className)}>
       {actions.map((a) => {
         const d = describeAction(a);
-        const done = a.status === 'done'; const gone = a.status === 'dismissed';
+        const done = a.status === 'done'; const gone = a.status === 'dismissed' || a.status === 'undone';
         return (
           <div key={a.id} className={cn('flex items-start gap-3 rounded-[18px] border bg-card px-3 py-2.5 shadow-soft transition-opacity', done ? 'border-emerald-300/70 dark:border-emerald-500/40' : 'border-border/70', gone && 'opacity-50')}>
             <span className={cn('h-9 w-9 rounded-[12px] grid place-items-center shrink-0', TINTS[d.tint].bg)}><LifeIcon name={d.icon as LifeIconName} size={20} variant="duotone" /></span>
@@ -35,7 +35,7 @@ export function ActionCards({ actions, onConfirm, onDismiss, onConfirmAll, compa
                 <button onClick={() => onConfirm(a.id)} aria-label="Xác nhận" title="Xác nhận" className="h-8 w-8 rounded-full grid place-items-center bg-primary text-primary-foreground shadow-soft"><Check className="h-4 w-4" /></button>
               </div>
             ) : (
-              <span className={cn('shrink-0 text-[11.5px] font-semibold mt-1', done ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}>{done ? 'Đã lưu ✓' : 'Đã bỏ qua'}</span>
+              <span className={cn('shrink-0 text-[11.5px] font-semibold mt-1', done ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}>{done ? 'Đã lưu ✓' : a.status === 'undone' ? 'Đã hoàn tác' : 'Đã bỏ qua'}</span>
             )}
           </div>
         );
