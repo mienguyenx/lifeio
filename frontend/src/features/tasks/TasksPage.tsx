@@ -36,7 +36,10 @@ export default function TasksPage() {
 
   const [view, setViewState] = useState<TaskView>(() => (params.get('view') as TaskView) || (localStorage.getItem(VIEW_KEY) as TaskView) || 'list');
   const setView = (v: TaskView) => { setViewState(v); try { localStorage.setItem(VIEW_KEY, v); } catch { /* ignore */ } };
-  const [tab, setTab] = useState<TaskTab>(isMobile ? 'today' : 'all');
+  const tabParam = params.get('tab') as TaskTab | null;
+  const [tab, setTab] = useState<TaskTab>(tabParam || (isMobile ? 'today' : 'all'));
+  // Liên kết từ nơi khác (VD lệnh giọng nói “Xem”) → chuyển đúng tab.
+  useEffect(() => { if (tabParam) setTab(tabParam); }, [tabParam]);
   const [search, setSearch] = useState('');
   const [area, setArea] = useState<LifeArea | 'all'>('all');
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all');

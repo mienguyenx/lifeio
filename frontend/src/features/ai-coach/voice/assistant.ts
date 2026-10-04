@@ -49,7 +49,10 @@ export function needsConfirm(a: AssistantAction): boolean {
   return false;
 }
 
-export interface ActionResult { message: string; undo?: () => Promise<void> }
+export interface ActionResult { message: string; undo?: () => Promise<void>; /** Nơi xem kết quả (nút “Xem”). */ view?: string }
+/** Tab danh sách công việc chứa việc có hạn `d`. */
+const taskTab = (d?: string) => { const t = format(new Date(), 'yyyy-MM-dd'); return !d ? 'all' : d === t ? 'today' : d > t ? 'upcoming' : 'overdue'; };
+const whenLabel = (d?: string, time?: string) => [d && (dayLabel(d) ?? '').toLowerCase(), time && `lúc ${time}`].filter(Boolean).join(' ');
 
 /** Câu có vẻ là lệnh tạo/cập nhật dữ liệu → hỏi trợ lý hành động trước khi chat. */
 const COMMAND_RE = /^(?:hãy\s+|giúp\s+(?:tôi|mình|em|anh|chị)\s+|cho\s+(?:tôi|mình)\s+|làm\s+ơn\s+)?(?:tạo|thêm|ghi|lưu|nhắc|đặt|lên\s+lịch|đánh\s+dấu|hoàn\s+thành|check[\s-]?in|xong|đã\s+(?:làm|xong|uống|tập|đọc|chạy|đi|hoàn)|chi\s|tiêu\s|thu\s|nhận\s|mua\s|ăn\s|viết\s+nhật\s+ký|note|add|create|remind|log)/i;
@@ -178,7 +181,9 @@ export function useExecuteAction() {
         const before = st().tasks;
         await synced.addTask({ title: String(x.title).trim(), description: x.description || undefined, priority: x.priority ?? 'medium', status: 'todo', area: x.area, dueDate: x.dueDate || (x.reminderTime ? today : undefined), reminderTime: x.reminderTime || undefined, goalId: x.goalId || undefined });
         const id = newId(before, st().tasks);
-        return { message: `Đã tạo công việc “${x.title}”`, undo: id ? () => synced.permanentDeleteTask(id) : undefined };
+        const due = x.dueDate || (x.reminderTime ? today : undefined);
+        const when = whenLabel(due, x.reminderTime);
+        return { message: `Đã tạo công việc “${x.title}”${when ? ` — ${when}` : ''}${taskTab(due) === 'upcoming' ? ' (xem ở mục Sắp tới)' : ''}`, undo: id ? () => synced.permanentDeleteTask(id) : undefined, view: `/tasks?tab=${taskTab(due)}` };
       }
       case 'complete_task': {
         const prev = st().tasks.find((t) => t.id === x.taskId);
@@ -196,7 +201,7 @@ export function useExecuteAction() {
         if (x.priority) upd.priority = x.priority;
         const old = Object.fromEntries(Object.keys(upd).map((k) => [k, prev[k as keyof typeof prev]])) as Partial<typeof prev>;
         await synced.updateTask(prev.id, upd);
-        return { message: `Đã cập nhật “${prev.title}”${x.dueDate ? ' → ' + (dayLabel(x.dueDate) ?? '').toLowerCase() : ''}`, undo: () => synced.updateTask(prev.id, old) };
+        return { message: `Đã cập nhật “${prev.title}”${x.dueDate || x.reminderTime ? ' → ' + whenLabel(x.dueDate, x.reminderTime) : ''}`, undo: () => synced.updateTask(prev.id, old), view: `/tasks?tab=${taskTab(upd.dueDate ?? prev.dueDate)}` };
       }
       case 'delete_task': {
         const prev = st().tasks.find((t) => t.id === x.taskId);
@@ -208,7 +213,7 @@ export function useExecuteAction() {
         const before = st().habits;
         await synced.addHabit({ name: String(x.name).trim(), description: x.description || undefined, area, frequency: x.frequency ?? 'daily', customDays: x.customDays?.length ? x.customDays : undefined, targetPerDay: x.targetPerDay || undefined, targetUnit: x.targetUnit || undefined, reminderTime: x.reminderTime || undefined, reminderEnabled: !!x.reminderTime, icon: x.icon || undefined });
         const id = newId(before, st().habits);
-        return { message: `Đã tạo thói quen “${x.name}”`, undo: id ? () => synced.permanentDeleteHabit(id) : undefined };
+        return { message: `Đã tạo thói quen “${x.name}”`, undo: id ? () => synced.permanentDeleteHabit(id) : undefined, view: '/habits' };
       }
       case 'complete_habit': {
         const h = st().habits.find((h) => h.id === x.habitId);
@@ -227,7 +232,7 @@ export function useExecuteAction() {
         const before = st().goals;
         await synced.addGoal({ title: String(x.title).trim(), description: x.description || undefined, area, targetDate: x.targetDate || undefined, milestones: Array.isArray(x.milestones) ? x.milestones : undefined });
         const id = newId(before, st().goals);
-        return { message: `Đã tạo mục tiêu “${x.title}”`, undo: id ? () => synced.permanentDeleteGoal(id) : undefined };
+        return { message: `Đã tạo mục tiêu “${x.title}”`, undo: id ? () => synced.permanentDeleteGoal(id) : undefined, view: '/goals' };
       }
       case 'update_goal_progress': {
         const g = st().goals.find((g) => g.id === x.goalId);
@@ -240,26 +245,26 @@ export function useExecuteAction() {
         const before = st().journalEntries;
         await synced.addJournalEntry({ date: today, content: String(x.content), mood: clamp(x.mood), energy: clamp(x.energy), gratitude: Array.isArray(x.gratitude) ? x.gratitude : undefined });
         const id = newId(before, st().journalEntries);
-        return { message: 'Đã lưu nhật ký hôm nay', undo: id ? () => synced.deleteJournalEntry(id) : undefined };
+        return { message: 'Đã lưu nhật ký hôm nay', undo: id ? () => synced.deleteJournalEntry(id) : undefined, view: '/journal' };
       }
       case 'create_note': {
         const before = st().notes;
         await synced.addNote({ title: String(x.title), content: String(x.content), area: x.area, isPinned: false, isFavorite: false, tags: [] });
         const id = newId(before, st().notes);
-        return { message: `Đã lưu ghi chú “${x.title}”`, undo: id ? () => synced.permanentDeleteNote(id) : undefined };
+        return { message: `Đã lưu ghi chú “${x.title}”`, undo: id ? () => synced.permanentDeleteNote(id) : undefined, view: '/notes' };
       }
       case 'add_finance_transaction': {
         const t = { id: crypto.randomUUID(), type: x.type === 'income' ? 'income' as const : 'expense' as const, amount: Number(x.amount), category: String(x.category), description: String(x.description || x.category), date: x.date || today };
         st().addFinanceTransaction(t);
         await finance.saveTransaction(t);
-        return { message: `Đã ghi ${t.type === 'income' ? 'khoản thu' : 'khoản chi'} ${vnd(t.amount)}`, undo: async () => { st().deleteFinanceTransaction(t.id); await finance.deleteTransaction(t.id); } };
+        return { message: `Đã ghi ${t.type === 'income' ? 'khoản thu' : 'khoản chi'} ${vnd(t.amount)}`, view: '/finance', undo: async () => { st().deleteFinanceTransaction(t.id); await finance.deleteTransaction(t.id); } };
       }
       case 'log_health': {
         const m = metricOf(x.metric);
         const log: HealthLog = { id: crypto.randomUUID(), date: x.date || today, type: m.id as HealthLog['type'], value: Number(x.value), unit: m.unit, notes: x.notes || undefined };
         st().addHealthLog(log);
         await health.saveHealthLog(log);
-        return { message: `Đã ghi ${m.name.toLowerCase()} ${log.value} ${m.unit}`, undo: async () => { st().deleteHealthLog(log.id); await health.deleteHealthLog(log.id); } };
+        return { message: `Đã ghi ${m.name.toLowerCase()} ${log.value} ${m.unit}`, view: '/health', undo: async () => { st().deleteHealthLog(log.id); await health.deleteHealthLog(log.id); } };
       }
       case 'start_focus': {
         usePomodoroStore.getState().start(x.taskId || undefined, x.minutes || undefined);
