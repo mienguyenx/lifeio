@@ -13,7 +13,8 @@ import { SyncStatusIndicator } from './SyncStatusIndicator';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextAwareAICoach } from '@/components/ai/ContextAwareAICoach';
 import { GlobalVoiceChat, openVoiceChat } from '@/features/ai-coach/components/GlobalVoiceChat';
-import { AudioLines } from 'lucide-react';
+import { GlobalVoiceCommand, openVoiceCommand } from '@/features/ai-coach/components/VoiceCommand';
+import { AudioLines, Mic } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { Button } from '@/components/ui/button';
@@ -77,6 +78,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <BottomNav />
         {user && <MobileNudges />}
         <GlobalVoiceChat />
+        <GlobalVoiceCommand />
       </div>
     );
   }
@@ -174,6 +176,11 @@ export function AppLayout({ children }: AppLayoutProps) {
               <SyncStatusIndicator />
 
               <GlobalVoiceChat />
+              <GlobalVoiceCommand />
+              {/* Lệnh giọng nói nhanh (Alt+M) */}
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Lệnh giọng nói" title="Lệnh giọng nói (Alt+M)" onClick={() => openVoiceCommand()}>
+                <Mic className="h-4 w-4" />
+              </Button>
               {/* Voice assistant (Alt+V) */}
               <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Trợ lý giọng nói" title="Trợ lý giọng nói (Alt+V)" onClick={openVoiceChat}>
                 <AudioLines className="h-4 w-4" />

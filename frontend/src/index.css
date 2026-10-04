@@ -298,3 +298,6 @@
   .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
 }
+
+/* Sóng âm khi đang nghe lệnh giọng nói */
+@keyframes lioWave { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }

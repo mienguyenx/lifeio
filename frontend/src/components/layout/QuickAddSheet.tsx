@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { AudioLines, Mic, Plus, X } from 'lucide-react';
-import { openVoiceChat } from '@/features/ai-coach/components/GlobalVoiceChat';
+import { openVoiceCommand } from '@/features/ai-coach/components/VoiceCommand';
 import { toast } from 'sonner';
 import { LifeIcon } from '@/components/icons/LifeIcon';
 import { TINTS } from '@/components/lio';
@@ -116,12 +116,12 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
 
             {/* Voice: nói để tạo task, thói quen, nhật ký… */}
             <div className="px-5 pb-3 flex gap-2.5">
-              <button onClick={() => { onOpenChange(false); setTimeout(openVoiceChat, 150); }}
+              <button onClick={() => { onOpenChange(false); setTimeout(() => openVoiceCommand(), 150); }}
                 className="flex-1 min-w-0 flex items-center gap-3 rounded-[20px] bg-gradient-to-r from-primary to-[#9B7BFF] text-primary-foreground px-4 py-3 shadow-soft active:scale-[0.98] transition-transform text-left">
                 <span className="h-10 w-10 rounded-full bg-white/20 grid place-items-center shrink-0"><AudioLines className="h-5 w-5" /></span>
                 <span className="min-w-0">
-                  <span className="block text-[14px] font-bold">Nói với AI</span>
-                  <span className="block text-[12px] opacity-90 truncate">“Nhắc tôi gọi mẹ lúc 6h tối mai”</span>
+                  <span className="block text-[14px] font-bold">Nói lệnh với AI</span>
+                  <span className="block text-[12px] opacity-90 truncate">Mẹo: giữ nút ＋ để nói ngay</span>
                 </span>
               </button>
               <button onClick={() => { onOpenChange(false); navigate('/notes?voice'); }} aria-label="Ghi chú bằng giọng nói"

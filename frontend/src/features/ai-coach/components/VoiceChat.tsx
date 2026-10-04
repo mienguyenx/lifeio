@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Mascot } from '@/components/brand/Mascot';
 import type { CoachApi } from '../hooks/useCoach';
-import { CANCEL_RE, CONFIRM_RE, describeAction, type AssistantAction } from '../voice/assistant';
+import { CANCEL_RE, CONFIRM_RE, describeAction, needsConfirm, type AssistantAction } from '../voice/assistant';
 import { speak, stopSpeaking, useElapsed, useVoiceInput, voiceSupport } from '../voice/speech';
 import { ActionCards } from './ActionCards';
 
@@ -78,9 +78,11 @@ export function VoiceChat({ api, open, onOpenChange }: { api: CoachApi; open: bo
     if (r.actions?.length) {
       setActionIds((ids) => [...ids, ...r.actions!.map((a) => a.id)]);
       const list = r.actions.map((a) => describeAction(a).spoken).join(', ');
-      if (autoConfirm) {
-        const done = await api.confirmAll(r.actions.map((a) => a.id));
-        say(done.length ? `Đã lưu ${list}.` : 'Mình chưa lưu được, thử lại nhé.', thenListen);
+      const safe = r.actions.filter((a) => !needsConfirm(a));
+      if (autoConfirm && safe.length) {
+        const done = await api.confirmAll(safe.map((a) => a.id));
+        const risky = r.actions.filter(needsConfirm).map((a) => describeAction(a).spoken).join(', ');
+        say(done.length ? `Đã lưu ${safe.map((a) => describeAction(a).spoken).join(', ')}.${risky ? ` Còn ${risky} — nói “đồng ý” để xác nhận.` : ''}` : 'Mình chưa lưu được, thử lại nhé.', thenListen);
       } else {
         say(`Mình sẽ tạo ${list}. Nói “đồng ý” để lưu, hoặc “hủy”.`, thenListen);
       }
