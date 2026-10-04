@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AudioLines, Check, Mic, RotateCcw, Square, X } from 'lucide-react';
+import { AudioLines, Check, Mic, RotateCcw, Square, Volume2, VolumeX, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Surface, TINTS } from '@/components/lio';
 import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
 import { askAssistant, describeAction, needsConfirm, useExecuteAction, type AssistantAction } from '../voice/assistant';
-import { stopSpeaking, useVoiceInput, voiceSupport } from '../voice/speech';
+import { speak, stopSpeaking, useVoiceInput, voiceSupport } from '../voice/speech';
+import { useCoach } from '../hooks/useCoach';
 import { openVoiceChat } from './GlobalVoiceChat';
 
 const OPEN = 'lifeos:voice-command';
@@ -18,6 +19,8 @@ export const openVoiceCommand = (opts: { hold?: boolean } = {}) => window.dispat
 export const releaseVoiceCommand = () => window.dispatchEvent(new Event(RELEASE));
 
 type Phase = 'listening' | 'thinking' | 'result' | 'chat' | 'error';
+const SPEAKER_KEY = 'lifeos.voice.speaker';
+const withTimeout = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(Object.assign(new Error('timeout'), { status: 408 })), ms))]);
 type Row = AssistantAction & { message?: string; undo?: () => Promise<void> };
 
 const EXAMPLES = ['“Dời việc nộp báo cáo sang thứ 6”', '“Uống 2 ly nước”', '“Chi 45 nghìn ăn trưa”', '“Bắt đầu tập trung 25 phút”', '“Nhắc tôi gọi mẹ 8 giờ tối mai”', '“Tối qua ngủ 7 tiếng”'];
@@ -46,7 +49,12 @@ export function GlobalVoiceCommand() {
 
 function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: boolean; onClose: () => void }) {
   const exec = useExecuteAction();
+  const coach = useCoach();
   const [phase, setPhase] = useState<Phase>('listening');
+  const [reply, setReply] = useState('');
+  const [speaker, setSpeaker] = useState(() => localStorage.getItem(SPEAKER_KEY) !== '0');
+  const speakerRef = useRef(speaker); speakerRef.current = speaker;
+  const say = (t: string) => { setReply(t); if (speakerRef.current && t) speak(t.length > 600 ? t.slice(0, 600) : t); };
   const [heard, setHeard] = useState('');
   const [note, setNote] = useState('');
   const [rows, setRows] = useState<Row[]>([]);
@@ -57,33 +65,43 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
 
   const patch = (id: string, p: Partial<Row>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...p } : r)));
 
-  const run = useCallback(async (a: Row) => {
+  const run = useCallback(async (a: Row): Promise<string> => {
     try {
       const r = await exec(a);
       patch(a.id, { status: 'done', message: r.message, undo: r.undo });
+      return r.message;
     } catch (e) {
-      patch(a.id, { status: 'failed', message: e instanceof Error ? e.message : 'Không thực hiện được' });
+      const m = e instanceof Error ? e.message : 'Không thực hiện được';
+      patch(a.id, { status: 'failed', message: m });
+      return `Lỗi: ${m}`;
     }
   }, [exec]);
 
   const handle = useCallback(async (text: string) => {
-    if (!text) { setPhase('error'); setNote('Mình chưa nghe rõ. Thử lại nhé.'); return; }
-    setHeard(text); setPhase('thinking');
+    if (!text) { setPhase('error'); setNote('Mình chưa nghe thấy gì. Giữ nút lâu hơn một chút, nói xong rồi mới thả tay nhé.'); return; }
+    setHeard(text); setPhase('thinking'); setReply('');
     try {
-      const r = await askAssistant(text);
+      const r = await withTimeout(askAssistant(text), 25000);
       if (r.mode === 'actions' && r.actions.length) {
         const list: Row[] = r.actions;
         setRows(list); setPhase('result');
-        for (const a of list) if (!needsConfirm(a)) await run(a);
+        const done: string[] = [];
+        for (const a of list) if (!needsConfirm(a)) done.push(await run(a));
+        const waiting = list.length - done.length;
+        say([done.join('. '), waiting ? `${waiting === 1 ? 'Còn 1 lệnh' : `Còn ${waiting} lệnh`} cần bạn bấm Lưu để xác nhận` : ''].filter(Boolean).join('. ') + '.');
         return;
       }
-      if (r.mode === 'unresolved') { setPhase('error'); setNote(`${r.message}. Thử nói rõ tên hơn nhé.`); return; }
-      setPhase('chat'); setNote('Đây có vẻ là câu hỏi, không phải lệnh.');
+      if (r.mode === 'unresolved') { setPhase('error'); setNote(`${r.message}. Thử nói rõ tên hơn nhé.`); say(`${r.message}.`); return; }
+      // Không phải lệnh → hỏi AI Coach và đọc câu trả lời luôn.
+      setPhase('chat');
+      const c = await withTimeout(coach.send(text, { voice: true }), 45000);
+      say(c.reply || 'Mình chưa có câu trả lời, thử hỏi lại nhé.');
     } catch (e) {
+      const st = (e as { status?: number }).status;
       setPhase('error');
-      setNote((e as { status?: number }).status === 503 ? 'AI chưa được cấu hình (Admin → AI Providers).' : 'Không kết nối được trợ lý, thử lại nhé.');
+      setNote(st === 503 ? 'AI chưa được cấu hình (Admin → AI Providers).' : st === 408 ? 'Trợ lý phản hồi quá lâu, thử lại nhé.' : st ? `Trợ lý báo lỗi (${st}), thử lại nhé.` : 'Không kết nối được trợ lý, kiểm tra mạng rồi thử lại nhé.');
     }
-  }, [run]);
+  }, [run, coach]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const voice = useVoiceInput({
     silenceMs: hold ? 20000 : 1500,
@@ -95,7 +113,7 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
   // Mỗi lần mở (hoặc nhấn giữ lại) → nghe mới.
   useEffect(() => {
     released.current = false; touched.current = false;
-    setRows([]); setHeard(''); setNote(''); setPhase('listening');
+    setRows([]); setHeard(''); setNote(''); setReply(''); setPhase('listening');
     stopSpeaking();
     voice.cancel();
     const t = window.setTimeout(() => { void voice.start(); }, 60);
@@ -111,7 +129,7 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
   useEffect(() => { if (hold && released.current && voice.state === 'listening') voice.stop(); }, [hold, voice, voice.state]);
 
   const close = useCallback(() => {
-    voice.cancel();
+    voice.cancel(); stopSpeaking();
     const undoable = rowsRef.current.filter((r) => r.status === 'done' && r.undo);
     if (undoable.length) {
       toast.success(undoable.length === 1 ? undoable[0].message! : `Đã thực hiện ${undoable.length} lệnh`, {
@@ -125,7 +143,7 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
   const settled = phase === 'result' && rows.length > 0 && rows.every((r) => r.status !== 'pending');
   useEffect(() => {
     if (!settled) return;
-    const t = window.setTimeout(() => { if (!touched.current) close(); }, 5000);
+    const t = window.setTimeout(() => { if (!touched.current) close(); }, 9000);
     return () => window.clearTimeout(t);
   }, [settled, close]);
 
@@ -135,7 +153,8 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
     return () => window.removeEventListener('keydown', esc);
   }, [close]);
 
-  const again = () => { touched.current = true; setRows([]); setHeard(''); setNote(''); setPhase('listening'); void voice.start(); };
+  const again = () => { touched.current = true; stopSpeaking(); setRows([]); setHeard(''); setNote(''); setReply(''); setPhase('listening'); void voice.start(); };
+  const toggleSpeaker = () => { const v = !speaker; setSpeaker(v); localStorage.setItem(SPEAKER_KEY, v ? '1' : '0'); if (!v) stopSpeaking(); };
   const undo = async (r: Row) => { touched.current = true; if (!r.undo) return; await r.undo(); patch(r.id, { status: 'undone' }); };
   const listening = phase === 'listening';
   const support = voiceSupport();
@@ -153,7 +172,7 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
             </button>
             <div className="min-w-0 flex-1 pt-0.5">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {listening ? (hold ? 'Đang nghe · thả tay để gửi' : 'Đang nghe · nói xong sẽ tự gửi') : phase === 'thinking' ? 'Đang hiểu lệnh…' : 'Lệnh giọng nói'}
+                {listening ? (hold ? 'Đang nghe · thả tay (hoặc chạm ■) để gửi' : 'Đang nghe · nói xong sẽ tự gửi') : phase === 'thinking' ? 'Đang hiểu lệnh…' : phase === 'chat' && !reply ? 'Đang hỏi AI Coach…' : 'Bạn đã nói'}
               </p>
               <p className={cn('text-[14.5px] font-semibold leading-snug break-words mt-0.5', !(voice.interim || heard) && 'text-muted-foreground font-medium')}>
                 {voice.interim || heard || (listening ? <>Thử: <span className="italic">{example}</span></> : '')}
@@ -162,8 +181,17 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
               {phase === 'thinking' && <span className="mt-1.5 flex gap-1">{[0, 150, 300].map((d) => <span key={d} className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: `${d}ms` }} />)}</span>}
               {!support.native && !support.recorder && <p className="text-[12px] text-destructive mt-1">Trình duyệt này chưa hỗ trợ micro.</p>}
             </div>
+            <button onClick={toggleSpeaker} aria-label={speaker ? 'Tắt đọc phản hồi' : 'Bật đọc phản hồi'} title={speaker ? 'Đang đọc phản hồi' : 'Không đọc phản hồi'} className="h-8 w-8 -mt-0.5 rounded-full grid place-items-center text-muted-foreground hover:bg-secondary shrink-0">{speaker ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}</button>
             <button onClick={close} aria-label="Đóng" className="h-8 w-8 -mr-1 -mt-0.5 rounded-full grid place-items-center text-muted-foreground hover:bg-secondary shrink-0"><X className="h-4 w-4" /></button>
           </div>
+
+          {reply && (
+            <div className="mt-3 flex items-start gap-2">
+              <span className="h-7 w-7 rounded-full bg-lavender dark:bg-primary/15 grid place-items-center shrink-0 text-[13px]">✨</span>
+              <p className="flex-1 min-w-0 rounded-[16px] rounded-tl-md bg-secondary/60 px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap break-words max-h-44 overflow-y-auto">{reply.replace(/[*#`]/g, '')}</p>
+            </div>
+          )}
+          {phase === 'chat' && !reply && <span className="mt-3 flex gap-1 pl-2">{[0, 150, 300].map((d) => <span key={d} className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: `${d}ms` }} />)}</span>}
 
           {!!rows.length && (
             <div className="mt-3 space-y-1.5">
@@ -171,12 +199,12 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
             </div>
           )}
 
-          {(phase === 'error' || phase === 'chat') && (
-            <div className="mt-3 rounded-[16px] bg-secondary/60 px-3 py-2.5">
-              <p className="text-[13px]">{note}</p>
+          {(phase === 'error' || (phase === 'chat' && reply)) && (
+            <div className={cn('mt-3', phase === 'error' && 'rounded-[16px] bg-secondary/60 px-3 py-2.5')}>
+              {phase === 'error' && <p className="text-[13px]">{note}</p>}
               <div className="mt-2 flex gap-2">
                 <button onClick={again} className="h-8 px-3 rounded-full bg-card border border-border text-[12.5px] font-semibold flex items-center gap-1.5"><RotateCcw className="h-3.5 w-3.5" />Nói lại</button>
-                {phase === 'chat' && <button onClick={() => { onClose(); setTimeout(openVoiceChat, 120); }} className="h-8 px-3 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold flex items-center gap-1.5"><AudioLines className="h-3.5 w-3.5" />Hỏi AI Coach</button>}
+                {phase === 'chat' && <button onClick={() => { onClose(); setTimeout(openVoiceChat, 120); }} className="h-8 px-3 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold flex items-center gap-1.5"><AudioLines className="h-3.5 w-3.5" />Trò chuyện tiếp</button>}
               </div>
             </div>
           )}
