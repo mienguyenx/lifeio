@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { AudioLines, Check, Mic, RotateCcw, Square, Volume2, VolumeX, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -21,7 +22,7 @@ export const releaseVoiceCommand = () => window.dispatchEvent(new Event(RELEASE)
 type Phase = 'listening' | 'thinking' | 'result' | 'chat' | 'error';
 const SPEAKER_KEY = 'lifeos.voice.speaker';
 const withTimeout = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(Object.assign(new Error('timeout'), { status: 408 })), ms))]);
-type Row = AssistantAction & { message?: string; undo?: () => Promise<void> };
+type Row = AssistantAction & { message?: string; undo?: () => Promise<void>; view?: string };
 
 const EXAMPLES = ['“Dời việc nộp báo cáo sang thứ 6”', '“Uống 2 ly nước”', '“Chi 45 nghìn ăn trưa”', '“Bắt đầu tập trung 25 phút”', '“Nhắc tôi gọi mẹ 8 giờ tối mai”', '“Tối qua ngủ 7 tiếng”'];
 
@@ -50,6 +51,9 @@ export function GlobalVoiceCommand() {
 function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: boolean; onClose: () => void }) {
   const exec = useExecuteAction();
   const coach = useCoach();
+  const navigate = useNavigate();
+  /** Mỗi lượt nghe chỉ gửi một lần (trình duyệt có thể báo kết thúc hai lần → tạo trùng). */
+  const sent = useRef(false);
   const [phase, setPhase] = useState<Phase>('listening');
   const [reply, setReply] = useState('');
   const [speaker, setSpeaker] = useState(() => localStorage.getItem(SPEAKER_KEY) !== '0');
@@ -68,7 +72,7 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
   const run = useCallback(async (a: Row): Promise<string> => {
     try {
       const r = await exec(a);
-      patch(a.id, { status: 'done', message: r.message, undo: r.undo });
+      patch(a.id, { status: 'done', message: r.message, undo: r.undo, view: r.view });
       return r.message;
     } catch (e) {
       const m = e instanceof Error ? e.message : 'Không thực hiện được';
@@ -78,6 +82,8 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
   }, [exec]);
 
   const handle = useCallback(async (text: string) => {
+    if (sent.current) return;
+    sent.current = true;
     if (!text) { setPhase('error'); setNote('Mình chưa nghe thấy gì. Giữ nút lâu hơn một chút, nói xong rồi mới thả tay nhé.'); return; }
     setHeard(text); setPhase('thinking'); setReply('');
     try {
@@ -112,7 +118,7 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
 
   // Mỗi lần mở (hoặc nhấn giữ lại) → nghe mới.
   useEffect(() => {
-    released.current = false; touched.current = false;
+    released.current = false; touched.current = false; sent.current = false;
     setRows([]); setHeard(''); setNote(''); setReply(''); setPhase('listening');
     stopSpeaking();
     voice.cancel();
@@ -153,7 +159,7 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
     return () => window.removeEventListener('keydown', esc);
   }, [close]);
 
-  const again = () => { touched.current = true; stopSpeaking(); setRows([]); setHeard(''); setNote(''); setReply(''); setPhase('listening'); void voice.start(); };
+  const again = () => { touched.current = true; sent.current = false; stopSpeaking(); setRows([]); setHeard(''); setNote(''); setReply(''); setPhase('listening'); void voice.start(); };
   const toggleSpeaker = () => { const v = !speaker; setSpeaker(v); localStorage.setItem(SPEAKER_KEY, v ? '1' : '0'); if (!v) stopSpeaking(); };
   const undo = async (r: Row) => { touched.current = true; if (!r.undo) return; await r.undo(); patch(r.id, { status: 'undone' }); };
   const listening = phase === 'listening';
@@ -195,7 +201,7 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
 
           {!!rows.length && (
             <div className="mt-3 space-y-1.5">
-              {rows.map((r) => <ResultRow key={r.id} row={r} onConfirm={() => { touched.current = true; void run(r); }} onDismiss={() => patch(r.id, { status: 'dismissed' })} onUndo={() => void undo(r)} />)}
+              {rows.map((r) => <ResultRow key={r.id} row={r} onConfirm={() => { touched.current = true; void run(r); }} onDismiss={() => patch(r.id, { status: 'dismissed' })} onUndo={() => void undo(r)} onView={r.view ? () => { navigate(r.view!); close(); } : undefined} />)}
             </div>
           )}
 
@@ -214,7 +220,7 @@ function VoiceCommandPanel({ session, hold, onClose }: { session: number; hold: 
   );
 }
 
-function ResultRow({ row, onConfirm, onDismiss, onUndo }: { row: Row; onConfirm: () => void; onDismiss: () => void; onUndo: () => void }) {
+function ResultRow({ row, onConfirm, onDismiss, onUndo, onView }: { row: Row; onConfirm: () => void; onDismiss: () => void; onUndo: () => void; onView?: () => void }) {
   const d = describeAction(row);
   const off = row.status === 'dismissed' || row.status === 'undone';
   return (
@@ -234,7 +240,8 @@ function ResultRow({ row, onConfirm, onDismiss, onUndo }: { row: Row; onConfirm:
       ) : row.status === 'done' ? (
         <span className="flex items-center gap-0.5 shrink-0">
           <span className="h-6 w-6 rounded-full grid place-items-center bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" aria-label="Đã xong"><Check className="h-3.5 w-3.5" strokeWidth={3} /></span>
-          {row.undo && <button onClick={onUndo} className="h-8 px-2 rounded-full text-[12px] font-semibold text-primary hover:bg-card flex items-center gap-1"><RotateCcw className="h-3.5 w-3.5" />Hoàn tác</button>}
+          {onView && <button onClick={onView} className="h-8 px-2.5 rounded-full text-[12px] font-semibold bg-card border border-border/70 hover:bg-secondary">Xem</button>}
+          {row.undo && <button onClick={onUndo} aria-label="Hoàn tác" title="Hoàn tác" className="h-8 w-8 rounded-full text-primary hover:bg-card grid place-items-center"><RotateCcw className="h-3.5 w-3.5" /></button>}
         </span>
       ) : (
         <span className="text-[11.5px] font-medium text-muted-foreground shrink-0 pr-1">{row.status === 'undone' ? 'Đã hoàn tác' : row.status === 'failed' ? 'Lỗi' : 'Đã bỏ'}</span>
