@@ -99,12 +99,16 @@ export function BottomNav() {
       holding.current = true;
       if (navigator.vibrate) navigator.vibrate(20);
       openVoiceCommand({ hold: true });
+      // Thả tay ở bất kỳ đâu cũng gửi (ngón tay có thể trượt khỏi nút).
+      window.addEventListener('pointerup', () => releaseVoiceCommand(), { once: true });
     }, 350);
   };
   const pressUp = () => {
     window.clearTimeout(holdTimer.current);
     if (holding.current) releaseVoiceCommand();
   };
+  // Trình duyệt huỷ thao tác chạm (pointercancel) khi giữ lâu → KHÔNG gửi sớm; người dùng thả tay / chạm ■.
+  const pressCancel = () => { window.clearTimeout(holdTimer.current); };
   const handleQuickAdd = () => {
     if (holding.current) { holding.current = false; return; }
     if (navigator.vibrate) navigator.vibrate(10);
@@ -139,8 +143,7 @@ export function BottomNav() {
               onClick={handleQuickAdd}
               onPointerDown={pressDown}
               onPointerUp={pressUp}
-              onPointerCancel={pressUp}
-              onPointerLeave={pressUp}
+              onPointerCancel={pressCancel}
               onContextMenu={(e) => e.preventDefault()}
               aria-label="Thêm nhanh (nhấn giữ để nói lệnh)"
               className={cn(
