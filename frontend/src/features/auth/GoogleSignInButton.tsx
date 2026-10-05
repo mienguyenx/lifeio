@@ -11,7 +11,7 @@ interface GsiApi {
     cancel: () => void;
   } };
 }
-declare global { interface Window { google?: GsiApi } }
+const gsi = () => (window as unknown as { google?: GsiApi }).google;
 
 let providersP: Promise<string | null> | null = null;
 const getClientId = () =>
@@ -22,11 +22,11 @@ const getClientId = () =>
 let gsiP: Promise<GsiApi> | null = null;
 const loadGsi = () =>
   (gsiP ??= new Promise<GsiApi>((resolve, reject) => {
-    if (window.google?.accounts?.id) return resolve(window.google);
+    const g0 = gsi(); if (g0?.accounts?.id) return resolve(g0);
     const s = document.createElement('script');
     s.src = 'https://accounts.google.com/gsi/client';
     s.async = true; s.defer = true;
-    s.onload = () => (window.google?.accounts?.id ? resolve(window.google) : reject(new Error('GSI unavailable')));
+    s.onload = () => { const g = gsi(); if (g?.accounts?.id) resolve(g); else reject(new Error('GSI unavailable')); };
     s.onerror = () => { gsiP = null; reject(new Error('Không tải được Google')); };
     document.head.appendChild(s);
   }));
