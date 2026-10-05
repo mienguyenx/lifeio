@@ -9,6 +9,9 @@ import { badRequest, conflict, unauthorized } from '../lib/errors';
 import { getUserId } from '../lib/context';
 import { env } from '../env';
 import { emailProvider, sendEmail } from '../lib/email';
+import { GoogleTokenError, verifyGoogleIdToken } from '../lib/googleIdToken';
+
+const googleClientIds = () => (env.GOOGLE_CLIENT_ID ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 // Chống dò mật khẩu / spam đăng ký: giới hạn theo IP (ngoài giới hạn chung 300/phút)
 const strict = (max: number) => ({ rateLimit: { max, timeWindow: '10 minutes' } });
@@ -93,6 +96,66 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       if (!ok) throw unauthorized('Invalid credentials');
       const session = await issueSession(user.id, user.email);
       return { ...session, user: { id: user.id, email: user.email } };
+    },
+  );
+
+  // Nhà cung cấp đăng nhập đang bật — frontend đọc lúc chạy, không cần build lại khi đổi client id.
+  fastify.get('/auth/providers', { schema: { tags: ['auth'], summary: 'Enabled sign-in providers' } }, async () => {
+    const ids = googleClientIds();
+    return { google: ids.length ? { clientId: ids[0] } : null };
+  });
+
+  fastify.post<{ Body: { credential: string } }>(
+    '/auth/google',
+    {
+      config: strict(30),
+      schema: {
+        tags: ['auth'],
+        summary: 'Sign in / sign up with a Google ID token (Google Identity Services)',
+        body: {
+          type: 'object',
+          required: ['credential'],
+          properties: { credential: { type: 'string', minLength: 20, maxLength: 4096 } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const ids = googleClientIds();
+      if (!ids.length) throw badRequest('Google sign-in is not enabled');
+      let g;
+      try {
+        g = await verifyGoogleIdToken(request.body.credential, ids);
+      } catch (err) {
+        if (err instanceof GoogleTokenError) throw unauthorized(`Invalid Google credential: ${err.message}`);
+        throw err;
+      }
+      if (!g.emailVerified) throw unauthorized('Google email is not verified');
+
+      const [existing] = await db.select().from(users).where(eq(users.email, g.email)).limit(1);
+      if (existing) {
+        if (!existing.emailVerified) {
+          await db.update(users).set({ emailVerified: true, updatedAt: new Date() }).where(eq(users.id, existing.id));
+        }
+        // Bổ sung tên / ảnh đại diện nếu hồ sơ còn trống.
+        const [prof] = await db.select().from(profiles).where(eq(profiles.id, existing.id)).limit(1);
+        if (prof && ((!prof.name && g.name) || (!prof.avatarUrl && g.picture))) {
+          await db.update(profiles).set({
+            ...(!prof.name && g.name ? { name: g.name } : {}),
+            ...(!prof.avatarUrl && g.picture ? { avatarUrl: g.picture } : {}),
+          }).where(eq(profiles.id, existing.id));
+        }
+        const session = await issueSession(existing.id, existing.email);
+        return { ...session, user: { id: existing.id, email: existing.email }, isNew: false };
+      }
+
+      // Tài khoản mới: mật khẩu ngẫu nhiên không ai biết — muốn dùng email/mật khẩu thì "Quên mật khẩu" để đặt.
+      const passwordHash = await hashPassword(randomToken(32));
+      const [user] = await db.insert(users).values({ email: g.email, passwordHash, emailVerified: true }).returning();
+      await db.insert(profiles).values({ id: user.id, email: g.email, name: g.name ?? null, avatarUrl: g.picture ?? null });
+      await db.insert(userRoles).values({ userId: user.id, role: 'user' });
+      await db.insert(userSettings).values({ userId: user.id });
+      const session = await issueSession(user.id, user.email);
+      return reply.code(201).send({ ...session, user: { id: user.id, email: user.email }, isNew: true });
     },
   );
 

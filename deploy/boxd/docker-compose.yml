@@ -41,6 +41,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-LifeOS}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     expose:
       - '4000'
 
