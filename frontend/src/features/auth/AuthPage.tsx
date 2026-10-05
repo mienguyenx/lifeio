@@ -13,6 +13,8 @@ import { LifeIcon, type LifeIconName } from '@/components/icons/LifeIcon';
 import { Surface, TINTS, type Tint } from '@/components/lio';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/integrations/api/httpClient';
+import { authClient } from '@/integrations/api/authClient';
+import { GoogleSignInButton } from './GoogleSignInButton';
 
 /**
  * Module 17 — Đăng nhập / Đăng ký (LIO kit). Toàn bộ logic giữ nguyên từ trang cũ (/auth/classic):
@@ -146,6 +148,28 @@ export default function AuthPage() {
     return r.success ? undefined : r.error.errors[0].message;
   };
 
+  const persistKeep = () => {
+    if (keepSignedIn) localStorage.removeItem('lifeos.ephemeral');
+    else { localStorage.setItem('lifeos.ephemeral', '1'); sessionStorage.setItem('lifeos.alive', '1'); }
+  };
+
+  const handleGoogle = async (credential: string) => {
+    setFormError(undefined);
+    persistKeep();
+    setIsLoading(true);
+    const r = await authClient.signInWithIdToken({ provider: 'google', token: credential });
+    setIsLoading(false);
+    if (r.error) {
+      const m = r.error.message.toLowerCase();
+      setFormError(m.includes('not enabled') ? 'Đăng nhập Google chưa được bật trên máy chủ.' : m.includes('not verified') ? 'Email Google này chưa được xác minh.' : m.includes('invalid google') ? 'Google không xác nhận được tài khoản. Thử lại nhé.' : humanize(r.error.message));
+      return;
+    }
+    if (r.data.user?.email) localStorage.setItem('rememberedEmail', r.data.user.email);
+    if (r.isNew) toast.success('Chào mừng bạn đến với LifeOS! 🎉', { description: 'Tài khoản đã được tạo bằng Google.' });
+    navigate('/');
+  };
+  const onGoogleError = (msg: string) => setFormError(msg);
+
   const persistChoice = () => {
     localStorage.setItem('rememberedEmail', email.trim());
     if (keepSignedIn) localStorage.removeItem('lifeos.ephemeral');
@@ -245,6 +269,7 @@ export default function AuthPage() {
   const loginForm = (
     <form onSubmit={handleSignIn} className="space-y-4" noValidate>
       {!isMobile && <TabHead title="Chào mừng bạn trở lại!" subtitle="Đăng nhập để tiếp tục hành trình của bạn." />}
+      <GoogleSignInButton text="signin_with" onCredential={handleGoogle} onError={onGoogleError} />
       <TextInput id="signin-email" label="Email" icon={Mail} {...emailAttrs} enterKeyHint="next" placeholder="ban@email.com" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={isLoading} autoComplete="username"
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('signin-password')?.focus(); } }} />
       <TextInput id="signin-password" label="Mật khẩu" icon={Lock} type={showPassword ? 'text' : 'password'} enterKeyHint="go" placeholder="Mật khẩu của bạn" value={password} onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={isLoading} autoComplete="current-password" reveal={showPassword} onReveal={() => setShowPassword(!showPassword)} />
@@ -262,6 +287,7 @@ export default function AuthPage() {
   const registerCard = (
     <form onSubmit={handleSignUp} className="space-y-4" noValidate>
       {!isMobile && <TabHead title="Tạo tài khoản mới" subtitle="Miễn phí — chỉ mất 30 giây." />}
+      <GoogleSignInButton text="signup_with" onCredential={handleGoogle} onError={onGoogleError} />
       <TextInput id="signup-name" label="Tên của bạn" icon={User} enterKeyHint="next" placeholder="LIO sẽ gọi bạn bằng tên này" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} disabled={isLoading} autoComplete="given-name" autoCapitalize="words"
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('signup-email')?.focus(); } }} />
       <TextInput id="signup-email" label="Email" icon={Mail} {...emailAttrs} enterKeyHint="next" placeholder="ban@email.com" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={isLoading} autoComplete="email"

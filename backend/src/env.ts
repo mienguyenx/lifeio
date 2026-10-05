@@ -25,6 +25,9 @@ const schema = z.object({
   PERPLEXITY_API_KEY: z.string().optional(),
   LOVABLE_API_KEY: z.string().optional(),
 
+  // --- Đăng nhập Google (Google Identity Services). Có thể nhiều client id, cách nhau dấu phẩy.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+
   // --- Email (Phase 3, send-email) ---
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
