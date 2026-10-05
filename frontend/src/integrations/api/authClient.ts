@@ -77,6 +77,22 @@ export const authClient = {
     }
   },
 
+  /** Đăng nhập / đăng ký bằng Google ID token (Google Identity Services). */
+  async signInWithIdToken(params: { provider: 'google'; token: string }): Promise<AuthResult & { isNew?: boolean }> {
+    try {
+      const res = await apiFetch<SignupLoginResponse & { isNew?: boolean }>('/auth/google', {
+        method: 'POST',
+        auth: false,
+        body: { credential: params.token },
+      });
+      const session = buildSession(res);
+      setSession(session, res.isNew ? 'SIGNED_UP' : 'SIGNED_IN');
+      return { ...ok(session), isNew: !!res.isNew };
+    } catch (err) {
+      return fail(err);
+    }
+  },
+
   async signOut() {
     const session = getStoredSession();
     try {
